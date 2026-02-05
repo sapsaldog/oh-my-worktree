@@ -1,6 +1,7 @@
 import Foundation
 
 struct AppSettings: Codable {
+    var menuBarEnabled: Bool = true
     var iTermOpenMode: OpenMode = .newTab
     var vscodeOpenMode: OpenMode = .newWindow
     var lastSelectedRepositoryID: UUID?

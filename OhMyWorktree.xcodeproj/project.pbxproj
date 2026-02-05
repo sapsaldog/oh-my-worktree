@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0A1B2C3D4E5F6A7B8C9D0E1F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F1E2D3C4B5A69788796A5B4 /* AppDelegate.swift */; };
 		156C6EB8ECDE30DC56C50A6B /* Repository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C1B43B188C597C61F1DC2EA /* Repository.swift */; };
 		1D5329DDE42009E76C2650C5 /* ExternalToolLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 155B3645306233DD226910E8 /* ExternalToolLauncher.swift */; };
 		2D19F7A70D643D4F09D6468E /* subagent-tracking.json in Resources */ = {isa = PBXBuildFile; fileRef = 674320D41686AFA66878FC6E /* subagent-tracking.json */; };
@@ -29,6 +30,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0F1E2D3C4B5A69788796A5B4 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		155B3645306233DD226910E8 /* ExternalToolLauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalToolLauncher.swift; sourceTree = "<group>"; };
 		1E244AEB611F8ACEFC7862B5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		284A4CA5F96802A6098EA38B /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -77,6 +79,7 @@
 		42DAE792EFCDE5A1BBE5F62D /* OhMyWorktree */ = {
 			isa = PBXGroup;
 			children = (
+				0F1E2D3C4B5A69788796A5B4 /* AppDelegate.swift */,
 				1E244AEB611F8ACEFC7862B5 /* Info.plist */,
 				31E4C67AC16118B79418121C /* OhMyWorktreeApp.swift */,
 				63D0E6DC5BE13679D37058F9 /* .omc */,
@@ -210,6 +213,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E2606717B65AB4B466E7B6F6 /* ActionButtonsView.swift in Sources */,
+				0A1B2C3D4E5F6A7B8C9D0E1F /* AppDelegate.swift in Sources */,
 				96B92319C7A41781AC764E80 /* AppSettings.swift in Sources */,
 				BE5701A4F52B99C834D7ACB5 /* ContentView.swift in Sources */,
 				1D5329DDE42009E76C2650C5 /* ExternalToolLauncher.swift in Sources */,

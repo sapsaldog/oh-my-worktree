@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var repoViewModel = RepositoryListViewModel()
-    @StateObject private var worktreeViewModel = WorktreeListViewModel()
+    @ObservedObject var repoViewModel: RepositoryListViewModel
+    @ObservedObject var worktreeViewModel: WorktreeListViewModel
 
     var body: some View {
         VStack(spacing: 0) {
@@ -61,5 +61,8 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    ContentView(
+        repoViewModel: RepositoryListViewModel(),
+        worktreeViewModel: WorktreeListViewModel()
+    )
 }
