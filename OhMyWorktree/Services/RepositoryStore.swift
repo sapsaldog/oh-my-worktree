@@ -108,8 +108,14 @@ actor RepositoryStore {
     }
 
     func updateLastActivity(folderName: String, repositoryID: UUID) {
-        guard let index = worktreeMetadata[repositoryID]?.firstIndex(where: { $0.folderName == folderName }) else { return }
-        worktreeMetadata[repositoryID]?[index].lastActivityAt = Date()
+        if let index = worktreeMetadata[repositoryID]?.firstIndex(where: { $0.folderName == folderName }) {
+            worktreeMetadata[repositoryID]?[index].lastActivityAt = Date()
+        } else {
+            // Create metadata entry if it doesn't exist yet
+            var existing = worktreeMetadata[repositoryID] ?? []
+            existing.append(WorktreeMetadata(folderName: folderName, lastActivityAt: Date()))
+            worktreeMetadata[repositoryID] = existing
+        }
         saveToDisk()
     }
 
