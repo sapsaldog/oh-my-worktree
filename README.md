@@ -2,7 +2,9 @@
 
 A native macOS utility for managing Git worktrees with speed and elegance.
 
-<!-- screenshot -->
+<p align="center">
+  <img src="docs/screenshots/main-window.jpg" width="500" alt="Main Window" />
+</p>
 
 ## Features
 
@@ -49,41 +51,37 @@ A native macOS utility for managing Git worktrees with speed and elegance.
 
 ## Usage
 
-### Basic Workflow
+### 1. Register a Repository
 
-1. **Register a Repository**
-   - Launch Oh My Worktree
-   - Use the "Add Repository" button to register a bare Git repository
-   - Select the repository path on your filesystem
+Use the **+** button to add a bare Git repository. Select it from the dropdown to see its worktrees.
 
-2. **Create a Worktree**
-   - Select a repository from the dropdown
-   - Click "New Worktree"
-   - Choose a base branch or commit
-   - The app generates a unique name (e.g., `golden-sunset`) automatically
-   - Worktree is created and ready to use
+### 2. Create & Manage Worktrees
 
-3. **Open in Your Tool**
-   - From the worktree list, select your preferred tool:
-     - **iTerm** - Opens a new iTerm window at the worktree path
-     - **Ghostty** - Opens Ghostty terminal at the worktree path
-     - **VSCode** - Opens VS Code in the worktree directory
-     - **Cursor** - Opens Cursor IDE in the worktree directory
+Click **+** to create a worktree with an auto-generated name (e.g., `tokyo-lunch`, `bright-ocean`). Each worktree shows its branch, path, and last activity time.
 
-4. **Monitor Activity**
-   - Each worktree shows its last activity time
-   - Quickly identify stale or active worktrees at a glance
+### 3. Open in Your Favorite Tool
 
-5. **Delete Worktrees**
-   - Select a worktree and click "Delete" to remove it
-   - Confirmation dialog prevents accidental deletion
+Select a worktree and open it directly in your preferred tool:
 
-### Menu Bar Usage
+| Tool | Description |
+|------|-------------|
+| **iTerm** | Opens a new terminal window at the worktree path |
+| **Ghostty** | Opens Ghostty terminal at the worktree path |
+| **VSCode** | Opens VS Code in the worktree directory |
+| **Cursor** | Opens Cursor IDE in the worktree directory |
 
-- Click the menu bar icon to see your current repository and worktree
-- Use the dropdown menu for quick navigation between worktrees
-- Open the main window by selecting "Show Window"
-- Close the main window but keep the app running in the menu bar
+### 4. Menu Bar Quick Access
+
+Access everything from the menu bar without opening the main window. The icon shows your current `{repo}/{worktree}` selection.
+
+<p align="center">
+  <img src="docs/screenshots/menubar-dropdown.jpg" width="500" alt="Menu Bar Dropdown" />
+</p>
+
+- Click the menu bar icon to see repositories and worktrees
+- Hover a worktree for tool submenu (iTerm / Ghostty / VSCode / Cursor / Copy Path / Finder)
+- Create new worktrees directly from the menu
+- Close the main window — the app keeps running in the menu bar
 
 ## Architecture
 
