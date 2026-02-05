@@ -1,5 +1,4 @@
 import Foundation
-import AppKit
 
 final class ExternalToolLauncher {
 
@@ -10,42 +9,11 @@ final class ExternalToolLauncher {
             throw OhMyWorktreeError.externalToolNotFound(tool: "iTerm")
         }
 
-        let script: String
-        switch mode {
-        case .newTab:
-            script = """
-            tell application "iTerm"
-                activate
-                tell current window
-                    create tab with default profile
-                    tell current session
-                        write text "cd \\"\(path)\\""
-                    end tell
-                end tell
-            end tell
-            """
-        case .newWindow:
-            script = """
-            tell application "iTerm"
-                activate
-                create window with default profile
-                tell current session of current window
-                    write text "cd \\"\(path)\\""
-                end tell
-            end tell
-            """
-        case .currentWindow:
-            script = """
-            tell application "iTerm"
-                activate
-                tell current session of current window
-                    write text "cd \\"\(path)\\""
-                end tell
-            end tell
-            """
-        }
-
-        try await runAppleScript(script)
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        process.arguments = [path, "-a", "iTerm"]
+        try process.run()
+        process.waitUntilExit()
     }
 
     // MARK: - Ghostty
@@ -122,23 +90,4 @@ final class ExternalToolLauncher {
         throw OhMyWorktreeError.externalToolNotFound(tool: "Visual Studio Code")
     }
 
-    private func runAppleScript(_ source: String) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            DispatchQueue.global(qos: .userInitiated).async {
-                var error: NSDictionary?
-                let script = NSAppleScript(source: source)
-                script?.executeAndReturnError(&error)
-
-                if let error = error {
-                    let message = error[NSAppleScript.errorMessage] as? String ?? "Unknown AppleScript error"
-                    continuation.resume(throwing: OhMyWorktreeError.commandExecutionFailed(
-                        command: "AppleScript",
-                        stderr: message
-                    ))
-                } else {
-                    continuation.resume()
-                }
-            }
-        }
-    }
 }
