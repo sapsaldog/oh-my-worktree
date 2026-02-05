@@ -58,6 +58,20 @@ final class ExternalToolLauncher {
         }
     }
 
+    // MARK: - Cursor
+
+    func openInCursor(path: String) async throws {
+        guard isCursorInstalled() else {
+            throw OhMyWorktreeError.externalToolNotFound(tool: "Cursor")
+        }
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        process.arguments = [path, "-a", "Cursor"]
+        try process.run()
+        process.waitUntilExit()
+    }
+
     // MARK: - Tool Detection
 
     func isITermInstalled() -> Bool {
@@ -70,6 +84,10 @@ final class ExternalToolLauncher {
 
     func isVSCodeInstalled() -> Bool {
         return (try? findVSCodeCLI()) != nil
+    }
+
+    func isCursorInstalled() -> Bool {
+        FileManager.default.fileExists(atPath: "/Applications/Cursor.app")
     }
 
     // MARK: - Private Helpers

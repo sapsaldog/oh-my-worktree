@@ -33,6 +33,14 @@ struct ActionButtonsView: View {
                 Task { await viewModel.openInVSCode() }
             }
 
+            actionButton(
+                title: "Cursor",
+                icon: "cursorarrow.rays",
+                isAvailable: viewModel.isCursorAvailable
+            ) {
+                Task { await viewModel.openInCursor() }
+            }
+
             Spacer()
 
             if hasSelection {

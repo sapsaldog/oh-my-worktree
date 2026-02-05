@@ -101,6 +101,11 @@ struct WorktreeListView: View {
         }
         .disabled(!viewModel.isVSCodeAvailable)
 
+        Button("Open in Cursor") {
+            Task { await viewModel.openInCursor(worktree) }
+        }
+        .disabled(!viewModel.isCursorAvailable)
+
         Divider()
 
         Button("Show in Finder") {

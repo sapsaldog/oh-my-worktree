@@ -155,6 +155,17 @@ final class WorktreeListViewModel: ObservableObject {
         }
     }
 
+    func openInCursor(_ worktree: Worktree? = nil) async {
+        let target = worktree ?? selectedWorktree
+        guard let target else { return }
+
+        do {
+            try await toolLauncher.openInCursor(path: target.path)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     // MARK: - Tool Availability
 
     var isITermAvailable: Bool {
@@ -167,6 +178,10 @@ final class WorktreeListViewModel: ObservableObject {
 
     var isVSCodeAvailable: Bool {
         toolLauncher.isVSCodeInstalled()
+    }
+
+    var isCursorAvailable: Bool {
+        toolLauncher.isCursorInstalled()
     }
 
     // MARK: - Error Handling

@@ -320,16 +320,7 @@ branch refs/heads/feature/new-feature
 **설명**: 선택된 worktree를 iTerm에서 열기
 
 **상세 요구사항**:
-- AppleScript를 통한 iTerm 제어
-- 설정 옵션:
-  - 새 탭으로 열기 (디폴트)
-  - 새 윈도우로 열기
-- 실행 스크립트 예시:
-```applescript
-tell application "iTerm"
-    create window with default profile command "cd /path/to/worktree"
-end tell
-```
+- `open <path> -a iTerm` 명령어로 실행
 - iTerm 미설치 시 오류 처리
 
 ---
@@ -357,6 +348,16 @@ end tell
 - 설정 옵션:
   - 새 윈도우로 열기 (`-n` 플래그)
   - 현재 윈도우에 추가 (`-a` 플래그)
+
+---
+
+#### FR-009-1: Cursor 연동 (P1)
+
+**설명**: 선택된 worktree를 Cursor 에디터에서 열기
+
+**상세 요구사항**:
+- `open <path> -a Cursor` 명령어로 실행
+- Cursor 미설치 시 오류 처리
 
 ---
 
@@ -1433,6 +1434,7 @@ end tell
 | 1.0 | 2026-02-04 | 초안 작성 | Claude Code Writer |
 | 1.1 | 2026-02-04 | Worktree 랜덤 이름 생성, 메타데이터 폴더명 기반 관리 추가 | Claude Code |
 | 1.2 | 2026-02-04 | Ghostty 연동을 open -a 방식으로 변경, Worktree 경로를 ~/oh-my-worktree/workspaces로 변경 | Claude Code |
+| 1.3 | 2026-02-04 | iTerm을 open -a 방식으로 변경, Cursor 에디터 연동 추가 | Claude Code |
 
 ---
 
