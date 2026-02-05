@@ -46,6 +46,12 @@ struct WorktreeRowView: View {
             }
 
             Spacer()
+
+            if let relative = worktree.relativeLastActivity {
+                Text(relative)
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
         }
         .padding(.vertical, 2)
     }

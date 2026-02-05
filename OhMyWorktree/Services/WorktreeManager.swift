@@ -185,6 +185,23 @@ final class WorktreeManager {
             .filter { !$0.isEmpty }
     }
 
+    // MARK: - Last Commit Time
+
+    func lastCommitDate(worktreePath: String) async -> Date? {
+        do {
+            let result = try await executor.execute(
+                arguments: ["log", "-1", "--format=%ct"],
+                workingDirectory: worktreePath
+            )
+            guard result.exitCode == 0 else { return nil }
+            let timestamp = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let interval = TimeInterval(timestamp) else { return nil }
+            return Date(timeIntervalSince1970: interval)
+        } catch {
+            return nil
+        }
+    }
+
     // MARK: - Parsing
 
     private func parseWorktreeList(_ output: String) -> [Worktree] {

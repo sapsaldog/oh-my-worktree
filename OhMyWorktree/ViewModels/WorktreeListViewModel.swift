@@ -37,7 +37,34 @@ final class WorktreeListViewModel: ObservableObject {
 
         do {
             // Always fetch fresh from git
-            worktrees = try await worktreeManager.listWorktrees(repositoryPath: repository.path)
+            var freshWorktrees = try await worktreeManager.listWorktrees(repositoryPath: repository.path)
+            let metadata = await store.getWorktreeMetadata(repositoryID: repository.id)
+
+            // Enrich worktrees with last activity time
+            for i in freshWorktrees.indices {
+                let wt = freshWorktrees[i]
+                let metaActivity = metadata.first(where: { $0.folderName == wt.folderName })?.lastActivityAt
+                let commitDate = await worktreeManager.lastCommitDate(worktreePath: wt.path)
+
+                // Use the most recent of metadata activity and last commit
+                switch (metaActivity, commitDate) {
+                case let (a?, c?):
+                    freshWorktrees[i].lastActivityAt = max(a, c)
+                case let (a?, nil):
+                    freshWorktrees[i].lastActivityAt = a
+                case let (nil, c?):
+                    freshWorktrees[i].lastActivityAt = c
+                case (nil, nil):
+                    break
+                }
+            }
+
+            // Sort by last activity (most recent first)
+            freshWorktrees.sort { a, b in
+                (a.lastActivityAt ?? .distantPast) > (b.lastActivityAt ?? .distantPast)
+            }
+
+            worktrees = freshWorktrees
 
             // If selected worktree no longer exists, reset
             if let selected = selectedWorktree,
@@ -128,6 +155,7 @@ final class WorktreeListViewModel: ObservableObject {
 
         do {
             try await toolLauncher.openInITerm(path: target.path, mode: mode)
+            await recordActivity(for: target)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -139,6 +167,7 @@ final class WorktreeListViewModel: ObservableObject {
 
         do {
             try await toolLauncher.openInGhostty(path: target.path)
+            await recordActivity(for: target)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -150,6 +179,7 @@ final class WorktreeListViewModel: ObservableObject {
 
         do {
             try await toolLauncher.openInVSCode(path: target.path, mode: mode)
+            await recordActivity(for: target)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -161,8 +191,18 @@ final class WorktreeListViewModel: ObservableObject {
 
         do {
             try await toolLauncher.openInCursor(path: target.path)
+            await recordActivity(for: target)
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    private func recordActivity(for worktree: Worktree) async {
+        guard let repository else { return }
+        await store.updateLastActivity(folderName: worktree.folderName, repositoryID: repository.id)
+        // Update local state
+        if let index = worktrees.firstIndex(where: { $0.id == worktree.id }) {
+            worktrees[index].lastActivityAt = Date()
         }
     }
 

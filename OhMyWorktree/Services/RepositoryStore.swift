@@ -107,6 +107,12 @@ actor RepositoryStore {
         saveToDisk()
     }
 
+    func updateLastActivity(folderName: String, repositoryID: UUID) {
+        guard let index = worktreeMetadata[repositoryID]?.firstIndex(where: { $0.folderName == folderName }) else { return }
+        worktreeMetadata[repositoryID]?[index].lastActivityAt = Date()
+        saveToDisk()
+    }
+
     // MARK: - Persistence
 
     private func saveToDisk() {
