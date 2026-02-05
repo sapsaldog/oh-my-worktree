@@ -282,6 +282,7 @@ func isValidGitRepository(at path: String) -> Bool {
   - HEAD 커밋 해시 (선택적)
 - **중요**: 브랜치명은 메타데이터에 저장하지 않고, 매번 목록 로드 시 `git worktree list --porcelain`로 확인
 - 이유: 사용자가 CLI에서 브랜치를 변경할 수 있으므로 실시간 동기화 필요
+- 목록은 마지막 활동 시간 기준 내림차순 정렬 (가장 최근 활동이 위로)
 
 **데이터 파싱 예시**:
 ```
@@ -499,6 +500,7 @@ branch refs/heads/feature/new-feature
 - 메타데이터 저장:
   - `lastActivityAt` 필드를 WorktreeMetadata에 추가
   - 활동 발생 시마다 업데이트
+  - 메타데이터가 없는 worktree (앱 외부에서 생성된 경우)는 활동 기록 시 자동 생성
 - UI 표시:
   - WorktreeRowView에 브랜치명 옆 또는 아래에 상대 시간 표시
   - 연한 색상 (secondary/tertiary) 사용
@@ -1476,7 +1478,7 @@ end tell
 | 1.1 | 2026-02-04 | Worktree 랜덤 이름 생성, 메타데이터 폴더명 기반 관리 추가 | Claude Code |
 | 1.2 | 2026-02-04 | Ghostty 연동을 open -a 방식으로 변경, Worktree 경로를 ~/oh-my-worktree/workspaces로 변경 | Claude Code |
 | 1.3 | 2026-02-04 | iTerm을 open -a 방식으로 변경, Cursor 에디터 연동 추가 | Claude Code |
-| 1.4 | 2026-02-04 | Worktree 마지막 활동 시간 추적 및 상대 시간 표시 기능 추가 | Claude Code |
+| 1.4 | 2026-02-04 | Worktree 마지막 활동 시간 추적 및 상대 시간 표시, 활동순 정렬, 메타데이터 자동 생성 | Claude Code |
 
 ---
 
