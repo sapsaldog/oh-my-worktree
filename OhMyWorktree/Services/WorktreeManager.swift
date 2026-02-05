@@ -32,8 +32,14 @@ final class WorktreeManager {
         folderName: String,
         baseBranch: String? = nil
     ) async throws -> Worktree {
-        let parentDirectory = (repositoryPath as NSString).deletingLastPathComponent
-        let worktreePath = (parentDirectory as NSString).appendingPathComponent(folderName)
+        let repoName = (repositoryPath as NSString).lastPathComponent
+        let worktreePath = (NSHomeDirectory() as NSString)
+            .appendingPathComponent("oh-my-worktree/workspaces/\(repoName)/\(folderName)")
+
+        try FileManager.default.createDirectory(
+            atPath: (worktreePath as NSString).deletingLastPathComponent,
+            withIntermediateDirectories: true
+        )
 
         var arguments = ["worktree", "add", "-b", folderName, worktreePath]
         if let baseBranch {
@@ -72,8 +78,14 @@ final class WorktreeManager {
         folderName: String,
         branch: String
     ) async throws -> Worktree {
-        let parentDirectory = (repositoryPath as NSString).deletingLastPathComponent
-        let worktreePath = (parentDirectory as NSString).appendingPathComponent(folderName)
+        let repoName = (repositoryPath as NSString).lastPathComponent
+        let worktreePath = (NSHomeDirectory() as NSString)
+            .appendingPathComponent("oh-my-worktree/workspaces/\(repoName)/\(folderName)")
+
+        try FileManager.default.createDirectory(
+            atPath: (worktreePath as NSString).deletingLastPathComponent,
+            withIntermediateDirectories: true
+        )
 
         let arguments = ["worktree", "add", worktreePath, branch]
 

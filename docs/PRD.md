@@ -1,6 +1,6 @@
 # Oh My Worktree - 제품 요구사항 문서 (PRD)
 
-**버전**: 1.1
+**버전**: 1.2
 **작성일**: 2026-02-04
 **대상 플랫폼**: macOS 14+ (Sonoma 이상)
 **상태**: Draft
@@ -288,9 +288,10 @@ branch refs/heads/feature/new-feature
 - 항목 선택 시 자동으로 랜덤 이름 생성 (FR-015 참조)
 - 생성된 이름은 폴더명과 초기 브랜치명으로 동시 사용
 - 기존 브랜치 선택 옵션 제공 (선택 시 폴더명만 자동 생성)
+- Worktree 생성 경로: `~/oh-my-worktree/workspaces/{repository_name}/{worktree_name}`
 - Git 명령어 실행:
-  - 신규 브랜치 (기본): `git worktree add -b <name> <base-path>/<name>`
-  - 기존 브랜치: `git worktree add <base-path>/<generated-folder> <existing-branch>`
+  - 신규 브랜치 (기본): `git worktree add -b <name> ~/oh-my-worktree/workspaces/<repo>/<name>`
+  - 기존 브랜치: `git worktree add ~/oh-my-worktree/workspaces/<repo>/<folder> <existing-branch>`
 - 폴더명 중복 시 자동으로 버전 접미사 추가 (tokyo-lunch-v2, tokyo-lunch-v3)
 - 실행 결과 피드백 (성공/실패 메시지)
 - 성공 시 worktree 목록 자동 갱신
@@ -338,10 +339,8 @@ end tell
 **설명**: 선택된 worktree를 Ghostty 터미널에서 열기
 
 **상세 요구사항**:
-- Ghostty CLI를 통한 실행
-- 명령어: `ghostty --working-directory=/path/to/worktree`
+- `open -a Ghostty <path>` 명령어로 실행
 - Ghostty 미설치 시 오류 처리
-- 대체 방법: URL scheme (만약 지원된다면)
 
 ---
 
@@ -1433,6 +1432,7 @@ end tell
 |------|------|-----------|--------|
 | 1.0 | 2026-02-04 | 초안 작성 | Claude Code Writer |
 | 1.1 | 2026-02-04 | Worktree 랜덤 이름 생성, 메타데이터 폴더명 기반 관리 추가 | Claude Code |
+| 1.2 | 2026-02-04 | Ghostty 연동을 open -a 방식으로 변경, Worktree 경로를 ~/oh-my-worktree/workspaces로 변경 | Claude Code |
 
 ---
 
