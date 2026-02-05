@@ -73,7 +73,9 @@ struct RepositorySelectorView: View {
                     await viewModel.addRepository(at: path)
                 }
             case .failure(let error):
-                viewModel.errorMessage = error.localizedDescription
+                Task { @MainActor in
+                    viewModel.errorMessage = error.localizedDescription
+                }
             }
         }
     }

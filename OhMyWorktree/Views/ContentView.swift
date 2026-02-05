@@ -31,7 +31,14 @@ struct ContentView: View {
             "Error",
             isPresented: .init(
                 get: { repoViewModel.errorMessage != nil || worktreeViewModel.errorMessage != nil },
-                set: { if !$0 { repoViewModel.clearError(); worktreeViewModel.clearError() } }
+                set: { newValue in
+                    if !newValue {
+                        Task { @MainActor in
+                            repoViewModel.clearError()
+                            worktreeViewModel.clearError()
+                        }
+                    }
+                }
             )
         ) {
             Button("OK") {
@@ -45,8 +52,8 @@ struct ContentView: View {
             await repoViewModel.loadRepositories()
         }
         .onChange(of: repoViewModel.selectedRepository) { _, newValue in
-            worktreeViewModel.repository = newValue
             Task {
+                worktreeViewModel.repository = newValue
                 await worktreeViewModel.loadWorktrees()
             }
         }

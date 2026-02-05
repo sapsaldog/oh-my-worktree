@@ -24,7 +24,9 @@ struct WorktreeListView: View {
                 List(selection: Binding<Worktree.ID?>(
                     get: { viewModel.selectedWorktree?.id },
                     set: { newID in
-                        viewModel.selectedWorktree = viewModel.worktrees.first { $0.id == newID }
+                        Task { @MainActor in
+                            viewModel.selectedWorktree = viewModel.worktrees.first { $0.id == newID }
+                        }
                     }
                 )) {
                     ForEach(viewModel.worktrees) { worktree in
