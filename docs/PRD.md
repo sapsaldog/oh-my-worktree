@@ -202,7 +202,30 @@
 
 ---
 
-### 4.4 설정 관리
+### 4.4 메뉴바 모드
+
+**US-010-1**: 메뉴바 앱 모드
+**우선순위**: P1
+**사용자로서**, 나는 메인 윈도우 없이도 메뉴바 아이콘을 통해 worktree에 빠르게 접근하고 싶다.
+
+**인수 조건**:
+- macOS 메뉴바(상태바)에 앱 아이콘이 상주함
+- 아이콘 옆에 현재 선택된 `{프로젝트명}/{worktree명}`이 표시됨
+- 아이콘 클릭 시 드롭다운 메뉴가 열림
+- 메뉴 구성:
+  - Repository 선택 (서브메뉴로 등록된 repository 목록)
+  - 구분선
+  - 현재 repository의 worktree 목록 (최근 활동순)
+  - 각 worktree 항목에 서브메뉴: iTerm / Ghostty / VSCode / Cursor로 열기
+  - 구분선
+  - "New Worktree" 항목
+  - "Open Main Window" 항목
+  - "Quit" 항목
+- 메인 윈도우를 닫아도 메뉴바 아이콘은 유지됨
+
+---
+
+### 4.5 설정 관리
 
 **US-010**: 앱 설정 저장
 **우선순위**: P1
@@ -376,6 +399,45 @@ branch refs/heads/feature/new-feature
 ---
 
 ### 5.4 UI/UX 기능
+
+#### FR-017: 메뉴바 앱 모드 (P1)
+
+**설명**: macOS 메뉴바에 상주하는 상태 아이콘과 드롭다운 메뉴 제공
+
+**상세 요구사항**:
+- `NSStatusItem`을 사용한 메뉴바 아이콘 구현
+- 아이콘 옆 타이틀: `{repository_name}/{worktree_name}` (현재 선택된 항목)
+- 클릭 시 `NSMenu` 드롭다운 표시
+- 메뉴 구조:
+  ```
+  ┌──────────────────────────────┐
+  │ ✓ MyProject                  │ ← Repository 선택
+  │   AnotherProject             │
+  ├──────────────────────────────┤
+  │ ● main              2h ago  │ ← Worktree 목록
+  │   tokyo-lunch        7d ago  │
+  │   bright-ocean      16d ago  │
+  ├──────────────────────────────┤
+  │ + New Worktree               │
+  ├──────────────────────────────┤
+  │ Open Main Window             │
+  │ Quit Oh My Worktree          │
+  └──────────────────────────────┘
+  ```
+- 각 worktree 항목 클릭 시 서브메뉴:
+  - Open in iTerm
+  - Open in Ghostty
+  - Open in VSCode
+  - Open in Cursor
+  - Copy Path
+  - Show in Finder
+- 앱 라이프사이클:
+  - 메인 윈도우 닫기 시 앱 종료하지 않음 (메뉴바에 유지)
+  - `LSUIElement` (Info.plist) 또는 `NSApp.setActivationPolicy(.accessory)` 사용
+  - "Open Main Window" 선택 시 메인 윈도우 복원
+- 설정에서 메뉴바 모드 on/off 전환 가능
+
+---
 
 #### FR-010: 컴팩트 윈도우 모드 (P0)
 
@@ -1479,6 +1541,7 @@ end tell
 | 1.2 | 2026-02-04 | Ghostty 연동을 open -a 방식으로 변경, Worktree 경로를 ~/oh-my-worktree/workspaces로 변경 | Claude Code |
 | 1.3 | 2026-02-04 | iTerm을 open -a 방식으로 변경, Cursor 에디터 연동 추가 | Claude Code |
 | 1.4 | 2026-02-04 | Worktree 마지막 활동 시간 추적 및 상대 시간 표시, 활동순 정렬, 메타데이터 자동 생성 | Claude Code |
+| 1.5 | 2026-02-04 | 메뉴바 앱 모드 추가 (NSStatusItem 기반 상주 아이콘) | Claude Code |
 
 ---
 
