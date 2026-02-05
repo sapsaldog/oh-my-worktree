@@ -1,0 +1,42 @@
+name: OhMyWorktree
+options:
+  bundleIdPrefix: com.ohmyworktree
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "15.0"
+  developmentLanguage: en
+
+settings:
+  SWIFT_VERSION: "5.9"
+  MACOSX_DEPLOYMENT_TARGET: "14.0"
+  PRODUCT_NAME: OhMyWorktree
+  INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
+
+targets:
+  OhMyWorktree:
+    type: application
+    platform: macOS
+    sources:
+      - OhMyWorktree
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.ohmyworktree.app
+      INFOPLIST_KEY_CFBundleDisplayName: OhMyWorktree
+      INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
+      INFOPLIST_KEY_NSHumanReadableCopyright: ""
+      ENABLE_HARDENED_RUNTIME: YES
+      COMBINE_HIDPI_IMAGES: YES
+      SWIFT_VERSION: "5.9"
+      MACOSX_DEPLOYMENT_TARGET: "14.0"
+    info:
+      path: OhMyWorktree/Info.plist
+      properties:
+        LSMinimumSystemVersion: "14.0"
+        CFBundleName: OhMyWorktree
+        CFBundleDisplayName: OhMyWorktree
+        CFBundleIdentifier: com.ohmyworktree.app
+        CFBundleInfoDictionaryVersion: "6.0"
+        CFBundlePackageType: APPL
+        CFBundleShortVersionString: "1.0.0"
+        CFBundleVersion: "1"
+        LSApplicationCategoryType: public.app-category.developer-tools
+        NSHumanReadableCopyright: ""
