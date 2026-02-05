@@ -154,6 +154,19 @@
 
 ---
 
+**US-006-1**: Worktree 마지막 활동 시간 조회
+**우선순위**: P1
+**사용자로서**, 나는 각 worktree의 마지막 활동 시간을 상대적으로 확인하고 싶다 (예: "7d ago", "2h ago").
+
+**인수 조건**:
+- 각 worktree 행에 마지막 활동 시간이 상대 시간으로 표시됨 (예: "7d ago", "2h ago", "just now")
+- 활동 추적 대상: worktree 생성, 외부 도구(iTerm/Ghostty/VSCode/Cursor)에서 열기
+- 마지막 git commit 시간도 활동으로 간주 (`git log -1 --format=%ct`)
+- 추적된 활동 시간과 마지막 commit 시간 중 더 최신인 것이 "마지막 활동 시간"으로 표시됨
+- 활동 시간은 메타데이터에 저장되어 앱 재시작 후에도 유지됨
+
+---
+
 ### 4.3 외부 도구 연동
 
 **US-007**: iTerm에서 열기
@@ -461,6 +474,34 @@ branch refs/heads/feature/new-feature
   - VSCode 열기 방식 (새 윈도우/현재 윈도우)
   - 윈도우 크기 및 위치
   - 선택된 repository (마지막 선택)
+
+---
+
+#### FR-016: Worktree 마지막 활동 시간 추적 및 표시 (P1)
+
+**설명**: 각 worktree의 마지막 활동 시간을 추적하고 상대 시간으로 표시
+
+**상세 요구사항**:
+- 활동 추적 이벤트:
+  - Worktree 생성 시 현재 시간 기록
+  - 외부 도구(iTerm/Ghostty/VSCode/Cursor)에서 열기 시 현재 시간 기록
+- Git commit 시간 조회:
+  - 각 worktree 경로에서 `git log -1 --format=%ct` 실행
+  - 마지막 commit의 Unix timestamp 획득
+- 마지막 활동 시간 결정:
+  - `max(추적된 활동 시간, 마지막 commit 시간)` = 마지막 활동 시간
+- 상대 시간 표시 형식:
+  - 1분 미만: "just now"
+  - 1분~59분: "Nm ago" (예: "5m ago")
+  - 1시간~23시간: "Nh ago" (예: "2h ago")
+  - 1일~29일: "Nd ago" (예: "7d ago")
+  - 30일 이상: "NM ago" (예: "2M ago")
+- 메타데이터 저장:
+  - `lastActivityAt` 필드를 WorktreeMetadata에 추가
+  - 활동 발생 시마다 업데이트
+- UI 표시:
+  - WorktreeRowView에 브랜치명 옆 또는 아래에 상대 시간 표시
+  - 연한 색상 (secondary/tertiary) 사용
 
 ---
 
@@ -1435,6 +1476,7 @@ end tell
 | 1.1 | 2026-02-04 | Worktree 랜덤 이름 생성, 메타데이터 폴더명 기반 관리 추가 | Claude Code |
 | 1.2 | 2026-02-04 | Ghostty 연동을 open -a 방식으로 변경, Worktree 경로를 ~/oh-my-worktree/workspaces로 변경 | Claude Code |
 | 1.3 | 2026-02-04 | iTerm을 open -a 방식으로 변경, Cursor 에디터 연동 추가 | Claude Code |
+| 1.4 | 2026-02-04 | Worktree 마지막 활동 시간 추적 및 상대 시간 표시 기능 추가 | Claude Code |
 
 ---
 
