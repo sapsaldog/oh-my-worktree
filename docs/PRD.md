@@ -1,6 +1,6 @@
 # Oh My Worktree - 제품 요구사항 문서 (PRD)
 
-**버전**: 1.3
+**버전**: 1.7
 **작성일**: 2026-02-07
 **대상 플랫폼**: macOS 14+ (Sonoma 이상)
 **상태**: Draft
@@ -462,9 +462,27 @@ branch refs/heads/feature/new-feature
 
 **상세 요구사항**:
 - macOS 표준 Settings 창 (`⌘,` 단축키)
+- General 섹션: Launch at Login 토글
 - Worktree 생성 섹션: .env 파일 복사 토글
 - 메뉴바에서 "Settings..." 항목으로 접근 가능
 - SwiftUI Settings Scene 사용
+
+---
+
+#### FR-021: Launch at Login (P1)
+
+**설명**: 사용자 로그인 시 앱이 자동으로 시작되도록 설정
+
+**상세 요구사항**:
+- `SMAppService.mainApp` (ServiceManagement 프레임워크) 사용
+- macOS 13+ API, 앱 대상 macOS 14+이므로 완전 지원
+- 별도 Helper App 불필요
+- Settings 창 General 섹션에 "Launch at Login" 토글 제공
+- 토글 on: `SMAppService.mainApp.register()` 호출
+- 토글 off: `SMAppService.mainApp.unregister()` 호출
+- 시스템 설정에서 변경된 경우에도 Settings 창 열 때 실제 상태 동기화 (`.onAppear`)
+- 등록/해제 실패 시 `os.Logger`로 에러 로깅 및 토글 상태 복원
+- 사용자가 시스템 설정 > 일반 > 로그인 항목에서도 확인/변경 가능
 
 ---
 
@@ -1592,6 +1610,7 @@ end tell
 | 1.4 | 2026-02-04 | Worktree 마지막 활동 시간 추적 및 상대 시간 표시, 활동순 정렬, 메타데이터 자동 생성 | Claude Code |
 | 1.5 | 2026-02-04 | 메뉴바 앱 모드 추가 (NSStatusItem 기반 상주 아이콘) | Claude Code |
 | 1.6 | 2026-02-07 | .env 파일 자동 복사 기능 (FR-018), 설정 화면 (FR-019), Repository별 설정 오버라이드 (FR-020) 추가 | Claude Code |
+| 1.7 | 2026-02-07 | Launch at Login 기능 추가 (FR-021), SMAppService 기반 로그인 시 자동 실행 | Claude Code |
 
 ---
 
