@@ -10,6 +10,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var repoViewModel: RepositoryListViewModel?
     var worktreeViewModel: WorktreeListViewModel?
     var openMainWindow: (() -> Void)?
+    var openSettings: (() -> Void)?
 
     // MARK: - NSApplicationDelegate
 
@@ -135,6 +136,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         )
         openWindowItem.target = self
         menu.addItem(openWindowItem)
+
+        // --- Settings ---
+
+        let settingsItem = NSMenuItem(
+            title: "Settings...",
+            action: #selector(settingsClicked(_:)),
+            keyEquivalent: ","
+        )
+        settingsItem.target = self
+        menu.addItem(settingsItem)
+
+        menu.addItem(.separator())
 
         // --- Quit ---
 
@@ -337,6 +350,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         openMainWindow?()
     }
 
+    // MARK: - Actions: Settings
+
+    @objc private func settingsClicked(_ sender: NSMenuItem) {
+        NSApp.activate(ignoringOtherApps: true)
+        openSettings?()
+    }
+
     // MARK: - Actions: Quit
 
     @objc private func quitClicked(_ sender: NSMenuItem) {
@@ -358,3 +378,4 @@ private final class WorktreeRef: NSObject {
         super.init()
     }
 }
+

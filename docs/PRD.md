@@ -1,7 +1,7 @@
 # Oh My Worktree - 제품 요구사항 문서 (PRD)
 
-**버전**: 1.2
-**작성일**: 2026-02-04
+**버전**: 1.3
+**작성일**: 2026-02-07
 **대상 플랫폼**: macOS 14+ (Sonoma 이상)
 **상태**: Draft
 
@@ -139,6 +139,7 @@
 - 기존 브랜치 선택 옵션 제공 (선택 시 폴더명만 자동 생성)
 - `git worktree add -b <name> <path/name>` 명령어 실행 후 목록 자동 갱신
 - 브랜치명은 생성 후 사용자가 언제든지 변경 가능
+- .env 파일 복사 설정이 활성화된 경우, repository 루트의 .env 파일들이 자동으로 복사됨
 
 ---
 
@@ -235,6 +236,8 @@
 - 등록된 repository 목록이 자동 저장됨
 - 윈도우 크기 및 위치가 저장됨
 - 외부 도구 연동 설정이 저장됨
+- .env 파일 복사 글로벌 설정이 저장됨
+- Repository별 .env 복사 오버라이드 설정이 저장됨
 
 ---
 
@@ -439,6 +442,45 @@ branch refs/heads/feature/new-feature
 
 ---
 
+#### FR-018: .env 파일 자동 복사 (P1)
+
+**설명**: 새 worktree 생성 시 repository 루트의 .env 파일들을 자동으로 복사
+
+**상세 요구사항**:
+- Repository 루트 디렉토리에서 `.env*` 패턴의 파일을 탐색 (예: `.env`, `.env.local`, `.env.development`)
+- 새 worktree 생성 시 해당 파일들을 자동으로 새 worktree 경로에 복사
+- 이미 존재하는 파일은 덮어쓰지 않음 (skip)
+- 글로벌 설정에서 기능 on/off 가능 (기본값: on)
+- Repository별 설정 오버라이드 가능 (글로벌 기본값 사용 또는 개별 설정)
+- 복사 실패 시 에러 메시지 표시 (worktree 생성 자체는 중단하지 않음)
+
+---
+
+#### FR-019: 설정 화면 (Settings) (P1)
+
+**설명**: 앱 전역 설정을 관리하는 Settings 창 제공
+
+**상세 요구사항**:
+- macOS 표준 Settings 창 (`⌘,` 단축키)
+- Worktree 생성 섹션: .env 파일 복사 토글
+- 메뉴바에서 "Settings..." 항목으로 접근 가능
+- SwiftUI Settings Scene 사용
+
+---
+
+#### FR-020: Repository별 설정 오버라이드 (P1)
+
+**설명**: 각 repository에 대해 글로벌 설정을 개별적으로 오버라이드 가능
+
+**상세 요구사항**:
+- Repository 셀렉터 옆 ⚙️ 버튼으로 팝오버 표시
+- .env 파일 복사 설정의 per-repo 오버라이드
+- "Use Global Default" 체크박스로 글로벌 설정 사용 여부 선택
+- 오버라이드 상태 시 현재 글로벌 기본값 표시
+- Repository 메타데이터에 오버라이드 설정 저장
+
+---
+
 #### FR-010: 컴팩트 윈도우 모드 (P0)
 
 **설명**: 매우 작은 크기의 유틸리티 윈도우 제공
@@ -476,6 +518,7 @@ branch refs/heads/feature/new-feature
 - `Cmd+Shift+T`: Ghostty에서 열기
 - `Cmd+E`: VSCode에서 열기
 - `Cmd+R`: 목록 새로고침
+- `Cmd+,`: Settings 창 열기
 
 ---
 
@@ -537,6 +580,7 @@ branch refs/heads/feature/new-feature
   - VSCode 열기 방식 (새 윈도우/현재 윈도우)
   - 윈도우 크기 및 위치
   - 선택된 repository (마지막 선택)
+  - .env 파일 복사 글로벌 설정 (`@AppStorage("copyEnvFilesEnabled")`)
 
 ---
 
@@ -1109,6 +1153,10 @@ struct Repository: Identifiable, Codable {
 - `createdAt`: 등록 시각
 - `lastAccessedAt`: 마지막 접근 시각 (정렬용)
 
+**저장 데이터** (RepositoryStore):
+- Repository별 .env 파일 복사 오버라이드 설정은 `envCopyOverrides: [UUID: Bool]` 딕셔너리에 저장
+- 오버라이드가 없는 경우 글로벌 기본값 사용
+
 ---
 
 #### Worktree
@@ -1154,6 +1202,7 @@ struct AppSettings: Codable {
     var vscodeOpenMode: OpenMode = .newWindow
     var lastSelectedRepositoryID: UUID?
     var windowFrame: NSRect?
+    // .env 파일 복사는 @AppStorage("copyEnvFilesEnabled")로 별도 저장
 
     enum OpenMode: String, Codable {
         case newTab
@@ -1542,6 +1591,7 @@ end tell
 | 1.3 | 2026-02-04 | iTerm을 open -a 방식으로 변경, Cursor 에디터 연동 추가 | Claude Code |
 | 1.4 | 2026-02-04 | Worktree 마지막 활동 시간 추적 및 상대 시간 표시, 활동순 정렬, 메타데이터 자동 생성 | Claude Code |
 | 1.5 | 2026-02-04 | 메뉴바 앱 모드 추가 (NSStatusItem 기반 상주 아이콘) | Claude Code |
+| 1.6 | 2026-02-07 | .env 파일 자동 복사 기능 (FR-018), 설정 화면 (FR-019), Repository별 설정 오버라이드 (FR-020) 추가 | Claude Code |
 
 ---
 

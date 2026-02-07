@@ -19,21 +19,29 @@ struct OhMyWorktreeApp: App {
         }
         .defaultSize(width: 500, height: 400)
         .windowResizability(.contentSize)
+
+        Settings {
+            SettingsView()
+        }
     }
 }
 
-/// Captures `@Environment(\.openWindow)` from the SwiftUI environment
-/// and stores the action in AppDelegate so it can open a new window
-/// even after the original window has been closed and deallocated.
+/// Captures `@Environment(\.openWindow)` and `@Environment(\.openSettings)`
+/// from the SwiftUI environment and stores the actions in AppDelegate
+/// so they can be triggered from the menu bar even after the window is closed.
 private struct OpenWindowModifier: ViewModifier {
     let appDelegate: AppDelegate
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
 
     func body(content: Content) -> some View {
         content
             .onAppear {
                 appDelegate.openMainWindow = { [openWindow] in
                     openWindow(id: "main")
+                }
+                appDelegate.openSettings = { [openSettings] in
+                    openSettings()
                 }
             }
     }

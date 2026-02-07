@@ -1,9 +1,9 @@
 import Foundation
 
 actor RepositoryStore {
-    private let fileManager = FileManager.default
     private var repositories: [Repository] = []
     private var worktreeMetadata: [UUID: [WorktreeMetadata]] = [:] // keyed by repository ID
+    private var envCopyOverrides: [UUID: Bool] = [:]
 
     private nonisolated var storageDirectory: URL {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
@@ -16,6 +16,10 @@ actor RepositoryStore {
 
     private nonisolated var metadataFileURL: URL {
         storageDirectory.appendingPathComponent("worktree_metadata.json")
+    }
+
+    private nonisolated var envCopyOverridesFileURL: URL {
+        storageDirectory.appendingPathComponent("env_copy_overrides.json")
     }
 
     // MARK: - Initialization
@@ -52,6 +56,19 @@ actor RepositoryStore {
                 worktreeMetadata = result
             }
         }
+
+        // Load env copy overrides
+        let overridesURL = envCopyOverridesFileURL
+        if let data = try? Data(contentsOf: overridesURL) {
+            let decoder = JSONDecoder()
+            if let decoded = try? decoder.decode([String: Bool].self, from: data) {
+                for (key, value) in decoded {
+                    if let uuid = UUID(uuidString: key) {
+                        envCopyOverrides[uuid] = value
+                    }
+                }
+            }
+        }
     }
 
     // MARK: - Repository CRUD
@@ -69,6 +86,7 @@ actor RepositoryStore {
     func removeRepository(id: UUID) {
         repositories.removeAll { $0.id == id }
         worktreeMetadata.removeValue(forKey: id)
+        envCopyOverrides.removeValue(forKey: id)
         saveToDisk()
     }
 
@@ -119,6 +137,22 @@ actor RepositoryStore {
         saveToDisk()
     }
 
+    // MARK: - Env Copy Overrides
+
+    func getEnvCopyOverride(for repositoryID: UUID) -> Bool? {
+        return envCopyOverrides[repositoryID]
+    }
+
+    func setEnvCopyOverride(repositoryID: UUID, enabled: Bool) {
+        envCopyOverrides[repositoryID] = enabled
+        saveToDisk()
+    }
+
+    func removeEnvCopyOverride(repositoryID: UUID) {
+        envCopyOverrides.removeValue(forKey: repositoryID)
+        saveToDisk()
+    }
+
     // MARK: - Persistence
 
     private func saveToDisk() {
@@ -139,6 +173,16 @@ actor RepositoryStore {
         )
         if let data = try? encoder.encode(stringKeyedMetadata) {
             try? data.write(to: metadataFileURL)
+        }
+
+        // Save env copy overrides
+        let stringKeyedOverrides = Dictionary(
+            uniqueKeysWithValues: envCopyOverrides.map { (key, value) in
+                (key.uuidString, value)
+            }
+        )
+        if let data = try? encoder.encode(stringKeyedOverrides) {
+            try? data.write(to: envCopyOverridesFileURL)
         }
     }
 }

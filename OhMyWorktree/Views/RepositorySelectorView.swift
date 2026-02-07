@@ -3,6 +3,7 @@ import SwiftUI
 struct RepositorySelectorView: View {
     @ObservedObject var viewModel: RepositoryListViewModel
     @State private var showingFileDialog = false
+    @State private var showingRepoSettings = false
 
     var body: some View {
         HStack(spacing: 8) {
@@ -58,6 +59,22 @@ struct RepositorySelectorView: View {
                 }
                 .buttonStyle(.borderless)
                 .help("Remove Repository")
+
+                Button(action: {
+                    showingRepoSettings = true
+                }) {
+                    Image(systemName: "gearshape")
+                }
+                .buttonStyle(.borderless)
+                .help("Repository Settings")
+                .popover(isPresented: $showingRepoSettings) {
+                    if let repo = viewModel.selectedRepository {
+                        RepositorySettingsView(
+                            repository: repo,
+                            store: viewModel.store
+                        )
+                    }
+                }
             }
         }
         .fileImporter(

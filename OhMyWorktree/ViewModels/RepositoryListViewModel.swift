@@ -8,7 +8,7 @@ final class RepositoryListViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
 
-    private let store: RepositoryStore
+    let store: RepositoryStore
 
     init(store: RepositoryStore = RepositoryStore()) {
         self.store = store

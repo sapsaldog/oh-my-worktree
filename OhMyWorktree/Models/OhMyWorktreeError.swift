@@ -14,32 +14,32 @@ enum OhMyWorktreeError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .gitNotInstalled:
-            return "Git이 설치되지 않았습니다."
+            return "Git is not installed."
         case .invalidGitRepository(let path):
-            return "유효하지 않은 Git 저장소: \(path)"
+            return "Invalid Git repository: \(path)"
         case .worktreeAlreadyExists(let branch):
-            return "Worktree가 이미 존재합니다: \(branch)"
+            return "Worktree already exists: \(branch)"
         case .worktreeNotFound(let path):
-            return "Worktree를 찾을 수 없습니다: \(path)"
+            return "Worktree not found: \(path)"
         case .externalToolNotFound(let tool):
-            return "\(tool)을(를) 찾을 수 없습니다."
+            return "\(tool) not found."
         case .commandExecutionFailed(let command, let stderr):
-            return "명령어 실행 실패: \(command)\n\(stderr)"
+            return "Command execution failed: \(command)\n\(stderr)"
         case .permissionDenied(let path):
-            return "접근 권한이 없습니다: \(path)"
+            return "Permission denied: \(path)"
         case .repositoryNotFound:
-            return "Repository를 찾을 수 없습니다."
+            return "Repository not found."
         case .invalidPath(let path):
-            return "유효하지 않은 경로입니다: \(path)"
+            return "Invalid path: \(path)"
         }
     }
 
     var recoverySuggestion: String? {
         switch self {
         case .gitNotInstalled:
-            return "Homebrew로 Git을 설치하세요: brew install git"
+            return "Install Git using Homebrew: brew install git"
         case .externalToolNotFound(let tool):
-            return "\(tool)을(를) 설치하고 다시 시도하세요."
+            return "Install \(tool) and try again."
         default:
             return nil
         }

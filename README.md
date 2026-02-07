@@ -14,6 +14,7 @@ A native macOS utility for managing Git worktrees with speed and elegance.
 - **External Tool Integration** - Open worktrees directly in iTerm, Ghostty, VSCode, or Cursor with one click
 - **Menu Bar Mode** - Resident NSStatusItem showing current repo and worktree with quick-access dropdown menu
 - **Activity Tracking** - View relative last activity time per worktree (e.g., "2h ago", "7d ago", "just now")
+- **Auto .env Copy** - Automatically copies `.env` files from the repository root when creating new worktrees, with global and per-repo settings
 - **Lightweight Design** - Compact window (500x400), runs as accessory app without Dock icon, lives in menu bar
 
 ## Requirements
@@ -83,6 +84,14 @@ Access everything from the menu bar without opening the main window. The icon sh
 - Create new worktrees directly from the menu
 - Close the main window — the app keeps running in the menu bar
 
+### 5. Settings
+
+Open **Settings** (`⌘,`) from the menu bar to configure global preferences. Use the **⚙** button next to the repository selector for per-repo overrides.
+
+| Setting | Scope | Default |
+|---------|-------|---------|
+| **Copy .env files** | Global / Per-repo | On |
+
 ## Architecture
 
 Oh My Worktree uses a clean MVVM architecture with clear separation of concerns:
@@ -102,13 +111,16 @@ Oh My Worktree uses a clean MVVM architecture with clear separation of concerns:
 - **WorktreeListView** - Displays list of worktrees with actions
 - **WorktreeRowView** - Individual worktree row with metadata and buttons
 - **ActionButtonsView** - External tool launch buttons
+- **SettingsView** - Global app settings (`.env` copy toggle)
+- **RepositorySettingsView** - Per-repo settings override popover
 
 ### Services
 - **GitCommandExecutor** - Executes Git commands asynchronously via `Process`
 - **WorktreeManager** - Orchestrates worktree creation and deletion via Git CLI
 - **ExternalToolLauncher** - Handles opening worktrees in external tools (iTerm, Ghostty, VSCode, Cursor)
 - **RandomNameGenerator** - Generates unique, memorable worktree names
-- **RepositoryStore** - Persists repositories to disk (UserDefaults)
+- **EnvFileCopier** - Copies `.env*` files from repository root to new worktrees
+- **RepositoryStore** - Persists repositories and settings to disk (JSON + UserDefaults)
 
 ### App Delegate
 - **AppDelegate** - Manages NSStatusItem (menu bar icon) and window lifecycle

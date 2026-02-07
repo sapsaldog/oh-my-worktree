@@ -7,21 +7,23 @@ final class WorktreeListViewModel: ObservableObject {
     @Published var selectedWorktree: Worktree?
     @Published var isLoading = false
     @Published var errorMessage: String?
-
     private let worktreeManager: WorktreeManager
     private let toolLauncher: ExternalToolLauncher
     private let store: RepositoryStore
+    private let envFileCopier: EnvFileCopier
 
     var repository: Repository?
 
     init(
         worktreeManager: WorktreeManager = WorktreeManager(),
         toolLauncher: ExternalToolLauncher = ExternalToolLauncher(),
-        store: RepositoryStore = RepositoryStore()
+        store: RepositoryStore = RepositoryStore(),
+        envFileCopier: EnvFileCopier = EnvFileCopier()
     ) {
         self.worktreeManager = worktreeManager
         self.toolLauncher = toolLauncher
         self.store = store
+        self.envFileCopier = envFileCopier
     }
 
     // MARK: - Load Worktrees
@@ -102,6 +104,17 @@ final class WorktreeListViewModel: ObservableObject {
             // Store metadata (folderName + createdAt only)
             let metadata = WorktreeMetadata(folderName: folderName)
             await store.addWorktreeMetadata(metadata, repositoryID: repository.id)
+
+            // Copy .env files if enabled
+            let envOverride = await store.getEnvCopyOverride(for: repository.id)
+            let globalDefault = UserDefaults.standard.object(forKey: "copyEnvFilesEnabled") as? Bool ?? true
+            let shouldCopyEnv = envOverride ?? globalDefault
+            if shouldCopyEnv {
+                let copyResult = envFileCopier.copyEnvFiles(from: repository.path, to: newWorktree.path)
+                if !copyResult.errors.isEmpty {
+                    errorMessage = "Some .env files could not be copied: \(copyResult.errors.joined(separator: ", "))"
+                }
+            }
 
             // Refresh list and select the new worktree
             await loadWorktrees()
