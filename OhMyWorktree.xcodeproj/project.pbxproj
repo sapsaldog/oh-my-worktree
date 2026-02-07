@@ -22,6 +22,7 @@
 		B1ED113BDF88D0A3D2A2A874 /* RepositoryListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A34554C16FE6EC54FBB5C200 /* RepositoryListViewModel.swift */; };
 		BA7B508992779E01ED6514B9 /* RepositoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DE83D40D208FBAE22E78A33 /* RepositoryStore.swift */; };
 		BB1A2B3C4D5E6F7A8B9C0D1E /* EnvFileCopier.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC2B3C4D5E6F7A8B9C0D1E2F /* EnvFileCopier.swift */; };
+		AA1B2C3D4E5F6A7B8C9D0E1F /* GitHeadMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2B3C4D5E6F7A8B9C0D1E2F /* GitHeadMonitor.swift */; };
 		BE5701A4F52B99C834D7ACB5 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284A4CA5F96802A6098EA38B /* ContentView.swift */; };
 		C81634CFFA3B0D0B1D6DC1E4 /* WorktreeListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E89BED48AC12D1BE0AA667 /* WorktreeListViewModel.swift */; };
 		CE306852AB0277CAE4E88BCA /* OhMyWorktreeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31E4C67AC16118B79418121C /* OhMyWorktreeApp.swift */; };
@@ -41,6 +42,7 @@
 		38E89BED48AC12D1BE0AA667 /* WorktreeListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeListViewModel.swift; sourceTree = "<group>"; };
 		3C1B43B188C597C61F1DC2EA /* Repository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Repository.swift; sourceTree = "<group>"; };
 		CC2B3C4D5E6F7A8B9C0D1E2F /* EnvFileCopier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvFileCopier.swift; sourceTree = "<group>"; };
+		AA2B3C4D5E6F7A8B9C0D1E2F /* GitHeadMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHeadMonitor.swift; sourceTree = "<group>"; };
 		5DE83D40D208FBAE22E78A33 /* RepositoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryStore.swift; sourceTree = "<group>"; };
 		64B3B3B1F44A78CB74EE99F8 /* RepositorySelectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositorySelectorView.swift; sourceTree = "<group>"; };
 		674320D41686AFA66878FC6E /* subagent-tracking.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "subagent-tracking.json"; sourceTree = "<group>"; };
@@ -76,6 +78,7 @@
 				CC2B3C4D5E6F7A8B9C0D1E2F /* EnvFileCopier.swift */,
 				155B3645306233DD226910E8 /* ExternalToolLauncher.swift */,
 				E12BD14A8E992E6A9B4668B7 /* GitCommandExecutor.swift */,
+				AA2B3C4D5E6F7A8B9C0D1E2F /* GitHeadMonitor.swift */,
 				A200952D514CDC6E761D7D31 /* RandomNameGenerator.swift */,
 				5DE83D40D208FBAE22E78A33 /* RepositoryStore.swift */,
 				6A761722B5707AF84AB6CA37 /* WorktreeManager.swift */,
@@ -227,6 +230,7 @@
 				BB1A2B3C4D5E6F7A8B9C0D1E /* EnvFileCopier.swift in Sources */,
 				1D5329DDE42009E76C2650C5 /* ExternalToolLauncher.swift in Sources */,
 				D13B27C586A4730DF2924206 /* GitCommandExecutor.swift in Sources */,
+				AA1B2C3D4E5F6A7B8C9D0E1F /* GitHeadMonitor.swift in Sources */,
 				CE306852AB0277CAE4E88BCA /* OhMyWorktreeApp.swift in Sources */,
 				653587B67AD671EEE36C6C93 /* OhMyWorktreeError.swift in Sources */,
 				40504C9B5C87311686050C85 /* RandomNameGenerator.swift in Sources */,

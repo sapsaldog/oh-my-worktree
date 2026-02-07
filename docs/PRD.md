@@ -1,6 +1,6 @@
 # Oh My Worktree - 제품 요구사항 문서 (PRD)
 
-**버전**: 1.7
+**버전**: 1.9
 **작성일**: 2026-02-07
 **대상 플랫폼**: macOS 14+ (Sonoma 이상)
 **상태**: Draft
@@ -309,6 +309,9 @@ func isValidGitRepository(at path: String) -> Bool {
 - **중요**: 브랜치명은 메타데이터에 저장하지 않고, 매번 목록 로드 시 `git worktree list --porcelain`로 확인
 - 이유: 사용자가 CLI에서 브랜치를 변경할 수 있으므로 실시간 동기화 필요
 - 목록은 마지막 활동 시간 기준 내림차순 정렬 (가장 최근 활동이 위로)
+- **자동 갱신**: 앱이 활성화될 때(`didBecomeActiveNotification`) 및 메뉴바 드롭다운 열 때 자동으로 목록 갱신
+- 2초 디바운싱으로 중복 갱신 방지, Task 기반 재진입 방지로 race condition 해소
+- 메뉴바 갱신 시 데이터 변경이 있는 경우에만 메뉴 재구성 (깜빡임 방지)
 
 **데이터 파싱 예시**:
 ```
@@ -439,6 +442,28 @@ branch refs/heads/feature/new-feature
   - `LSUIElement` (Info.plist) 또는 `NSApp.setActivationPolicy(.accessory)` 사용
   - "Open Main Window" 선택 시 메인 윈도우 복원
 - 설정에서 메뉴바 모드 on/off 전환 가능
+
+---
+
+#### FR-022: 메뉴바 타이틀 실시간 브랜치 감지 (P1)
+
+**설명**: 선택된 worktree의 git HEAD 파일을 모니터링하여 외부 브랜치 변경 시 메뉴바 타이틀을 실시간 갱신
+
+**상세 요구사항**:
+- `DispatchSource.makeFileSystemObjectSource`로 선택된 worktree의 git HEAD 파일 감시
+- HEAD 파일 위치 결정:
+  - `.git`이 디렉토리인 경우 (메인 worktree): `{worktree}/.git/HEAD`
+  - `.git`이 파일인 경우 (linked worktree): `gitdir: {path}` 파싱 → `{path}/HEAD`
+- HEAD 파일에서 브랜치명 직접 파싱: `ref: refs/heads/{branch}` → `{branch}`
+- git subprocess 호출 없이 파일 읽기만으로 처리 (경량)
+- 브랜치 변경 감지 시:
+  - 메뉴바 타이틀 (`{repo}/{branch}`) 즉시 갱신
+  - 해당 worktree의 마지막 활동 시간 기록 (FR-016 연동)
+- git의 atomic rename (HEAD 파일 교체) 처리:
+  - `.rename`/`.delete` 이벤트 감지 시 모니터 자동 재설정
+  - 100ms debounce로 연속 rename 이벤트 (예: git rebase) 대응
+- Worktree 선택 변경 시 이전 모니터 해제, 새 모니터 시작
+- Worktree 미선택(nil) 시 모니터 정지
 
 ---
 
@@ -1611,6 +1636,8 @@ end tell
 | 1.5 | 2026-02-04 | 메뉴바 앱 모드 추가 (NSStatusItem 기반 상주 아이콘) | Claude Code |
 | 1.6 | 2026-02-07 | .env 파일 자동 복사 기능 (FR-018), 설정 화면 (FR-019), Repository별 설정 오버라이드 (FR-020) 추가 | Claude Code |
 | 1.7 | 2026-02-07 | Launch at Login 기능 추가 (FR-021), SMAppService 기반 로그인 시 자동 실행 | Claude Code |
+| 1.8 | 2026-02-07 | Worktree 목록 자동 갱신 (FR-004 확장) — 앱 활성화/메뉴바 열 때 자동 갱신, 디바운싱, race condition 방지 | Claude Code |
+| 1.9 | 2026-02-07 | 메뉴바 타이틀 실시간 브랜치 감지 (FR-022) — DispatchSource로 git HEAD 파일 모니터링, 외부 브랜치 변경 시 타이틀 자동 갱신 및 활동 시간 기록 | Claude Code |
 
 ---
 

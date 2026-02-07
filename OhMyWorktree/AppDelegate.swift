@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 
 @MainActor
@@ -8,14 +9,60 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     var statusItem: NSStatusItem?
     var repoViewModel: RepositoryListViewModel?
-    var worktreeViewModel: WorktreeListViewModel?
+    var worktreeViewModel: WorktreeListViewModel? {
+        didSet {
+            guard worktreeViewModel !== oldValue else { return }
+            observeWorktreeChanges()
+        }
+    }
     var openMainWindow: (() -> Void)?
     var openSettings: (() -> Void)?
+    private var menuRefreshTask: Task<Void, Never>?
+    private var cancellables = Set<AnyCancellable>()
+    private let headMonitor = GitHeadMonitor()
+    private var liveBranchName: String?
 
     // MARK: - NSApplicationDelegate
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupStatusItem()
+    }
+
+    // MARK: - Observe ViewModel Changes
+
+    private func observeWorktreeChanges() {
+        cancellables.removeAll()
+
+        guard worktreeViewModel != nil else {
+            headMonitor.stopMonitoring()
+            liveBranchName = nil
+            return
+        }
+
+        headMonitor.onBranchChange = { [weak self] branch in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.liveBranchName = branch
+                self.updateStatusItemTitle()
+                if let worktree = self.worktreeViewModel?.selectedWorktree {
+                    await self.worktreeViewModel?.recordActivity(for: worktree)
+                }
+            }
+        }
+
+        worktreeViewModel?.$selectedWorktree
+            .receive(on: RunLoop.main)
+            .sink { [weak self] worktree in
+                guard let self else { return }
+                self.liveBranchName = nil
+                self.updateStatusItemTitle()
+                if let worktree {
+                    self.headMonitor.startMonitoring(worktreePath: worktree.path)
+                } else {
+                    self.headMonitor.stopMonitoring()
+                }
+            }
+            .store(in: &cancellables)
     }
 
     // MARK: - Status Item Setup
@@ -41,7 +88,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         if let repo = repoViewModel?.selectedRepository {
             if let worktree = worktreeViewModel?.selectedWorktree {
-                button.title = "\(repo.name)/\(worktree.displayName)"
+                let branchDisplay = liveBranchName ?? worktree.displayName
+                button.title = "\(repo.name)/\(branchDisplay)"
             } else {
                 button.title = repo.name
             }
@@ -54,6 +102,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuWillOpen(_ menu: NSMenu) {
         rebuildMenu()
+        // Cancel any previous refresh to avoid stacking
+        menuRefreshTask?.cancel()
+        menuRefreshTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            let before = self.worktreeViewModel?.worktrees
+            await self.worktreeViewModel?.loadWorktrees(debounce: true)
+            // Only rebuild if data actually changed to avoid menu flicker
+            if before != self.worktreeViewModel?.worktrees {
+                self.rebuildMenu()
+                self.updateStatusItemTitle()
+            }
+        }
     }
 
     // MARK: - Menu Construction

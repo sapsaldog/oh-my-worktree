@@ -29,8 +29,26 @@ struct Worktree: Identifiable, Hashable {
         return "\(months)M ago"
     }
 
+    /// Generate a deterministic UUID from the worktree path so that
+    /// the same worktree always produces the same id across reloads.
+    private static func stableID(for path: String) -> UUID {
+        let data = Data(path.utf8)
+        var hash = [UInt8](repeating: 0, count: 16)
+        data.withUnsafeBytes { buffer in
+            for (i, byte) in buffer.enumerated() {
+                hash[i % 16] ^= byte
+            }
+        }
+        // Set UUID version 5 bits
+        hash[6] = (hash[6] & 0x0F) | 0x50
+        hash[8] = (hash[8] & 0x3F) | 0x80
+        return UUID(uuid: (hash[0], hash[1], hash[2], hash[3],
+                           hash[4], hash[5], hash[6], hash[7],
+                           hash[8], hash[9], hash[10], hash[11],
+                           hash[12], hash[13], hash[14], hash[15]))
+    }
+
     init(
-        id: UUID = UUID(),
         path: String,
         folderName: String,
         branch: String? = nil,
@@ -40,7 +58,7 @@ struct Worktree: Identifiable, Hashable {
         isLocked: Bool = false,
         lastActivityAt: Date? = nil
     ) {
-        self.id = id
+        self.id = Self.stableID(for: path)
         self.path = path
         self.folderName = folderName
         self.branch = branch
@@ -49,5 +67,26 @@ struct Worktree: Identifiable, Hashable {
         self.isBare = isBare
         self.isLocked = isLocked
         self.lastActivityAt = lastActivityAt
+    }
+
+    // Compare semantic fields only (excludes id and lastActivityAt for change detection)
+    static func == (lhs: Worktree, rhs: Worktree) -> Bool {
+        lhs.path == rhs.path &&
+        lhs.folderName == rhs.folderName &&
+        lhs.branch == rhs.branch &&
+        lhs.commitHash == rhs.commitHash &&
+        lhs.isDetached == rhs.isDetached &&
+        lhs.isBare == rhs.isBare &&
+        lhs.isLocked == rhs.isLocked
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(path)
+        hasher.combine(folderName)
+        hasher.combine(branch)
+        hasher.combine(commitHash)
+        hasher.combine(isDetached)
+        hasher.combine(isBare)
+        hasher.combine(isLocked)
     }
 }

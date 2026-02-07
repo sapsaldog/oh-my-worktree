@@ -11,6 +11,9 @@ final class WorktreeListViewModel: ObservableObject {
     private let toolLauncher: ExternalToolLauncher
     private let store: RepositoryStore
     private let envFileCopier: EnvFileCopier
+    private var loadTask: Task<Void, Never>?
+    private var lastLoadTime: Date?
+    private static let debounceInterval: TimeInterval = 2.0
 
     var repository: Repository?
 
@@ -28,55 +31,80 @@ final class WorktreeListViewModel: ObservableObject {
 
     // MARK: - Load Worktrees
 
-    func loadWorktrees() async {
+    func loadWorktrees(debounce: Bool = false) async {
         guard let repository else {
             worktrees = []
             return
         }
 
-        isLoading = true
-        defer { isLoading = false }
+        // Skip if recently loaded (debounce for automatic refresh triggers)
+        if debounce, let last = lastLoadTime,
+           Date().timeIntervalSince(last) < Self.debounceInterval {
+            return
+        }
 
-        do {
-            // Always fetch fresh from git
-            var freshWorktrees = try await worktreeManager.listWorktrees(repositoryPath: repository.path)
-            let metadata = await store.getWorktreeMetadata(repositoryID: repository.id)
+        // Cancel any in-flight load to avoid race conditions
+        loadTask?.cancel()
 
-            // Enrich worktrees with last activity time
-            for i in freshWorktrees.indices {
-                let wt = freshWorktrees[i]
-                let metaActivity = metadata.first(where: { $0.folderName == wt.folderName })?.lastActivityAt
-                let commitDate = await worktreeManager.lastCommitDate(worktreePath: wt.path)
+        let task = Task { @MainActor [weak self] in
+            guard let self, !Task.isCancelled else { return }
 
-                // Use the most recent of metadata activity and last commit
-                switch (metaActivity, commitDate) {
-                case let (a?, c?):
-                    freshWorktrees[i].lastActivityAt = max(a, c)
-                case let (a?, nil):
-                    freshWorktrees[i].lastActivityAt = a
-                case let (nil, c?):
-                    freshWorktrees[i].lastActivityAt = c
-                case (nil, nil):
-                    break
+            self.isLoading = true
+            defer { self.isLoading = false }
+
+            do {
+                // Always fetch fresh from git
+                var freshWorktrees = try await self.worktreeManager.listWorktrees(repositoryPath: repository.path)
+                guard !Task.isCancelled else { return }
+                let metadata = await self.store.getWorktreeMetadata(repositoryID: repository.id)
+
+                // Enrich worktrees with last activity time
+                for i in freshWorktrees.indices {
+                    guard !Task.isCancelled else { return }
+                    let wt = freshWorktrees[i]
+                    let metaActivity = metadata.first(where: { $0.folderName == wt.folderName })?.lastActivityAt
+                    let commitDate = await self.worktreeManager.lastCommitDate(worktreePath: wt.path)
+
+                    // Use the most recent of metadata activity and last commit
+                    switch (metaActivity, commitDate) {
+                    case let (a?, c?):
+                        freshWorktrees[i].lastActivityAt = max(a, c)
+                    case let (a?, nil):
+                        freshWorktrees[i].lastActivityAt = a
+                    case let (nil, c?):
+                        freshWorktrees[i].lastActivityAt = c
+                    case (nil, nil):
+                        break
+                    }
+                }
+
+                guard !Task.isCancelled else { return }
+
+                // Sort by last activity (most recent first)
+                freshWorktrees.sort { a, b in
+                    (a.lastActivityAt ?? .distantPast) > (b.lastActivityAt ?? .distantPast)
+                }
+
+                self.worktrees = freshWorktrees
+                self.lastLoadTime = Date()
+
+                // Update selected worktree with fresh data, or reset if gone
+                if let selected = self.selectedWorktree {
+                    if let updated = self.worktrees.first(where: { $0.path == selected.path }) {
+                        self.selectedWorktree = updated
+                    } else {
+                        self.selectedWorktree = nil
+                    }
+                }
+            } catch {
+                if !Task.isCancelled {
+                    self.errorMessage = error.localizedDescription
+                    self.worktrees = []
                 }
             }
-
-            // Sort by last activity (most recent first)
-            freshWorktrees.sort { a, b in
-                (a.lastActivityAt ?? .distantPast) > (b.lastActivityAt ?? .distantPast)
-            }
-
-            worktrees = freshWorktrees
-
-            // If selected worktree no longer exists, reset
-            if let selected = selectedWorktree,
-               !worktrees.contains(where: { $0.path == selected.path }) {
-                selectedWorktree = nil
-            }
-        } catch {
-            errorMessage = error.localizedDescription
-            worktrees = []
         }
+        loadTask = task
+        await task.value
     }
 
     // MARK: - Add Worktree
@@ -210,7 +238,7 @@ final class WorktreeListViewModel: ObservableObject {
         }
     }
 
-    private func recordActivity(for worktree: Worktree) async {
+    func recordActivity(for worktree: Worktree) async {
         guard let repository else { return }
         await store.updateLastActivity(folderName: worktree.folderName, repositoryID: repository.id)
         // Update local state

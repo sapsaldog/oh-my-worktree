@@ -57,6 +57,11 @@ struct ContentView: View {
                 await worktreeViewModel.loadWorktrees()
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            Task {
+                await worktreeViewModel.loadWorktrees(debounce: true)
+            }
+        }
     }
 }
 
