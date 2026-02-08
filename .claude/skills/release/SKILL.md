@@ -39,7 +39,7 @@ git commit -m "Bump version to {version}"
 git push origin main
 ```
 
-### 3. Archive & Extract .app
+### 3. Archive, Extract & Re-sign .app
 
 ```bash
 xcodebuild archive \
@@ -50,7 +50,20 @@ xcodebuild archive \
 cp -R build/OhMyWorktree.xcarchive/Products/Applications/OhMyWorktree.app build/
 ```
 
-No code signing — EdDSA handles update integrity.
+**Re-sign the entire bundle** to ensure the app and embedded Sparkle.framework share the same ad-hoc signature. Without this, macOS rejects the app at launch due to Team ID mismatch between the main binary and the framework.
+
+```bash
+codesign --force --deep --sign - build/OhMyWorktree.app
+```
+
+Verify both have matching signatures:
+
+```bash
+codesign -dvv build/OhMyWorktree.app 2>&1 | grep -E "Signature|TeamIdentifier"
+codesign -dvv build/OhMyWorktree.app/Contents/Frameworks/Sparkle.framework 2>&1 | grep -E "Signature|TeamIdentifier"
+```
+
+Both should show `Signature=adhoc` and `TeamIdentifier=not set`.
 
 ### 4. Create Zip
 
@@ -109,6 +122,7 @@ rm -rf build/ release/
 
 ## Key Rules
 
+- **Re-sign after archive** — `codesign --force --deep --sign -` on the .app bundle to unify Team IDs between main binary and Sparkle.framework
 - **appcast.xml push BEFORE GitHub Release** — users fetch appcast from `raw.githubusercontent.com`
 - **Version must be higher** than previous `CFBundleShortVersionString`
 - **Backup EdDSA key** before switching machines: `$SPARKLE_BIN/generate_keys -x`
