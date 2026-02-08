@@ -7,7 +7,7 @@ final class EnvFileCopier {
         let errors: [String]
     }
 
-    /// Finds .env files in the repository root and copies them to the new worktree.
+    /// Finds .env files recursively in the repository and copies them to the new worktree.
     /// Only copies files that don't already exist in the destination.
     func copyEnvFiles(from repositoryPath: String, to worktreePath: String) -> Result {
         let fileManager = FileManager.default
@@ -37,21 +37,35 @@ final class EnvFileCopier {
         return Result(copiedFiles: copiedFiles, errors: errors)
     }
 
-    /// Scans for .env* files in the repository root directory.
+    /// Scans for .env* files recursively in the repository directory.
     private func findEnvFiles(in directoryPath: String) -> [String] {
         let fileManager = FileManager.default
         var envFiles: [String] = []
 
-        // Check root directory for .env files
-        guard let contents = try? fileManager.contentsOfDirectory(atPath: directoryPath) else {
+        let excludedDirs: Set<String> = [
+            "node_modules", ".git", ".omc", ".claude",
+            "dist", "build", ".next", ".nuxt", ".output",
+        ]
+
+        guard let enumerator = fileManager.enumerator(atPath: directoryPath) else {
             return []
         }
 
-        for name in contents where name.hasPrefix(".env") {
-            let fullPath = (directoryPath as NSString).appendingPathComponent(name)
+        while let relativePath = enumerator.nextObject() as? String {
+            let fileName = (relativePath as NSString).lastPathComponent
+
+            // Skip excluded directories
+            if excludedDirs.contains(fileName) {
+                enumerator.skipDescendants()
+                continue
+            }
+
+            guard fileName.hasPrefix(".env") else { continue }
+
+            let fullPath = (directoryPath as NSString).appendingPathComponent(relativePath)
             var isDir: ObjCBool = false
             if fileManager.fileExists(atPath: fullPath, isDirectory: &isDir), !isDir.boolValue {
-                envFiles.append(name)
+                envFiles.append(relativePath)
             }
         }
 

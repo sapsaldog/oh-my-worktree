@@ -1,6 +1,6 @@
 # Oh My Worktree - 제품 요구사항 문서 (PRD)
 
-**버전**: 1.1.4
+**버전**: 1.1.5
 **작성일**: 2026-02-07
 **대상 플랫폼**: macOS 14+ (Sonoma 이상)
 **상태**: Draft
@@ -139,7 +139,7 @@
 - 기존 브랜치 선택 옵션 제공 (선택 시 폴더명만 자동 생성)
 - `git worktree add -b <name> <path/name>` 명령어 실행 후 목록 자동 갱신
 - 브랜치명은 생성 후 사용자가 언제든지 변경 가능
-- .env 파일 복사 설정이 활성화된 경우, repository 루트의 .env 파일들이 자동으로 복사됨
+- .env 파일 복사 설정이 활성화된 경우, repository 내 .env 파일들이 재귀적으로 탐색되어 자동으로 복사됨 (모노레포 하위 디렉토리 지원)
 
 ---
 
@@ -491,10 +491,12 @@ branch refs/heads/feature/new-feature
 
 #### FR-018: .env 파일 자동 복사 (P1)
 
-**설명**: 새 worktree 생성 시 repository 루트의 .env 파일들을 자동으로 복사
+**설명**: 새 worktree 생성 시 repository 내 .env 파일들을 재귀적으로 탐색하여 자동으로 복사
 
 **상세 요구사항**:
-- Repository 루트 디렉토리에서 `.env*` 패턴의 파일을 탐색 (예: `.env`, `.env.local`, `.env.development`)
+- Repository 디렉토리를 재귀적으로 탐색하여 `.env*` 패턴의 파일을 찾음 (예: `.env`, `apps/web/.env.local`, `packages/api/.env.development`)
+- 모노레포 구조의 하위 디렉토리 `.env` 파일도 디렉토리 구조를 유지하며 복사
+- `node_modules`, `.git`, `dist`, `build`, `.next`, `.nuxt`, `.output` 등 불필요한 디렉토리는 탐색에서 제외
 - 새 worktree 생성 시 해당 파일들을 자동으로 새 worktree 경로에 복사
 - 이미 존재하는 파일은 덮어쓰지 않음 (skip)
 - 글로벌 설정에서 기능 on/off 가능 (기본값: on)
@@ -1661,6 +1663,7 @@ end tell
 | 1.1.2 | 2026-02-07 | Worktree 목록 자동 갱신 (FR-004 확장) — 앱 활성화/메뉴바 열 때 자동 갱신, 디바운싱, race condition 방지 | Claude Code |
 | 1.1.3 | 2026-02-07 | 메뉴바 타이틀 실시간 브랜치 감지 (FR-022) — DispatchSource로 git HEAD 파일 모니터링, 외부 브랜치 변경 시 타이틀 자동 갱신 및 활동 시간 기록 | Claude Code |
 | 1.1.4 | 2026-02-07 | 자동 업데이트 Sparkle 통합 (FR-023) — Sparkle 2.x SPM 패키지, UpdaterManager 서비스, Settings 업데이트 UI, 메뉴바 Check for Updates 항목, appcast.xml 템플릿 | Claude Code |
+| 1.1.5 | 2026-02-07 | .env 파일 재귀 탐색 (FR-018 개선) — 모노레포 하위 디렉토리 .env 파일 지원, node_modules/dist 등 제외 디렉토리 설정 | Claude Code |
 
 ---
 
