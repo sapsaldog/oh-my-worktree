@@ -11,6 +11,11 @@ xcuserdata/
 Packages/
 Package.resolved
 
+# Release artifacts
+release/
+*.zip
+*.app
+
 # macOS
 .DS_Store
 *.swp
