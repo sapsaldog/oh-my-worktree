@@ -1,6 +1,6 @@
 # Oh My Worktree - 제품 요구사항 문서 (PRD)
 
-**버전**: 2.0
+**버전**: 1.1.4
 **작성일**: 2026-02-07
 **대상 플랫폼**: macOS 14+ (Sonoma 이상)
 **상태**: Draft
@@ -1651,16 +1651,16 @@ end tell
 | 버전 | 날짜 | 변경 내역 | 작성자 |
 |------|------|-----------|--------|
 | 1.0 | 2026-02-04 | 초안 작성 | Claude Code Writer |
-| 1.1 | 2026-02-04 | Worktree 랜덤 이름 생성, 메타데이터 폴더명 기반 관리 추가 | Claude Code |
-| 1.2 | 2026-02-04 | Ghostty 연동을 open -a 방식으로 변경, Worktree 경로를 ~/oh-my-worktree/workspaces로 변경 | Claude Code |
-| 1.3 | 2026-02-04 | iTerm을 open -a 방식으로 변경, Cursor 에디터 연동 추가 | Claude Code |
-| 1.4 | 2026-02-04 | Worktree 마지막 활동 시간 추적 및 상대 시간 표시, 활동순 정렬, 메타데이터 자동 생성 | Claude Code |
-| 1.5 | 2026-02-04 | 메뉴바 앱 모드 추가 (NSStatusItem 기반 상주 아이콘) | Claude Code |
-| 1.6 | 2026-02-07 | .env 파일 자동 복사 기능 (FR-018), 설정 화면 (FR-019), Repository별 설정 오버라이드 (FR-020) 추가 | Claude Code |
-| 1.7 | 2026-02-07 | Launch at Login 기능 추가 (FR-021), SMAppService 기반 로그인 시 자동 실행 | Claude Code |
-| 1.8 | 2026-02-07 | Worktree 목록 자동 갱신 (FR-004 확장) — 앱 활성화/메뉴바 열 때 자동 갱신, 디바운싱, race condition 방지 | Claude Code |
-| 1.9 | 2026-02-07 | 메뉴바 타이틀 실시간 브랜치 감지 (FR-022) — DispatchSource로 git HEAD 파일 모니터링, 외부 브랜치 변경 시 타이틀 자동 갱신 및 활동 시간 기록 | Claude Code |
-| 2.0 | 2026-02-07 | 자동 업데이트 Sparkle 통합 (FR-023) — Sparkle 2.x SPM 패키지, UpdaterManager 서비스, Settings 업데이트 UI, 메뉴바 Check for Updates 항목, appcast.xml 템플릿 | Claude Code |
+| 1.0.1 | 2026-02-04 | Worktree 랜덤 이름 생성, 메타데이터 폴더명 기반 관리 추가 | Claude Code |
+| 1.0.2 | 2026-02-04 | Ghostty 연동을 open -a 방식으로 변경, Worktree 경로를 ~/oh-my-worktree/workspaces로 변경 | Claude Code |
+| 1.0.3 | 2026-02-04 | iTerm을 open -a 방식으로 변경, Cursor 에디터 연동 추가 | Claude Code |
+| 1.0.4 | 2026-02-04 | Worktree 마지막 활동 시간 추적 및 상대 시간 표시, 활동순 정렬, 메타데이터 자동 생성 | Claude Code |
+| 1.0.5 | 2026-02-04 | 메뉴바 앱 모드 추가 (NSStatusItem 기반 상주 아이콘) | Claude Code |
+| 1.1.0 | 2026-02-07 | .env 파일 자동 복사 기능 (FR-018), 설정 화면 (FR-019), Repository별 설정 오버라이드 (FR-020) 추가 | Claude Code |
+| 1.1.1 | 2026-02-07 | Launch at Login 기능 추가 (FR-021), SMAppService 기반 로그인 시 자동 실행 | Claude Code |
+| 1.1.2 | 2026-02-07 | Worktree 목록 자동 갱신 (FR-004 확장) — 앱 활성화/메뉴바 열 때 자동 갱신, 디바운싱, race condition 방지 | Claude Code |
+| 1.1.3 | 2026-02-07 | 메뉴바 타이틀 실시간 브랜치 감지 (FR-022) — DispatchSource로 git HEAD 파일 모니터링, 외부 브랜치 변경 시 타이틀 자동 갱신 및 활동 시간 기록 | Claude Code |
+| 1.1.4 | 2026-02-07 | 자동 업데이트 Sparkle 통합 (FR-023) — Sparkle 2.x SPM 패키지, UpdaterManager 서비스, Settings 업데이트 UI, 메뉴바 Check for Updates 항목, appcast.xml 템플릿 | Claude Code |
 
 ---
 
