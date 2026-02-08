@@ -15,6 +15,9 @@ A native macOS utility for managing Git worktrees with speed and elegance.
 - **Menu Bar Mode** - Resident NSStatusItem showing current repo and worktree with quick-access dropdown menu
 - **Activity Tracking** - View relative last activity time per worktree (e.g., "2h ago", "7d ago", "just now")
 - **Auto .env Copy** - Automatically copies `.env` files from the repository root when creating new worktrees, with global and per-repo settings
+- **Launch at Login** - Start automatically when you log in, configurable in Settings
+- **Real-Time Branch Detection** - Menu bar title updates instantly when branches change externally via git HEAD file monitoring
+- **Auto-Update** - Built-in update checking and installation via Sparkle framework, configurable in Settings
 - **Lightweight Design** - Compact window (500x400), runs as accessory app without Dock icon, lives in menu bar
 
 ## Requirements
@@ -24,6 +27,10 @@ A native macOS utility for managing Git worktrees with speed and elegance.
 - **Xcode 15** or later (for building from source)
 
 ## Installation
+
+### Download
+
+Download the latest release from [GitHub Releases](https://github.com/sapsaldog/oh-my-worktree/releases). Extract the zip and move `OhMyWorktree.app` to `/Applications/`.
 
 ### Build from Source
 
@@ -91,6 +98,8 @@ Open **Settings** (`⌘,`) from the menu bar to configure global preferences. Us
 | Setting | Scope | Default |
 |---------|-------|---------|
 | **Copy .env files** | Global / Per-repo | On |
+| **Launch at Login** | Global | Off |
+| **Automatically check for updates** | Global | On |
 
 ## Architecture
 
@@ -111,7 +120,7 @@ Oh My Worktree uses a clean MVVM architecture with clear separation of concerns:
 - **WorktreeListView** - Displays list of worktrees with actions
 - **WorktreeRowView** - Individual worktree row with metadata and buttons
 - **ActionButtonsView** - External tool launch buttons
-- **SettingsView** - Global app settings (`.env` copy toggle)
+- **SettingsView** - Global app settings (`.env` copy, Launch at Login, auto-update)
 - **RepositorySettingsView** - Per-repo settings override popover
 
 ### Services
@@ -121,6 +130,7 @@ Oh My Worktree uses a clean MVVM architecture with clear separation of concerns:
 - **RandomNameGenerator** - Generates unique, memorable worktree names
 - **EnvFileCopier** - Copies `.env*` files from repository root to new worktrees
 - **RepositoryStore** - Persists repositories and settings to disk (JSON + UserDefaults)
+- **UpdaterManager** - Sparkle auto-update controller wrapper with SwiftUI reactivity
 
 ### App Delegate
 - **AppDelegate** - Manages NSStatusItem (menu bar icon) and window lifecycle
