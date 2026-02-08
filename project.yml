@@ -6,6 +6,11 @@ options:
   xcodeVersion: "15.0"
   developmentLanguage: en
 
+packages:
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: "2.6.0"
+
 settings:
   SWIFT_VERSION: "5.9"
   MACOSX_DEPLOYMENT_TARGET: "14.0"
@@ -18,6 +23,8 @@ targets:
     platform: macOS
     sources:
       - OhMyWorktree
+    dependencies:
+      - package: Sparkle
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.ohmyworktree.app
       INFOPLIST_KEY_CFBundleDisplayName: OhMyWorktree
@@ -40,3 +47,5 @@ targets:
         CFBundleVersion: "1"
         LSApplicationCategoryType: public.app-category.developer-tools
         NSHumanReadableCopyright: ""
+        SUFeedURL: "https://raw.githubusercontent.com/sapsaldog/oh-my-worktree/main/appcast.xml"
+        SUPublicEDKey: "diEC25Ttj2TyM4Q2jRGKiGJrNnMOlhKrfkfVbIIxjSc="

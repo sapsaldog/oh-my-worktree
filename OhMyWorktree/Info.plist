@@ -17,14 +17,18 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.1.0</string>
+	<string>1.0.0</string>
 	<key>CFBundleVersion</key>
-	<string>2</string>
+	<string>1</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.developer-tools</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>14.0</string>
 	<key>NSHumanReadableCopyright</key>
 	<string></string>
+	<key>SUFeedURL</key>
+	<string>https://raw.githubusercontent.com/sapsaldog/oh-my-worktree/main/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>diEC25Ttj2TyM4Q2jRGKiGJrNnMOlhKrfkfVbIIxjSc=</string>
 </dict>
 </plist>

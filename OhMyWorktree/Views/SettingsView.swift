@@ -5,6 +5,7 @@ import SwiftUI
 private let logger = Logger(subsystem: "com.ohmyworktree", category: "Settings")
 
 struct SettingsView: View {
+    @ObservedObject var updaterManager: UpdaterManager
     @AppStorage("copyEnvFilesEnabled") private var copyEnvFilesEnabled = true
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
@@ -35,12 +36,23 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+
+            Section("Updates") {
+                Toggle("Automatically check for updates", isOn: Binding(
+                    get: { updaterManager.automaticallyChecksForUpdates },
+                    set: { updaterManager.automaticallyChecksForUpdates = $0 }
+                ))
+                Button("Check for Updates Now") {
+                    updaterManager.checkForUpdates()
+                }
+                .disabled(!updaterManager.canCheckForUpdates)
+            }
         }
         .formStyle(.grouped)
         .onAppear {
             launchAtLogin = SMAppService.mainApp.status == .enabled
         }
-        .frame(width: 400, height: 300)
+        .frame(width: 400, height: 500)
         .padding()
     }
 }

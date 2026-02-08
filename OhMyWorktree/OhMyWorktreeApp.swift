@@ -5,6 +5,7 @@ struct OhMyWorktreeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var repoViewModel = RepositoryListViewModel()
     @StateObject private var worktreeViewModel = WorktreeListViewModel()
+    @StateObject private var updaterManager = UpdaterManager()
 
     var body: some Scene {
         WindowGroup(id: "main") {
@@ -15,13 +16,14 @@ struct OhMyWorktreeApp: App {
                     NSApp.setActivationPolicy(.accessory)
                     appDelegate.repoViewModel = repoViewModel
                     appDelegate.worktreeViewModel = worktreeViewModel
+                    appDelegate.updaterManager = updaterManager
                 }
         }
         .defaultSize(width: 500, height: 400)
         .windowResizability(.contentSize)
 
         Settings {
-            SettingsView()
+            SettingsView(updaterManager: updaterManager)
         }
     }
 }

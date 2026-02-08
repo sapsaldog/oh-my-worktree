@@ -1,6 +1,6 @@
 # Oh My Worktree - 제품 요구사항 문서 (PRD)
 
-**버전**: 1.9
+**버전**: 2.0
 **작성일**: 2026-02-07
 **대상 플랫폼**: macOS 14+ (Sonoma 이상)
 **상태**: Draft
@@ -464,6 +464,28 @@ branch refs/heads/feature/new-feature
   - 100ms debounce로 연속 rename 이벤트 (예: git rebase) 대응
 - Worktree 선택 변경 시 이전 모니터 해제, 새 모니터 시작
 - Worktree 미선택(nil) 시 모니터 정지
+
+---
+
+#### FR-023: 자동 업데이트 — Sparkle (P1)
+
+**설명**: Sparkle 2.x 프레임워크를 통합하여 앱 내에서 자동 업데이트 확인 및 설치 지원
+
+**상세 요구사항**:
+- Sparkle 2.x SPM 패키지를 프로젝트에 추가
+- `SPUStandardUpdaterController` 기반 `UpdaterManager` 서비스 구현
+- Settings 창에 "Updates" 섹션 추가:
+  - "Automatically check for updates" 토글
+  - "Check for Updates Now" 버튼
+- 메뉴바 드롭다운에 "Check for Updates..." 항목 추가 (Settings 아래)
+- Info.plist에 `SUFeedURL` (appcast.xml URL) 및 `SUPublicEDKey` (EdDSA 공개키) 설정
+- 프로젝트 루트에 빈 `appcast.xml` 템플릿 생성
+- 릴리스 시 `generate_appcast` 도구로 appcast.xml 자동 생성 또는 수동 관리
+
+**사용자 설정 필요 사항**:
+- EdDSA 키 생성 (`generate_keys`) 후 `SUPublicEDKey`에 공개키 설정
+- GitHub repo의 실제 owner/repo 경로로 `SUFeedURL` 업데이트
+- 릴리스 시: 빌드된 .app zip → GitHub Release 업로드 → appcast.xml 갱신
 
 ---
 
@@ -1638,6 +1660,7 @@ end tell
 | 1.7 | 2026-02-07 | Launch at Login 기능 추가 (FR-021), SMAppService 기반 로그인 시 자동 실행 | Claude Code |
 | 1.8 | 2026-02-07 | Worktree 목록 자동 갱신 (FR-004 확장) — 앱 활성화/메뉴바 열 때 자동 갱신, 디바운싱, race condition 방지 | Claude Code |
 | 1.9 | 2026-02-07 | 메뉴바 타이틀 실시간 브랜치 감지 (FR-022) — DispatchSource로 git HEAD 파일 모니터링, 외부 브랜치 변경 시 타이틀 자동 갱신 및 활동 시간 기록 | Claude Code |
+| 2.0 | 2026-02-07 | 자동 업데이트 Sparkle 통합 (FR-023) — Sparkle 2.x SPM 패키지, UpdaterManager 서비스, Settings 업데이트 UI, 메뉴바 Check for Updates 항목, appcast.xml 템플릿 | Claude Code |
 
 ---
 

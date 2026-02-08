@@ -17,6 +17,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
     var openMainWindow: (() -> Void)?
     var openSettings: (() -> Void)?
+    var updaterManager: UpdaterManager?
     private var menuRefreshTask: Task<Void, Never>?
     private var cancellables = Set<AnyCancellable>()
     private let headMonitor = GitHeadMonitor()
@@ -206,6 +207,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         )
         settingsItem.target = self
         menu.addItem(settingsItem)
+
+        let checkForUpdatesItem = NSMenuItem(
+            title: "Check for Updates...",
+            action: #selector(checkForUpdatesClicked(_:)),
+            keyEquivalent: ""
+        )
+        checkForUpdatesItem.target = self
+        checkForUpdatesItem.isEnabled = updaterManager?.canCheckForUpdates ?? false
+        menu.addItem(checkForUpdatesItem)
 
         menu.addItem(.separator())
 
@@ -415,6 +425,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func settingsClicked(_ sender: NSMenuItem) {
         NSApp.activate(ignoringOtherApps: true)
         openSettings?()
+    }
+
+    // MARK: - Actions: Check for Updates
+
+    @objc private func checkForUpdatesClicked(_ sender: NSMenuItem) {
+        updaterManager?.checkForUpdates()
     }
 
     // MARK: - Actions: Quit
