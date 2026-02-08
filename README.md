@@ -1,5 +1,7 @@
 # Oh My Worktree
 
+> **Looking for an icon designer!** We need a macOS app icon for Oh My Worktree.
+
 A native macOS utility for managing Git worktrees with speed and elegance.
 
 <p align="center">
