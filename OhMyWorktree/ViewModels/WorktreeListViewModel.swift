@@ -7,6 +7,8 @@ final class WorktreeListViewModel: ObservableObject {
     @Published var selectedWorktree: Worktree?
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var pullResultMessage: String?
+    @Published var pullingWorktrees: Set<UUID> = []
     private let worktreeManager: WorktreeManager
     private let toolLauncher: ExternalToolLauncher
     private let store: RepositoryStore
@@ -186,6 +188,34 @@ final class WorktreeListViewModel: ObservableObject {
     func removeSelectedWorktree(force: Bool = false) async {
         guard let selected = selectedWorktree else { return }
         await removeWorktree(selected, force: force)
+    }
+
+    // MARK: - Git Pull
+
+    func gitPull(_ worktree: Worktree) async {
+        guard repository != nil else { return }
+        guard !pullingWorktrees.contains(worktree.id) else { return }
+
+        pullResultMessage = nil
+        isLoading = true
+        pullingWorktrees.insert(worktree.id)
+
+        do {
+            let result = try await worktreeManager.gitPull(worktreePath: worktree.path)
+            pullResultMessage = result.summary
+            await loadWorktrees()
+        } catch {
+            pullResultMessage = nil
+            errorMessage = error.localizedDescription
+        }
+
+        // Clean up after all async work completes
+        isLoading = false
+        pullingWorktrees.remove(worktree.id)
+    }
+
+    func clearPullResult() {
+        pullResultMessage = nil
     }
 
     // MARK: - Open in External Tools

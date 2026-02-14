@@ -1,7 +1,7 @@
 # Oh My Worktree - 제품 요구사항 문서 (PRD)
 
-**버전**: 1.1.5
-**작성일**: 2026-02-07
+**버전**: 1.1.6
+**작성일**: 2026-02-10
 **대상 플랫폼**: macOS 14+ (Sonoma 이상)
 **상태**: Draft
 
@@ -64,7 +64,7 @@
 다음 기능들은 **이번 버전의 범위에 포함되지 않습니다**:
 
 - ❌ 내장 터미널 제공
-- ❌ Git 기본 명령어(commit, push, pull 등) 지원
+- ❌ Git 기본 명령어(commit, push 등) 전체 지원 — 단, 원본 worktree의 `git pull`은 제한적으로 지원 (FR-024)
 - ❌ 브랜치 병합, 리베이스 등 고급 Git 작업
 - ❌ 파일 변경 사항 diff 뷰어
 - ❌ Git 히스토리 시각화
@@ -165,6 +165,30 @@
 - 마지막 git commit 시간도 활동으로 간주 (`git log -1 --format=%ct`)
 - 추적된 활동 시간과 마지막 commit 시간 중 더 최신인 것이 "마지막 활동 시간"으로 표시됨
 - 활동 시간은 메타데이터에 저장되어 앱 재시작 후에도 유지됨
+
+---
+
+**US-011**: 원본 Worktree에서 Git Pull
+**우선순위**: P1
+**사용자로서**, 나는 원본 repository worktree(main 브랜치)의 컨텍스트 메뉴에서 git pull을 실행하고 결과를 확인하고 싶다.
+
+**인수 조건**:
+- 원본 worktree(`worktree.path == repository.path`)의 컨텍스트 메뉴에만 "Git Pull" 항목 표시
+- `git worktree add`로 생성된 worktree에는 "Git Pull" 항목 미표시
+- Git pull 실행 후 결과 요약 표시 (예: "Already up to date." 또는 "3 files changed, 5 insertions, 2 deletions")
+- 실패 시 기존 에러 알림 패턴으로 오류 표시
+- Pull 완료 후 worktree 목록 자동 갱신 (커밋 해시 업데이트)
+
+---
+
+**US-012**: 원본 Worktree 삭제 방지
+**우선순위**: P1
+**사용자로서**, 나는 원본 repository worktree가 실수로 삭제되지 않도록 보호되기를 원한다.
+
+**인수 조건**:
+- 원본 worktree(`worktree.path == repository.path`)의 컨텍스트 메뉴에 "Remove Worktree" / "Force Remove Worktree" 항목 미표시
+- `git worktree add`로 생성된 worktree에만 삭제 메뉴 표시
+- SwiftUI 컨텍스트 메뉴와 NSMenu 서브메뉴 양쪽 모두 적용
 
 ---
 
@@ -441,6 +465,10 @@ branch refs/heads/feature/new-feature
   - 메인 윈도우 닫기 시 앱 종료하지 않음 (메뉴바에 유지)
   - `LSUIElement` (Info.plist) 또는 `NSApp.setActivationPolicy(.accessory)` 사용
   - "Open Main Window" 선택 시 메인 윈도우 복원
+- 메뉴바 인터랙션 시 메인 윈도우 자동 표시:
+  - Repository 선택 시 → 메인 윈도우 표시 (worktree 목록 확인 가능)
+  - Git Pull 실행 시 → 메인 윈도우 표시 (결과 alert 표시)
+  - 일관된 UX: 메뉴 액션 후 항상 시각적 피드백 제공
 - 설정에서 메뉴바 모드 on/off 전환 가능
 
 ---
@@ -486,6 +514,92 @@ branch refs/heads/feature/new-feature
 - EdDSA 키 생성 (`generate_keys`) 후 `SUPublicEDKey`에 공개키 설정
 - GitHub repo의 실제 owner/repo 경로로 `SUFeedURL` 업데이트
 - 릴리스 시: 빌드된 .app zip → GitHub Release 업로드 → appcast.xml 갱신
+
+---
+
+#### FR-024: 원본 Worktree Git Pull (P1)
+
+**설명**: 원본 repository worktree의 컨텍스트 메뉴에서 `git pull`을 실행하고 결과를 표시
+
+**상세 요구사항**:
+- 원본 worktree 판별: `worktree.isRoot(of: repository)` 메서드 사용
+  - 경로 정규화 (`URL.standardizedFileURL`)로 안전한 비교
+  - 심볼릭 링크, trailing slash, 대소문자 차이 처리
+- 원본 worktree의 컨텍스트 메뉴(SwiftUI, NSMenu 모두)에 "Git Pull" 항목 추가
+- 생성된 worktree(`git worktree add`)에는 "Git Pull" 항목 미표시
+- `git pull` 명령어를 해당 worktree의 working directory에서 실행
+- 동시 실행 방지: `pullingWorktrees: Set<UUID>`로 중복 pull 차단
+- 실행 결과 파싱 및 사용자 친화적 요약 표시:
+  - "Already up to date." → 그대로 표시
+  - 변경 사항 있음 → "N file(s) changed, N insertion(s), N deletion(s)" 형태 요약
+- 결과는 알림(alert)으로 표시:
+  - 메인 윈도우에서 실행: ContentView의 SwiftUI alert
+  - 메뉴바에서 실행: 메인 윈도우를 표시하고 ContentView alert 사용 (일관된 UX)
+- 실패 시 `errorMessage`로 에러 표시 (기존 패턴)
+- Pull 완료 후 `loadWorktrees()` 호출하여 커밋 해시 갱신
+
+**메뉴 위치** (원본 worktree):
+```
+Open in iTerm
+Open in Ghostty
+Open in VSCode
+Open in Cursor
+───────────────
+Git Pull          ← 원본 worktree에만 표시
+───────────────
+Show in Finder
+Copy Path
+```
+
+**구현 컴포넌트**:
+- `Worktree`: `isRoot(of:)` 메서드 추가 (경로 정규화 기반 비교)
+- `WorktreeManager`: `gitPull(worktreePath:) async throws -> GitPullResult` 메서드 추가
+- `GitCommandExecutor`: `@unchecked Sendable` 추가 (Swift 6 대응)
+- `WorktreeListViewModel`:
+  - `gitPull(_ worktree:) async` 메서드
+  - `@Published var pullResultMessage: String?` 추가
+  - `pullingWorktrees: Set<UUID>` 동시 실행 방지
+- `WorktreeListView`: 컨텍스트 메뉴에 조건부 "Git Pull" 항목 추가
+- `AppDelegate`:
+  - NSMenu 서브메뉴에 조건부 "Git Pull" 항목 추가
+  - 메뉴바 실행 시 메인 윈도우 표시
+- `ContentView`: Pull 결과 알림(alert) 추가
+
+---
+
+#### FR-025: 원본 Worktree 삭제 보호 (P1)
+
+**설명**: 원본 repository worktree의 컨텍스트 메뉴에서 삭제 관련 메뉴를 숨김
+
+**상세 요구사항**:
+- 원본 worktree(`worktree.path == repository.path`)의 컨텍스트 메뉴에서 다음 항목 제거:
+  - "Remove Worktree"
+  - "Force Remove Worktree"
+- 생성된 worktree에는 기존과 동일하게 삭제 메뉴 표시
+- SwiftUI `contextMenu`와 NSMenu `buildWorktreeSubmenu` 양쪽 모두 적용
+
+**메뉴 비교**:
+
+원본 worktree (삭제 메뉴 없음):
+```
+Open in iTerm / Ghostty / VSCode / Cursor
+───────────────
+Git Pull
+───────────────
+Show in Finder
+Copy Path
+```
+
+생성된 worktree (삭제 메뉴 있음, Git Pull 없음):
+```
+Open in iTerm / Ghostty / VSCode / Cursor
+───────────────
+Show in Finder
+Copy Path
+───────────────
+Remove Worktree
+Force Remove Worktree
+```
 
 ---
 
@@ -929,12 +1043,17 @@ flowchart TD
 
 #### 컨텍스트 메뉴
 
-우클릭 시 표시되는 메뉴:
-- 🖥 iTerm에서 열기
-- 🖥 Ghostty에서 열기
-- 🖥 VSCode에서 열기
-- 📋 경로 복사
-- 🗑 Worktree 삭제
+우클릭 시 표시되는 메뉴 (worktree 유형에 따라 다름):
+
+**원본 worktree** (`worktree.path == repository.path`):
+- Open in iTerm / Ghostty / VSCode / Cursor
+- Git Pull (원본 전용)
+- Show in Finder / Copy Path
+
+**생성된 worktree** (`git worktree add`로 생성):
+- Open in iTerm / Ghostty / VSCode / Cursor
+- Show in Finder / Copy Path
+- Remove Worktree / Force Remove Worktree (생성된 worktree 전용)
 
 ---
 
@@ -1664,6 +1783,8 @@ end tell
 | 1.1.3 | 2026-02-07 | 메뉴바 타이틀 실시간 브랜치 감지 (FR-022) — DispatchSource로 git HEAD 파일 모니터링, 외부 브랜치 변경 시 타이틀 자동 갱신 및 활동 시간 기록 | Claude Code |
 | 1.1.4 | 2026-02-07 | 자동 업데이트 Sparkle 통합 (FR-023) — Sparkle 2.x SPM 패키지, UpdaterManager 서비스, Settings 업데이트 UI, 메뉴바 Check for Updates 항목, appcast.xml 템플릿 | Claude Code |
 | 1.1.5 | 2026-02-07 | .env 파일 재귀 탐색 (FR-018 개선) — 모노레포 하위 디렉토리 .env 파일 지원, node_modules/dist 등 제외 디렉토리 설정 | Claude Code |
+| 1.1.6 | 2026-02-10 | 원본 worktree Git Pull 기능 (FR-024), 원본 worktree 삭제 보호 (FR-025) 추가; 원본 vs 생성된 worktree 컨텍스트 메뉴 분리 | Claude Code |
+| 1.1.7 | 2026-02-14 | 코드 리뷰 반영 — `isMainWorktree` 저장 프로퍼티를 `isRoot(of:)` 메서드로 변경 (경로 정규화 및 안전한 비교), Git Pull 동시 실행 방지 (`pullingWorktrees` 세트), 메뉴바 Git Pull 실행 시 메인 윈도우 표시로 일관된 피드백, 메뉴바 Repository 선택 시 메인 윈도우 표시, `GitCommandExecutor` Sendable 추가 (Swift 6 대응) | Claude Code |
 
 ---
 

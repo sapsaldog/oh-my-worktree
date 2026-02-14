@@ -106,6 +106,14 @@ struct WorktreeListView: View {
         }
         .disabled(!viewModel.isCursorAvailable)
 
+        if let repository = viewModel.repository, worktree.isRoot(of: repository) {
+            Divider()
+
+            Button("Git Pull") {
+                Task { await viewModel.gitPull(worktree) }
+            }
+        }
+
         Divider()
 
         Button("Show in Finder") {
@@ -117,16 +125,18 @@ struct WorktreeListView: View {
             NSPasteboard.general.setString(worktree.path, forType: .string)
         }
 
-        Divider()
+        if let repository = viewModel.repository, !worktree.isRoot(of: repository) {
+            Divider()
 
-        Button("Remove Worktree", role: .destructive) {
-            Task { await viewModel.removeWorktree(worktree) }
-        }
-        .disabled(worktree.isBare)
+            Button("Remove Worktree", role: .destructive) {
+                Task { await viewModel.removeWorktree(worktree) }
+            }
+            .disabled(worktree.isBare)
 
-        Button("Force Remove Worktree", role: .destructive) {
-            Task { await viewModel.removeWorktree(worktree, force: true) }
+            Button("Force Remove Worktree", role: .destructive) {
+                Task { await viewModel.removeWorktree(worktree, force: true) }
+            }
+            .disabled(worktree.isBare)
         }
-        .disabled(worktree.isBare)
     }
 }

@@ -1,6 +1,11 @@
 import Foundation
 
-final class WorktreeManager {
+struct GitPullResult: Sendable {
+    let alreadyUpToDate: Bool
+    let summary: String
+}
+
+final class WorktreeManager: Sendable {
     private let executor: GitCommandExecutor
 
     init(executor: GitCommandExecutor = GitCommandExecutor()) {
@@ -132,6 +137,55 @@ final class WorktreeManager {
                 stderr: result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
             )
         }
+    }
+
+    // MARK: - Git Pull
+
+    func gitPull(worktreePath: String) async throws -> GitPullResult {
+        let result = try await executor.execute(
+            arguments: ["pull"],
+            workingDirectory: worktreePath
+        )
+
+        guard result.exitCode == 0 else {
+            let stderr = result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+            if stderr.contains("CONFLICT") {
+                throw OhMyWorktreeError.commandExecutionFailed(
+                    command: "git pull",
+                    stderr: "Merge conflict detected. Please resolve conflicts manually."
+                )
+            }
+            if stderr.contains("no tracking information") {
+                throw OhMyWorktreeError.commandExecutionFailed(
+                    command: "git pull",
+                    stderr: "No upstream branch configured. Run 'git branch --set-upstream-to' in a terminal."
+                )
+            }
+            if stderr.contains("local changes") && stderr.contains("overwritten") {
+                throw OhMyWorktreeError.commandExecutionFailed(
+                    command: "git pull",
+                    stderr: "Uncommitted local changes would be overwritten. Please commit or stash your changes first."
+                )
+            }
+            throw OhMyWorktreeError.commandExecutionFailed(
+                command: "git pull",
+                stderr: stderr
+            )
+        }
+
+        let output = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if output.contains("Already up to date") {
+            return GitPullResult(alreadyUpToDate: true, summary: "Already up to date.")
+        }
+
+        // Parse the summary line like "3 files changed, 5 insertions(+), 2 deletions(-)"
+        let lines = output.components(separatedBy: "\n")
+        if let summaryLine = lines.last(where: { $0.contains("changed") || $0.contains("insertion") || $0.contains("deletion") }) {
+            return GitPullResult(alreadyUpToDate: false, summary: summaryLine.trimmingCharacters(in: .whitespaces))
+        }
+
+        return GitPullResult(alreadyUpToDate: false, summary: output.components(separatedBy: "\n").last ?? "Pull completed.")
     }
 
     // MARK: - Validate Repository

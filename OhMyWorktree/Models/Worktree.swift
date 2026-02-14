@@ -15,6 +15,23 @@ struct Worktree: Identifiable, Hashable {
         branch ?? "Detached (\(commitHash.prefix(7)))"
     }
 
+    /// Check if this worktree is the root/main worktree of the given repository.
+    ///
+    /// Uses path normalization to handle:
+    /// - Symlink resolution
+    /// - Relative path expansion (. and ..)
+    /// - Trailing slash removal
+    /// - Tilde expansion (~)
+    ///
+    /// Note: Assumes paths from `git worktree list --porcelain` are already normalized,
+    /// which Git guarantees. Case-sensitivity follows the file system (APFS is case-insensitive by default).
+    func isRoot(of repository: Repository) -> Bool {
+        // Normalize paths for comparison (resolve symlinks, standardize format)
+        let worktreePath = URL(fileURLWithPath: self.path).standardizedFileURL.path
+        let repoPath = URL(fileURLWithPath: repository.path).standardizedFileURL.path
+        return worktreePath == repoPath
+    }
+
     var relativeLastActivity: String? {
         guard let date = lastActivityAt else { return nil }
         let seconds = Int(-date.timeIntervalSinceNow)

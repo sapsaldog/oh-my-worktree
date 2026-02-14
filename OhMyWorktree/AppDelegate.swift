@@ -284,6 +284,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             submenu.addItem(.separator())
         }
 
+        // Git Pull — only for root worktree
+        if let repository = repoViewModel?.selectedRepository, worktree.isRoot(of: repository) {
+            let pullItem = NSMenuItem(
+                title: "Git Pull",
+                action: #selector(gitPullClicked(_:)),
+                keyEquivalent: ""
+            )
+            pullItem.target = self
+            pullItem.representedObject = ref
+            submenu.addItem(pullItem)
+            submenu.addItem(.separator())
+        }
+
         let copyItem = NSMenuItem(
             title: "Copy Path",
             action: #selector(copyPathClicked(_:)),
@@ -305,12 +318,33 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return submenu
     }
 
+    // MARK: - Helpers
+
+    private func showOrCreateMainWindow() {
+        NSApp.activate(ignoringOtherApps: true)
+
+        // Try to show an existing window first
+        for window in NSApp.windows where window.canBecomeMain {
+            window.makeKeyAndOrderFront(nil)
+            if window.isMiniaturized {
+                window.deminiaturize(nil)
+            }
+            return
+        }
+
+        // No existing window - create a new one
+        openMainWindow?()
+    }
+
     // MARK: - Actions: Repository
 
     @objc private func repositorySelected(_ sender: NSMenuItem) {
         guard let repoID = sender.representedObject as? UUID,
               let repo = repoViewModel?.repositories.first(where: { $0.id == repoID })
         else { return }
+
+        // Show main window to display the worktree list
+        showOrCreateMainWindow()
 
         Task { @MainActor [weak self] in
             guard let self else { return }
@@ -390,6 +424,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         let url = URL(fileURLWithPath: ref.path)
         NSWorkspace.shared.open(url)
+    }
+
+    @objc private func gitPullClicked(_ sender: NSMenuItem) {
+        guard let ref = sender.representedObject as? WorktreeRef else { return }
+
+        // Show main window to display the result alert
+        showOrCreateMainWindow()
+
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            if let worktree = self.worktreeViewModel?.worktrees.first(where: { $0.id == ref.id }) {
+                await self.worktreeViewModel?.gitPull(worktree)
+                // ContentView alert will show the result
+            }
+        }
     }
 
     // MARK: - Actions: New Worktree

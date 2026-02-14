@@ -10,7 +10,9 @@ protocol GitCommandExecuting {
     func execute(command: String, arguments: [String], workingDirectory: String?) async throws -> CommandResult
 }
 
-final class GitCommandExecutor: GitCommandExecuting {
+/// Executes Git commands via Process. Thread-safe because it has no mutable state.
+/// @unchecked Sendable is safe here because all operations are stateless.
+final class GitCommandExecutor: GitCommandExecuting, @unchecked Sendable {
     func execute(
         command: String = "/usr/bin/git",
         arguments: [String],
@@ -29,6 +31,11 @@ final class GitCommandExecutor: GitCommandExecuting {
             if let workingDirectory {
                 process.currentDirectoryURL = URL(fileURLWithPath: workingDirectory)
             }
+
+            process.environment = ProcessInfo.processInfo.environment.merging(
+                ["LC_ALL": "C"],
+                uniquingKeysWith: { _, new in new }
+            )
 
             do {
                 try process.run()

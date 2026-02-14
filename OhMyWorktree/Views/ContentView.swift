@@ -48,6 +48,25 @@ struct ContentView: View {
         } message: {
             Text(repoViewModel.errorMessage ?? worktreeViewModel.errorMessage ?? "")
         }
+        .alert(
+            "Git Pull",
+            isPresented: .init(
+                get: { worktreeViewModel.pullResultMessage != nil },
+                set: { newValue in
+                    if !newValue {
+                        Task { @MainActor in
+                            worktreeViewModel.clearPullResult()
+                        }
+                    }
+                }
+            )
+        ) {
+            Button("OK") {
+                worktreeViewModel.clearPullResult()
+            }
+        } message: {
+            Text(worktreeViewModel.pullResultMessage ?? "")
+        }
         .task {
             await repoViewModel.loadRepositories()
         }
