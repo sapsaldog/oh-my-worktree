@@ -65,6 +65,10 @@ No test target exists yet. No linter configured.
 
 - All public-facing content (GitHub release notes, README, PR descriptions, commit messages) must be written in **English first**.
 
+## Git Workflow
+
+- When creating a PR, use a descriptive branch name (e.g., `fix/repository-store-data-loss`) — never use the raw worktree folder name as the branch name.
+
 ## Release
 
 A local Claude skill at `.claude/skills/release/SKILL.md` documents the full Sparkle release workflow. Trigger with "release" or "릴리스".

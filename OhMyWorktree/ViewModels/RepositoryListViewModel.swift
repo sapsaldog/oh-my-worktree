@@ -10,7 +10,7 @@ final class RepositoryListViewModel: ObservableObject {
 
     let store: RepositoryStore
 
-    init(store: RepositoryStore = RepositoryStore()) {
+    init(store: RepositoryStore = .shared) {
         self.store = store
     }
 

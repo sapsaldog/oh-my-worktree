@@ -22,7 +22,7 @@ final class WorktreeListViewModel: ObservableObject {
     init(
         worktreeManager: WorktreeManager = WorktreeManager(),
         toolLauncher: ExternalToolLauncher = ExternalToolLauncher(),
-        store: RepositoryStore = RepositoryStore(),
+        store: RepositoryStore = .shared,
         envFileCopier: EnvFileCopier = EnvFileCopier()
     ) {
         self.worktreeManager = worktreeManager

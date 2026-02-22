@@ -1,6 +1,8 @@
 import Foundation
 
 actor RepositoryStore {
+    static let shared = RepositoryStore()
+
     private var repositories: [Repository] = []
     private var worktreeMetadata: [UUID: [WorktreeMetadata]] = [:] // keyed by repository ID
     private var envCopyOverrides: [UUID: Bool] = [:]
@@ -24,51 +26,74 @@ actor RepositoryStore {
 
     // MARK: - Initialization
 
-    init() {
+    private init() {
         // Ensure storage directory exists before loading
         let storageDir = storageDirectory
         if !FileManager.default.fileExists(atPath: storageDir.path) {
             try? FileManager.default.createDirectory(at: storageDir, withIntermediateDirectories: true)
         }
 
-        // Load repositories
-        let repoURL = repositoriesFileURL
-        if let data = try? Data(contentsOf: repoURL) {
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            if let decoded = try? decoder.decode([Repository].self, from: data) {
-                repositories = decoded
-            }
-        }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
 
-        // Load metadata
-        let metaURL = metadataFileURL
-        if let data = try? Data(contentsOf: metaURL) {
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            if let decoded = try? decoder.decode([String: [WorktreeMetadata]].self, from: data) {
-                var result: [UUID: [WorktreeMetadata]] = [:]
-                for (key, value) in decoded {
-                    if let uuid = UUID(uuidString: key) {
-                        result[uuid] = value
-                    }
-                }
-                worktreeMetadata = result
-            }
-        }
+        // Load repositories (with backup fallback)
+        repositories = Self.loadJSON(
+            from: repositoriesFileURL,
+            type: [Repository].self,
+            decoder: decoder
+        ) ?? []
 
-        // Load env copy overrides
-        let overridesURL = envCopyOverridesFileURL
-        if let data = try? Data(contentsOf: overridesURL) {
-            let decoder = JSONDecoder()
-            if let decoded = try? decoder.decode([String: Bool].self, from: data) {
-                for (key, value) in decoded {
-                    if let uuid = UUID(uuidString: key) {
-                        envCopyOverrides[uuid] = value
-                    }
+        // Load metadata (with backup fallback)
+        if let decoded: [String: [WorktreeMetadata]] = Self.loadJSON(
+            from: metadataFileURL,
+            type: [String: [WorktreeMetadata]].self,
+            decoder: decoder
+        ) {
+            var result: [UUID: [WorktreeMetadata]] = [:]
+            for (key, value) in decoded {
+                if let uuid = UUID(uuidString: key) {
+                    result[uuid] = value
                 }
             }
+            worktreeMetadata = result
         }
+
+        // Load env copy overrides (with backup fallback)
+        if let decoded: [String: Bool] = Self.loadJSON(
+            from: envCopyOverridesFileURL,
+            type: [String: Bool].self,
+            decoder: decoder
+        ) {
+            for (key, value) in decoded {
+                if let uuid = UUID(uuidString: key) {
+                    envCopyOverrides[uuid] = value
+                }
+            }
+        }
+    }
+
+    // MARK: - Backup-Aware Loading
+
+    private static func loadJSON<T: Decodable>(
+        from url: URL,
+        type: T.Type,
+        decoder: JSONDecoder
+    ) -> T? {
+        // 1st: try the primary file
+        if let data = try? Data(contentsOf: url),
+           let decoded = try? decoder.decode(T.self, from: data) {
+            return decoded
+        }
+
+        // 2nd: try the .backup file
+        let backupURL = url.appendingPathExtension("backup")
+        if let data = try? Data(contentsOf: backupURL),
+           let decoded = try? decoder.decode(T.self, from: data) {
+            return decoded
+        }
+
+        // Both failed — return nil (first launch or unrecoverable)
+        return nil
     }
 
     // MARK: - Repository CRUD
@@ -160,29 +185,52 @@ actor RepositoryStore {
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = .prettyPrinted
 
-        // Save repositories
-        if let data = try? encoder.encode(repositories) {
-            try? data.write(to: repositoriesFileURL)
-        }
-
-        // Save metadata - convert UUID keys to String keys for JSON
+        // Encode ALL data first — if any encoding fails, write nothing
         let stringKeyedMetadata = Dictionary(
             uniqueKeysWithValues: worktreeMetadata.map { (key, value) in
                 (key.uuidString, value)
             }
         )
-        if let data = try? encoder.encode(stringKeyedMetadata) {
-            try? data.write(to: metadataFileURL)
-        }
-
-        // Save env copy overrides
         let stringKeyedOverrides = Dictionary(
             uniqueKeysWithValues: envCopyOverrides.map { (key, value) in
                 (key.uuidString, value)
             }
         )
-        if let data = try? encoder.encode(stringKeyedOverrides) {
-            try? data.write(to: envCopyOverridesFileURL)
+
+        guard let repoData = try? encoder.encode(repositories),
+              let metaData = try? encoder.encode(stringKeyedMetadata),
+              let overridesData = try? encoder.encode(stringKeyedOverrides) else {
+            return
+        }
+
+        // All encoding succeeded — write each file atomically
+        atomicWrite(data: repoData, to: repositoriesFileURL)
+        atomicWrite(data: metaData, to: metadataFileURL)
+        atomicWrite(data: overridesData, to: envCopyOverridesFileURL)
+    }
+
+    private func atomicWrite(data: Data, to destinationURL: URL) {
+        let fm = FileManager.default
+        let directory = destinationURL.deletingLastPathComponent()
+        let tempURL = directory.appendingPathComponent(UUID().uuidString + ".tmp")
+
+        do {
+            try data.write(to: tempURL)
+
+            if fm.fileExists(atPath: destinationURL.path) {
+                // Replace existing file, keeping the old one as .backup
+                _ = try fm.replaceItemAt(
+                    destinationURL,
+                    withItemAt: tempURL,
+                    backupItemName: destinationURL.lastPathComponent + ".backup"
+                )
+            } else {
+                // First write — just move the temp file into place
+                try fm.moveItem(at: tempURL, to: destinationURL)
+            }
+        } catch {
+            // Clean up temp file on failure
+            try? fm.removeItem(at: tempURL)
         }
     }
 }
