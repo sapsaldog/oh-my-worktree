@@ -72,9 +72,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
         if let button = statusItem?.button {
-            button.image = NSImage(systemSymbolName: "arrow.triangle.branch", accessibilityDescription: "Oh My Worktree")
+            if let icon = NSImage(named: "MenuBarIcon") {
+                icon.isTemplate = true
+                button.image = icon
+            } else {
+                button.image = NSImage(systemSymbolName: "arrow.triangle.branch", accessibilityDescription: "Oh My Worktree")
+            }
             button.imagePosition = .imageLeading
-            button.title = "Oh My Worktree"
+            button.title = " Oh My Worktree"
         }
 
         let menu = NSMenu()
@@ -90,12 +95,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if let repo = repoViewModel?.selectedRepository {
             if let worktree = worktreeViewModel?.selectedWorktree {
                 let branchDisplay = liveBranchName ?? worktree.displayName
-                button.title = "\(repo.name)/\(branchDisplay)"
+                button.title = " \(repo.name)/\(branchDisplay)"
             } else {
-                button.title = repo.name
+                button.title = " \(repo.name)"
             }
         } else {
-            button.title = "Oh My Worktree"
+            button.title = " Oh My Worktree"
         }
     }
 

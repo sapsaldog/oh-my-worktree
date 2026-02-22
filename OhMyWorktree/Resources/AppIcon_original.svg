@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Dark squircle background -->
+  <rect width="1024" height="1024" rx="230" fill="#13151A" />
+
+  <!-- 
+    Branches are drawn first so they neatly emerge from beneath the main trunk.
+    Smooth cubic beziers are used with perfectly vertical control points at the forks and endpoints 
+    to create natural, flowing Git-style curves. 
+  -->
+  
+  <!-- Left Branch (Teal) -->
+  <path d="M 512 680 C 512 530, 300 550, 300 420" fill="none" stroke="#45B7AA" stroke-width="28" stroke-linecap="round" />
+  
+  <!-- Right Branch (Soft Purple) -->
+  <path d="M 512 480 C 512 380, 724 400, 724 300" fill="none" stroke="#9B72CF" stroke-width="28" stroke-linecap="round" />
+
+  <!-- Main Vertical Trunk (Cool Blue) -->
+  <line x1="512" y1="840" x2="512" y2="220" stroke="#4F7CAC" stroke-width="28" stroke-linecap="round" />
+
+  <!-- 
+    Nodes at endpoints and fork points. 
+    The background-colored stroke creates a beautifully sharp 6px negative space gap 
+    between the nodes and the intersecting lines, typical of premium macOS icons.
+  -->
+  <g stroke="#13151A" stroke-width="12">
+    <!-- Trunk Nodes (Cool Blue) -->
+    <circle cx="512" cy="840" r="30" fill="#4F7CAC" />
+    <circle cx="512" cy="680" r="30" fill="#4F7CAC" />
+    <circle cx="512" cy="480" r="30" fill="#4F7CAC" />
+    <circle cx="512" cy="220" r="30" fill="#4F7CAC" />
+
+    <!-- Left Branch Endpoint Node (Teal) -->
+    <circle cx="300" cy="420" r="30" fill="#45B7AA" />
+    
+    <!-- Right Branch Endpoint Node (Soft Purple) -->
+    <circle cx="724" cy="300" r="30" fill="#9B72CF" />
+  </g>
+</svg>
