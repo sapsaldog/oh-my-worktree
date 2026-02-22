@@ -34,6 +34,7 @@ targets:
       COMBINE_HIDPI_IMAGES: YES
       SWIFT_VERSION: "5.9"
       MACOSX_DEPLOYMENT_TARGET: "14.0"
+      ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     info:
       path: OhMyWorktree/Info.plist
       properties:
