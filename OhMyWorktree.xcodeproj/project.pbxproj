@@ -3,13 +3,12 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		156C6EB8ECDE30DC56C50A6B /* Repository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C1B43B188C597C61F1DC2EA /* Repository.swift */; };
 		1D5329DDE42009E76C2650C5 /* ExternalToolLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 155B3645306233DD226910E8 /* ExternalToolLauncher.swift */; };
-		2D19F7A70D643D4F09D6468E /* subagent-tracking.json in Resources */ = {isa = PBXBuildFile; fileRef = 674320D41686AFA66878FC6E /* subagent-tracking.json */; };
 		360142061D0A4B3D4350737F /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 9C6FD25E01D2C241945E1D05 /* Sparkle */; };
 		40504C9B5C87311686050C85 /* RandomNameGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200952D514CDC6E761D7D31 /* RandomNameGenerator.swift */; };
 		41DAD45FEC5310D0E461CE31 /* Worktree.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFE7A83D915B984C5F6EEEAC /* Worktree.swift */; };
@@ -45,7 +44,6 @@
 		3C1B43B188C597C61F1DC2EA /* Repository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Repository.swift; sourceTree = "<group>"; };
 		5DE83D40D208FBAE22E78A33 /* RepositoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryStore.swift; sourceTree = "<group>"; };
 		64B3B3B1F44A78CB74EE99F8 /* RepositorySelectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositorySelectorView.swift; sourceTree = "<group>"; };
-		674320D41686AFA66878FC6E /* subagent-tracking.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "subagent-tracking.json"; sourceTree = "<group>"; };
 		6A761722B5707AF84AB6CA37 /* WorktreeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeManager.swift; sourceTree = "<group>"; };
 		6F7C98BC9064213F12D218E3 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		8C48E8BD55146561E170E91A /* WorktreeRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeRowView.swift; sourceTree = "<group>"; };
@@ -107,21 +105,12 @@
 				C49FD4751640C27A346AD443 /* AppDelegate.swift */,
 				1E244AEB611F8ACEFC7862B5 /* Info.plist */,
 				31E4C67AC16118B79418121C /* OhMyWorktreeApp.swift */,
-				63D0E6DC5BE13679D37058F9 /* .omc */,
 				9951BB49C3A159F4FAEDBADD /* Models */,
 				31977D589F9DEB08CB9961BA /* Services */,
 				2CB433639A5E8438A723AD23 /* ViewModels */,
 				6FC3B85934E2504AF630A4FE /* Views */,
 			);
 			path = OhMyWorktree;
-			sourceTree = "<group>";
-		};
-		63D0E6DC5BE13679D37058F9 /* .omc */ = {
-			isa = PBXGroup;
-			children = (
-				8B3BE33EC668DAF192259F81 /* state */,
-			);
-			path = .omc;
 			sourceTree = "<group>";
 		};
 		6FC3B85934E2504AF630A4FE /* Views */ = {
@@ -136,14 +125,6 @@
 				8C48E8BD55146561E170E91A /* WorktreeRowView.swift */,
 			);
 			path = Views;
-			sourceTree = "<group>";
-		};
-		8B3BE33EC668DAF192259F81 /* state */ = {
-			isa = PBXGroup;
-			children = (
-				674320D41686AFA66878FC6E /* subagent-tracking.json */,
-			);
-			path = state;
 			sourceTree = "<group>";
 		};
 		9951BB49C3A159F4FAEDBADD /* Models */ = {
@@ -182,7 +163,6 @@
 			buildConfigurationList = BF5369B062753B98966CC775 /* Build configuration list for PBXNativeTarget "OhMyWorktree" */;
 			buildPhases = (
 				BBA496511C689A80B7DB5528 /* Sources */,
-				346CF7640FFC5EE403C6A669 /* Resources */,
 				8887AF1AF9D10274C5F0E81D /* Frameworks */,
 			);
 			buildRules = (
@@ -204,7 +184,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1500;
+				LastUpgradeCheck = 2620;
 			};
 			buildConfigurationList = 47A4DC02C75C6B13C2C826D7 /* Build configuration list for PBXProject "OhMyWorktree" */;
 			compatibilityVersion = "Xcode 14.0";
@@ -219,7 +199,6 @@
 			packageReferences = (
 				02C86F602F1495B106DDAAA6 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -227,17 +206,6 @@
 			);
 		};
 /* End PBXProject section */
-
-/* Begin PBXResourcesBuildPhase section */
-		346CF7640FFC5EE403C6A669 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				2D19F7A70D643D4F09D6468E /* subagent-tracking.json in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		BBA496511C689A80B7DB5528 /* Sources */ = {
@@ -279,6 +247,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = OhMyWorktree/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = OhMyWorktree;
@@ -329,9 +298,11 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -346,6 +317,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = OhMyWorktree;
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.9;
@@ -386,9 +358,11 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -410,6 +384,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = OhMyWorktree;
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.9;
@@ -421,6 +396,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = OhMyWorktree/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = OhMyWorktree;

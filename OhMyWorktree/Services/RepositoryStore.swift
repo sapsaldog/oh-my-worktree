@@ -26,7 +26,7 @@ actor RepositoryStore {
 
     // MARK: - Initialization
 
-    init() {
+    private init() {
         // Ensure storage directory exists before loading
         let storageDir = storageDirectory
         if !FileManager.default.fileExists(atPath: storageDir.path) {
