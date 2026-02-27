@@ -473,6 +473,46 @@ branch refs/heads/feature/new-feature
 
 ---
 
+#### FR-026: 동적 Activation Policy — 윈도우 포커스 복구 (P1)
+
+**설명**: 윈도우 가시성에 따라 `NSApplication.ActivationPolicy`를 동적으로 전환하여 Cmd+\` 및 Cmd+Tab을 통한 윈도우 포커스 복구 지원
+
+**배경**:
+- `.accessory` 모드에서는 Dock 아이콘과 Cmd+Tab이 비활성화되어, 메인 윈도우가 포커스를 잃으면 메뉴바 아이콘 클릭 외에 복구 수단 없음
+- 1Password, Bartender 등 주요 macOS 유틸리티에서 사용하는 표준 패턴 적용
+
+**상세 요구사항**:
+- `WindowObserver` 서비스: 윈도우 라이프사이클 이벤트 감시
+  - `NSWindow.didBecomeKeyNotification` — 윈도우 활성화
+  - `NSWindow.willCloseNotification` — 윈도우 닫힘
+  - `NSWindow.didMiniaturizeNotification` — 윈도우 최소화
+  - `NSWindow.didDeminiaturizeNotification` — 최소화 해제
+- Activation Policy 전환 로직:
+  - 앱 윈도우가 1개 이상 visible 또는 miniaturized → `.regular` (Dock + Cmd+Tab 활성)
+  - 모든 앱 윈도우 닫힘 → `.accessory` (Dock 아이콘 숨김, 메뉴바 전용)
+- `.regular` 전환 시 `NSApp.activate()` 호출하여 즉시 Dock/Cmd+Tab 등록
+- 트랜지언트 윈도우 필터링:
+  - `NSStatusBarWindow`, `_NSPopoverWindow`, `NSToolTipPanel` 등 시스템 윈도우 제외
+  - `window.level == .normal` 및 `.titled` 스타일 마스크 확인
+- Dock 아이콘 클릭 시 (`applicationShouldHandleReopen`) 윈도우가 없으면 메인 윈도우 생성
+- 초기 정책: `applicationDidFinishLaunching`에서 `.accessory`로 설정 (기존 `.onAppear` 설정 제거)
+
+**영향받는 컴포넌트**:
+- `WindowObserver` (신규 서비스)
+- `AppDelegate`: WindowObserver 통합, `applicationShouldHandleReopen` 추가, `openMainWindowClicked` 중복 코드 제거
+- `OhMyWorktreeApp`: `.onAppear`에서 `setActivationPolicy(.accessory)` 제거
+
+**검증 시나리오**:
+1. 앱 실행 → 메인 윈도우 표시, Dock 아이콘 나타남, Cmd+Tab에 앱 표시
+2. 다른 앱 클릭 → Dock 아이콘 유지, Cmd+\`로 윈도우 복귀 가능
+3. 메인 윈도우 닫기 → Dock 아이콘 사라짐, 메뉴바 전용 모드
+4. 메뉴바에서 윈도우 열기 → Dock 아이콘 재등장
+5. Settings 열기 → Dock 아이콘 표시; Settings만 닫고 메인 윈도우 유지 → Dock 아이콘 유지
+6. 모든 윈도우 닫기 → Dock 아이콘 사라짐
+7. Dock 아이콘 클릭 (윈도우 없는 상태) → 메인 윈도우 생성
+
+---
+
 #### FR-022: 메뉴바 타이틀 실시간 브랜치 감지 (P1)
 
 **설명**: 선택된 worktree의 git HEAD 파일을 모니터링하여 외부 브랜치 변경 시 메뉴바 타이틀을 실시간 갱신
@@ -1110,6 +1150,7 @@ graph TB
         C[Repository Manager]
         D[Worktree Manager]
         E[External Tool Launcher]
+        K[Window Observer]
     end
 
     subgraph "Data Layer"
@@ -1141,6 +1182,7 @@ graph TB
     style C fill:#fff9c4
     style D fill:#fff9c4
     style E fill:#fff9c4
+    style K fill:#fff9c4
     style F fill:#c8e6c9
     style G fill:#c8e6c9
     style H fill:#ffccbc
@@ -1785,6 +1827,7 @@ end tell
 | 1.1.5 | 2026-02-07 | .env 파일 재귀 탐색 (FR-018 개선) — 모노레포 하위 디렉토리 .env 파일 지원, node_modules/dist 등 제외 디렉토리 설정 | Claude Code |
 | 1.1.6 | 2026-02-10 | 원본 worktree Git Pull 기능 (FR-024), 원본 worktree 삭제 보호 (FR-025) 추가; 원본 vs 생성된 worktree 컨텍스트 메뉴 분리 | Claude Code |
 | 1.1.7 | 2026-02-14 | 코드 리뷰 반영 — `isMainWorktree` 저장 프로퍼티를 `isRoot(of:)` 메서드로 변경 (경로 정규화 및 안전한 비교), Git Pull 동시 실행 방지 (`pullingWorktrees` 세트), 메뉴바 Git Pull 실행 시 메인 윈도우 표시로 일관된 피드백, 메뉴바 Repository 선택 시 메인 윈도우 표시, `GitCommandExecutor` Sendable 추가 (Swift 6 대응) | Claude Code |
+| 1.1.9 | 2026-02-26 | 동적 Activation Policy (FR-026) — WindowObserver 서비스 추가, 윈도우 가시성에 따른 .accessory/.regular 전환으로 Cmd+\` 및 Cmd+Tab 포커스 복구 지원, Dock 아이콘 클릭 시 윈도우 생성, openMainWindowClicked 중복 코드 제거 | Claude Code |
 
 ---
 

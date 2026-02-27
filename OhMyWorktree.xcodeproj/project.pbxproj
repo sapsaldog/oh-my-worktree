@@ -14,6 +14,7 @@
 		3EB8C4AB75DF90CAAA7764C0 /* AppIcon_original.svg in Resources */ = {isa = PBXBuildFile; fileRef = D8736AEED259ECCE858F5BFE /* AppIcon_original.svg */; };
 		40504C9B5C87311686050C85 /* RandomNameGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200952D514CDC6E761D7D31 /* RandomNameGenerator.swift */; };
 		41DAD45FEC5310D0E461CE31 /* Worktree.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFE7A83D915B984C5F6EEEAC /* Worktree.swift */; };
+		638E6CA1194A56DF7C449566 /* WindowObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = C843B3047D22F1A56EAE0AFB /* WindowObserver.swift */; };
 		653587B67AD671EEE36C6C93 /* OhMyWorktreeError.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFCCF64227A4F11AF7BA80B6 /* OhMyWorktreeError.swift */; };
 		69D877CD7133DCC2B86870EC /* WorktreeRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C48E8BD55146561E170E91A /* WorktreeRowView.swift */; };
 		83813D0890D4D7B8E1705EE3 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7C98BC9064213F12D218E3 /* SettingsView.swift */; };
@@ -60,6 +61,7 @@
 		C2067200F123B0207E5A6D16 /* ActionButtonsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionButtonsView.swift; sourceTree = "<group>"; };
 		C219D40D70456373AB9C842E /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		C49FD4751640C27A346AD443 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		C843B3047D22F1A56EAE0AFB /* WindowObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowObserver.swift; sourceTree = "<group>"; };
 		CFCCF64227A4F11AF7BA80B6 /* OhMyWorktreeError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OhMyWorktreeError.swift; sourceTree = "<group>"; };
 		CFE13C2BA3698FDC9C68D625 /* EnvFileCopier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvFileCopier.swift; sourceTree = "<group>"; };
 		D8736AEED259ECCE858F5BFE /* AppIcon_original.svg */ = {isa = PBXFileReference; path = AppIcon_original.svg; sourceTree = "<group>"; };
@@ -100,6 +102,7 @@
 				A200952D514CDC6E761D7D31 /* RandomNameGenerator.swift */,
 				5DE83D40D208FBAE22E78A33 /* RepositoryStore.swift */,
 				FFB32A5891B624A9E58CAA49 /* UpdaterManager.swift */,
+				C843B3047D22F1A56EAE0AFB /* WindowObserver.swift */,
 				6A761722B5707AF84AB6CA37 /* WorktreeManager.swift */,
 			);
 			path = Services;
@@ -262,6 +265,7 @@
 				BA7B508992779E01ED6514B9 /* RepositoryStore.swift in Sources */,
 				83813D0890D4D7B8E1705EE3 /* SettingsView.swift in Sources */,
 				ADBE2761848EDD4D7448F958 /* UpdaterManager.swift in Sources */,
+				638E6CA1194A56DF7C449566 /* WindowObserver.swift in Sources */,
 				41DAD45FEC5310D0E461CE31 /* Worktree.swift in Sources */,
 				9CA230CEB954B49CE4036FB9 /* WorktreeListView.swift in Sources */,
 				C81634CFFA3B0D0B1D6DC1E4 /* WorktreeListViewModel.swift in Sources */,

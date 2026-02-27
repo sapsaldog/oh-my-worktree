@@ -21,12 +21,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var menuRefreshTask: Task<Void, Never>?
     private var cancellables = Set<AnyCancellable>()
     private let headMonitor = GitHeadMonitor()
+    private let windowObserver = WindowObserver()
     private var liveBranchName: String?
 
     // MARK: - NSApplicationDelegate
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.setActivationPolicy(.accessory)
         setupStatusItem()
+        windowObserver.startObserving()
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag {
+            showOrCreateMainWindow()
+        }
+        return true
     }
 
     // MARK: - Observe ViewModel Changes
@@ -459,19 +469,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: - Actions: Open Main Window
 
     @objc private func openMainWindowClicked(_ sender: NSMenuItem) {
-        NSApp.activate(ignoringOtherApps: true)
-
-        // Try to show an existing window first
-        for window in NSApp.windows where window.canBecomeMain {
-            window.makeKeyAndOrderFront(nil)
-            if window.isMiniaturized {
-                window.deminiaturize(nil)
-            }
-            return
-        }
-
-        // No existing window - create a new one via SwiftUI
-        openMainWindow?()
+        showOrCreateMainWindow()
     }
 
     // MARK: - Actions: Settings
