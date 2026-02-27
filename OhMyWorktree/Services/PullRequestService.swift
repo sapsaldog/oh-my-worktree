@@ -4,10 +4,12 @@ import Foundation
 /// Gracefully degrades when `gh` is not installed, not authenticated, or the repository is not on GitHub.
 final class PullRequestService: @unchecked Sendable {
 
-    private let gitExecutor: GitCommandExecutor
+    private let gitExecutor: GitCommandExecuting
+    private let ghCliPath: String?
 
-    init(gitExecutor: GitCommandExecutor = GitCommandExecutor()) {
+    init(gitExecutor: GitCommandExecuting = GitCommandExecutor(), ghCliPath: String? = nil) {
         self.gitExecutor = gitExecutor
+        self.ghCliPath = ghCliPath
     }
 
     // MARK: - Public API
@@ -15,7 +17,7 @@ final class PullRequestService: @unchecked Sendable {
     /// Fetches open pull requests for the given repository, returning a mapping of branch name to PR info.
     /// Returns an empty dictionary if `gh` is unavailable, the repo is not GitHub, or any error occurs.
     func fetchPullRequests(repositoryPath: String) async -> [String: PullRequestInfo] {
-        guard let ghPath = findGhCli() else { return [:] }
+        guard let ghPath = ghCliPath ?? findGhCli() else { return [:] }
         guard await isGitHubRepository(repositoryPath: repositoryPath) else { return [:] }
 
         do {
@@ -48,6 +50,7 @@ final class PullRequestService: @unchecked Sendable {
     private func isGitHubRepository(repositoryPath: String) async -> Bool {
         do {
             let result = try await gitExecutor.execute(
+                command: "/usr/bin/git",
                 arguments: ["config", "--get", "remote.origin.url"],
                 workingDirectory: repositoryPath
             )
