@@ -549,6 +549,54 @@ branch refs/heads/feature/new-feature
 
 ---
 
+#### FR-028: GitHub PR 번호 표시 (P1)
+
+**설명**: Worktree의 브랜치에 연결된 GitHub Pull Request 번호를 UI에 표시하고, 클릭 시 브라우저에서 PR 페이지를 열 수 있음
+
+**상세 요구사항**:
+- `gh` CLI를 사용하여 GitHub PR 정보를 가져옴 (`gh pr list --json number,url,headRefName,state --state all --limit 100`)
+- `gh` CLI 미설치, 미인증, 또는 GitHub 외 리모트인 경우 graceful degradation (빈 결과)
+- PR 정보는 브랜치명 기준으로 매핑 (`[String: PullRequestInfo]`)
+- Worktree 목록 로드 시 비동기 side task로 PR 정보를 가져옴
+- Repository 전환 시 이전 PR fetch task를 취소하고 새로 시작
+- `PullRequestInfo` 모델: `number`, `url` (URL 타입), `branch`, `state`
+- `PullRequestFetching` 프로토콜로 테스트 가능한 설계
+
+**영향받는 컴포넌트**:
+- `PullRequestInfo` (모델)
+- `PullRequestService` (서비스, `PullRequestFetching` 프로토콜)
+- `WorktreeListViewModel` (PR 데이터 상태 관리)
+- `WorktreeRowView` (PR 배지 표시)
+- `AppDelegate` (메뉴바 PR 번호 표시)
+
+---
+
+#### FR-029: GitHub PR 상태 아이콘 표시 (P2)
+
+**설명**: PR의 상태(open/merged/closed)를 GitHub 옥티콘 스타일 아이콘과 색상으로 시각적으로 구분
+
+**상세 요구사항**:
+- `PullRequestState` enum: `open` (OPEN), `merged` (MERGED), `closed` (CLOSED)
+- `gh pr list --state all`로 모든 상태의 PR을 가져옴
+- 같은 브랜치에 여러 PR이 있을 경우 open 상태가 우선
+- `state` 필드 누락 시 `.open`으로 기본값 처리
+- GitHub 옥티콘 SVG 아이콘을 Asset Catalog에 template 이미지로 등록:
+  - `PROpen` (git-pull-request, 초록)
+  - `PRMerged` (git-merge, 보라)
+  - `PRClosed` (git-pull-request-closed, 빨강)
+- Worktree row의 PR 배지: 12px 아이콘 + `#번호`, 상태별 색상 capsule
+- 색상 매핑: open → green, merged → purple, closed → red
+
+**영향받는 컴포넌트**:
+- `PullRequestInfo` (state 필드 추가)
+- `PullRequestState` (enum, Model 레이어)
+- `PullRequestService` (state 파싱, `--state all`)
+- `PullRequestStateIcon` (SwiftUI 뷰, 아이콘 렌더링)
+- `WorktreeRowView` (상태 색상 배지)
+- Asset Catalog (PROpen/PRMerged/PRClosed imageset)
+
+---
+
 #### FR-022: 메뉴바 타이틀 실시간 브랜치 감지 (P1)
 
 **설명**: 선택된 worktree의 git HEAD 파일을 모니터링하여 외부 브랜치 변경 시 메뉴바 타이틀을 실시간 갱신
@@ -1867,6 +1915,8 @@ end tell
 | 1.1.7 | 2026-02-14 | 코드 리뷰 반영 — `isMainWorktree` 저장 프로퍼티를 `isRoot(of:)` 메서드로 변경 (경로 정규화 및 안전한 비교), Git Pull 동시 실행 방지 (`pullingWorktrees` 세트), 메뉴바 Git Pull 실행 시 메인 윈도우 표시로 일관된 피드백, 메뉴바 Repository 선택 시 메인 윈도우 표시, `GitCommandExecutor` Sendable 추가 (Swift 6 대응) | Claude Code |
 | 1.1.9 | 2026-02-26 | 동적 Activation Policy (FR-026) — WindowObserver 서비스 추가, 윈도우 가시성에 따른 .accessory/.regular 전환으로 Cmd+\` 및 Cmd+Tab 포커스 복구 지원, Dock 아이콘 클릭 시 윈도우 생성, openMainWindowClicked 중복 코드 제거 | Claude Code |
 | 1.2.0 | 2026-02-26 | .worktreeinclude 패턴 기반 파일 복사 (FR-027) — EnvFileCopier를 WorktreeFileCopier로 대체, `.worktreeinclude` glob 패턴 지원, fnmatch 기반 매칭, `.worktreeinclude` 미존재 시 `.env*` 폴백으로 하위호환 유지, UI 레이블 업데이트 | Claude Code |
+| 1.2.1 | 2026-02-26 | GitHub PR 번호 표시 (FR-028) — `gh` CLI 기반 PR 정보 조회, 브랜치별 PR 번호 배지, 클릭 시 PR 페이지 열기, PullRequestFetching 프로토콜, race condition 방지 | Claude Code |
+| 1.2.2 | 2026-02-27 | GitHub PR 상태 아이콘 (FR-029) — open/merged/closed 상태 표시, GitHub 옥티콘 SVG 아이콘 (Asset Catalog), 상태별 색상 배지, `--state all`로 전체 PR 조회, open 우선순위 로직 | Claude Code |
 
 ---
 
