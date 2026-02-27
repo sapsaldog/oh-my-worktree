@@ -106,6 +106,11 @@ struct WorktreeListView: View {
         }
         .disabled(!viewModel.isCursorAvailable)
 
+        Button("Open in cmux") {
+            Task { await viewModel.openInCmux(worktree) }
+        }
+        .disabled(!viewModel.isCmuxAvailable)
+
         if let repository = viewModel.repository, worktree.isRoot(of: repository) {
             Divider()
 

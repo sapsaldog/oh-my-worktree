@@ -72,6 +72,39 @@ final class ExternalToolLauncher {
         process.waitUntilExit()
     }
 
+    // MARK: - cmux
+
+    func openInCmux(path: String) async throws {
+        guard isCmuxInstalled() else {
+            throw OhMyWorktreeError.externalToolNotFound(tool: "cmux")
+        }
+
+        let socketPath = "/tmp/cmux.sock"
+
+        // If cmux is not running, launch it and wait for the socket
+        if !FileManager.default.fileExists(atPath: socketPath) {
+            let launchProcess = Process()
+            launchProcess.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+            launchProcess.arguments = ["-a", "cmux"]
+            try launchProcess.run()
+            launchProcess.waitUntilExit()
+
+            for _ in 0..<50 {
+                if FileManager.default.fileExists(atPath: socketPath) { break }
+                try await Task.sleep(nanoseconds: 100_000_000)
+            }
+            guard FileManager.default.fileExists(atPath: socketPath) else { return }
+        }
+
+        try cmuxSocketCommand(socketPath: socketPath) { send in
+            let result = try send("new_workspace")
+            let workspaceID = result.replacingOccurrences(of: "OK ", with: "")
+            _ = try send("select_workspace \(workspaceID)")
+            _ = try send("send cd \(path)")
+            _ = try send("send_key enter")
+        }
+    }
+
     // MARK: - Tool Detection
 
     func isITermInstalled() -> Bool {
@@ -90,6 +123,10 @@ final class ExternalToolLauncher {
         FileManager.default.fileExists(atPath: "/Applications/Cursor.app")
     }
 
+    func isCmuxInstalled() -> Bool {
+        FileManager.default.fileExists(atPath: "/Applications/cmux.app")
+    }
+
     // MARK: - Private Helpers
 
     private func findVSCodeCLI() throws -> String {
@@ -106,6 +143,59 @@ final class ExternalToolLauncher {
         }
 
         throw OhMyWorktreeError.externalToolNotFound(tool: "Visual Studio Code")
+    }
+
+    private func cmuxSocketCommand(socketPath: String, commands: (_ send: (String) throws -> String) throws -> Void) throws {
+        let fd = socket(AF_UNIX, SOCK_STREAM, 0)
+        guard fd >= 0 else {
+            throw OhMyWorktreeError.commandExecutionFailed(command: "cmux", stderr: "Failed to create socket")
+        }
+        defer { close(fd) }
+
+        var addr = sockaddr_un()
+        addr.sun_family = sa_family_t(AF_UNIX)
+        socketPath.withCString { src in
+            withUnsafeMutableBytes(of: &addr.sun_path) { rawBuf in
+                let dest = rawBuf.baseAddress!.assumingMemoryBound(to: CChar.self)
+                _ = strcpy(dest, src)
+            }
+        }
+
+        let connectResult = withUnsafePointer(to: &addr) { ptr in
+            ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sockaddrPtr in
+                connect(fd, sockaddrPtr, socklen_t(MemoryLayout<sockaddr_un>.size))
+            }
+        }
+        guard connectResult == 0 else {
+            throw OhMyWorktreeError.commandExecutionFailed(command: "cmux", stderr: "Failed to connect to cmux socket")
+        }
+
+        let sendCommand: (String) throws -> String = { command in
+            let message = command + "\n"
+            _ = message.withCString { ptr in
+                Darwin.send(fd, ptr, strlen(ptr), 0)
+            }
+
+            usleep(100_000)
+            var buffer = [UInt8](repeating: 0, count: 4096)
+            let bytesRead = recv(fd, &buffer, buffer.count, 0)
+            guard bytesRead > 0 else {
+                throw OhMyWorktreeError.commandExecutionFailed(command: "cmux \(command)", stderr: "No response")
+            }
+            let response = String(bytes: buffer[..<bytesRead], encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard !response.hasPrefix("ERROR") else {
+                if response.contains("Access denied") {
+                    throw OhMyWorktreeError.commandExecutionFailed(
+                        command: "cmux",
+                        stderr: "cmux socket access denied. Open cmux Settings → Automation → Socket Control Mode → set to \"Full open access\", then restart cmux."
+                    )
+                }
+                throw OhMyWorktreeError.commandExecutionFailed(command: "cmux \(command)", stderr: response)
+            }
+            return response
+        }
+
+        try commands(sendCommand)
     }
 
 }

@@ -41,6 +41,14 @@ struct ActionButtonsView: View {
                 Task { await viewModel.openInCursor() }
             }
 
+            actionButton(
+                title: "cmux",
+                icon: "rectangle.topthird.inset.filled",
+                isAvailable: viewModel.isCmuxAvailable
+            ) {
+                Task { await viewModel.openInCmux() }
+            }
+
             Spacer()
 
             if hasSelection {

@@ -268,6 +268,18 @@ final class WorktreeListViewModel: ObservableObject {
         }
     }
 
+    func openInCmux(_ worktree: Worktree? = nil) async {
+        let target = worktree ?? selectedWorktree
+        guard let target else { return }
+
+        do {
+            try await toolLauncher.openInCmux(path: target.path)
+            await recordActivity(for: target)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     func recordActivity(for worktree: Worktree) async {
         guard let repository else { return }
         await store.updateLastActivity(folderName: worktree.folderName, repositoryID: repository.id)
@@ -293,6 +305,10 @@ final class WorktreeListViewModel: ObservableObject {
 
     var isCursorAvailable: Bool {
         toolLauncher.isCursorInstalled()
+    }
+
+    var isCmuxAvailable: Bool {
+        toolLauncher.isCmuxInstalled()
     }
 
     // MARK: - Error Handling
