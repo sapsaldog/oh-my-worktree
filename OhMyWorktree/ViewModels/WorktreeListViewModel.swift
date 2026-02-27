@@ -16,6 +16,7 @@ final class WorktreeListViewModel: ObservableObject {
     private let fileCopier: WorktreeFileCopier
     private let pullRequestService: PullRequestService
     private var loadTask: Task<Void, Never>?
+    private var prFetchTask: Task<Void, Never>?
     private var lastLoadTime: Date?
     private static let debounceInterval: TimeInterval = 2.0
 
@@ -112,8 +113,10 @@ final class WorktreeListViewModel: ObservableObject {
                 // Fetch PR info in a non-blocking side task
                 let repoPath = repository.path
                 let prService = self.pullRequestService
-                Task { @MainActor [weak self] in
+                self.prFetchTask?.cancel()
+                self.prFetchTask = Task { @MainActor [weak self] in
                     let prs = await prService.fetchPullRequests(repositoryPath: repoPath)
+                    guard !Task.isCancelled else { return }
                     self?.pullRequests = prs
                 }
             } catch {
