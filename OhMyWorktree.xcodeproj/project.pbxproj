@@ -16,10 +16,12 @@
 		41DAD45FEC5310D0E461CE31 /* Worktree.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFE7A83D915B984C5F6EEEAC /* Worktree.swift */; };
 		638E6CA1194A56DF7C449566 /* WindowObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = C843B3047D22F1A56EAE0AFB /* WindowObserver.swift */; };
 		653587B67AD671EEE36C6C93 /* OhMyWorktreeError.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFCCF64227A4F11AF7BA80B6 /* OhMyWorktreeError.swift */; };
+		671DEF7953036D7C339F1C16 /* WorktreeFileCopierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45E90BF743990ABDF5F54752 /* WorktreeFileCopierTests.swift */; };
 		69D877CD7133DCC2B86870EC /* WorktreeRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C48E8BD55146561E170E91A /* WorktreeRowView.swift */; };
 		83813D0890D4D7B8E1705EE3 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7C98BC9064213F12D218E3 /* SettingsView.swift */; };
 		904051CD4BAE23C83E6F05EA /* RepositorySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0590D938B57D29A509B839A9 /* RepositorySettingsView.swift */; };
 		90573263CD7CCB51F38F1F2C /* RepositorySelectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64B3B3B1F44A78CB74EE99F8 /* RepositorySelectorView.swift */; };
+		90B73335B9C85BA0C70843D0 /* WorktreeFileCopier.swift in Sources */ = {isa = PBXBuildFile; fileRef = B344DBF698890D1B13BB69D6 /* WorktreeFileCopier.swift */; };
 		937BABFBB6A058168B1F67D3 /* MenuBarIcon.svg in Resources */ = {isa = PBXBuildFile; fileRef = BDCFA92CC6D4F4BDC422F3E2 /* MenuBarIcon.svg */; };
 		96B92319C7A41781AC764E80 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = C219D40D70456373AB9C842E /* AppSettings.swift */; };
 		9CA230CEB954B49CE4036FB9 /* WorktreeListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6AE572EAF819FF7917FB985 /* WorktreeListView.swift */; };
@@ -34,11 +36,21 @@
 		CE306852AB0277CAE4E88BCA /* OhMyWorktreeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31E4C67AC16118B79418121C /* OhMyWorktreeApp.swift */; };
 		D13B27C586A4730DF2924206 /* GitCommandExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E12BD14A8E992E6A9B4668B7 /* GitCommandExecutor.swift */; };
 		E2606717B65AB4B466E7B6F6 /* ActionButtonsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2067200F123B0207E5A6D16 /* ActionButtonsView.swift */; };
-		E36E00E654C8ED1C731ADE85 /* EnvFileCopier.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFE13C2BA3698FDC9C68D625 /* EnvFileCopier.swift */; };
 		F086186299A64C5B427A5474 /* WorktreeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A761722B5707AF84AB6CA37 /* WorktreeManager.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		D69515A915863799468B4D9D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = FD47DC1499D5D3982F736ED2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 34411DDBFA81DF087C7226BF;
+			remoteInfo = OhMyWorktree;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		051710DB8E7D2B5BEF352CDF /* OhMyWorktreeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OhMyWorktreeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0590D938B57D29A509B839A9 /* RepositorySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositorySettingsView.swift; sourceTree = "<group>"; };
 		155B3645306233DD226910E8 /* ExternalToolLauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalToolLauncher.swift; sourceTree = "<group>"; };
 		1E244AEB611F8ACEFC7862B5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -46,6 +58,7 @@
 		31E4C67AC16118B79418121C /* OhMyWorktreeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OhMyWorktreeApp.swift; sourceTree = "<group>"; };
 		38E89BED48AC12D1BE0AA667 /* WorktreeListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeListViewModel.swift; sourceTree = "<group>"; };
 		3C1B43B188C597C61F1DC2EA /* Repository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Repository.swift; sourceTree = "<group>"; };
+		45E90BF743990ABDF5F54752 /* WorktreeFileCopierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeFileCopierTests.swift; sourceTree = "<group>"; };
 		5DE83D40D208FBAE22E78A33 /* RepositoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryStore.swift; sourceTree = "<group>"; };
 		64B3B3B1F44A78CB74EE99F8 /* RepositorySelectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositorySelectorView.swift; sourceTree = "<group>"; };
 		6A761722B5707AF84AB6CA37 /* WorktreeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeManager.swift; sourceTree = "<group>"; };
@@ -57,13 +70,13 @@
 		A34554C16FE6EC54FBB5C200 /* RepositoryListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryListViewModel.swift; sourceTree = "<group>"; };
 		AB7DCB0D9BD7764BC9BC08F6 /* OhMyWorktree.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OhMyWorktree.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AFE7A83D915B984C5F6EEEAC /* Worktree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Worktree.swift; sourceTree = "<group>"; };
+		B344DBF698890D1B13BB69D6 /* WorktreeFileCopier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeFileCopier.swift; sourceTree = "<group>"; };
 		BDCFA92CC6D4F4BDC422F3E2 /* MenuBarIcon.svg */ = {isa = PBXFileReference; path = MenuBarIcon.svg; sourceTree = "<group>"; };
 		C2067200F123B0207E5A6D16 /* ActionButtonsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionButtonsView.swift; sourceTree = "<group>"; };
 		C219D40D70456373AB9C842E /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		C49FD4751640C27A346AD443 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		C843B3047D22F1A56EAE0AFB /* WindowObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowObserver.swift; sourceTree = "<group>"; };
 		CFCCF64227A4F11AF7BA80B6 /* OhMyWorktreeError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OhMyWorktreeError.swift; sourceTree = "<group>"; };
-		CFE13C2BA3698FDC9C68D625 /* EnvFileCopier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvFileCopier.swift; sourceTree = "<group>"; };
 		D8736AEED259ECCE858F5BFE /* AppIcon_original.svg */ = {isa = PBXFileReference; path = AppIcon_original.svg; sourceTree = "<group>"; };
 		E12BD14A8E992E6A9B4668B7 /* GitCommandExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitCommandExecutor.swift; sourceTree = "<group>"; };
 		E6AE572EAF819FF7917FB985 /* WorktreeListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeListView.swift; sourceTree = "<group>"; };
@@ -95,7 +108,6 @@
 		31977D589F9DEB08CB9961BA /* Services */ = {
 			isa = PBXGroup;
 			children = (
-				CFE13C2BA3698FDC9C68D625 /* EnvFileCopier.swift */,
 				155B3645306233DD226910E8 /* ExternalToolLauncher.swift */,
 				E12BD14A8E992E6A9B4668B7 /* GitCommandExecutor.swift */,
 				8D0B554A7A3F05F099599D36 /* GitHeadMonitor.swift */,
@@ -103,9 +115,18 @@
 				5DE83D40D208FBAE22E78A33 /* RepositoryStore.swift */,
 				FFB32A5891B624A9E58CAA49 /* UpdaterManager.swift */,
 				C843B3047D22F1A56EAE0AFB /* WindowObserver.swift */,
+				B344DBF698890D1B13BB69D6 /* WorktreeFileCopier.swift */,
 				6A761722B5707AF84AB6CA37 /* WorktreeManager.swift */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		3B56166A537E658017960706 /* OhMyWorktreeTests */ = {
+			isa = PBXGroup;
+			children = (
+				45E90BF743990ABDF5F54752 /* WorktreeFileCopierTests.swift */,
+			);
+			path = OhMyWorktreeTests;
 			sourceTree = "<group>";
 		};
 		42DAE792EFCDE5A1BBE5F62D /* OhMyWorktree */ = {
@@ -163,6 +184,7 @@
 			isa = PBXGroup;
 			children = (
 				AB7DCB0D9BD7764BC9BC08F6 /* OhMyWorktree.app */,
+				051710DB8E7D2B5BEF352CDF /* OhMyWorktreeTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -171,6 +193,7 @@
 			isa = PBXGroup;
 			children = (
 				42DAE792EFCDE5A1BBE5F62D /* OhMyWorktree */,
+				3B56166A537E658017960706 /* OhMyWorktreeTests */,
 				CF1BC95A27DCE4FD3C37C798 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -178,6 +201,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		182EF5A2C09972E8E65C175F /* OhMyWorktreeTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2CC06542532DEEBD3CC3851F /* Build configuration list for PBXNativeTarget "OhMyWorktreeTests" */;
+			buildPhases = (
+				8EFEEB81275CB55136AE36B6 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				811AF664EE98D0FBEB970FCF /* PBXTargetDependency */,
+			);
+			name = OhMyWorktreeTests;
+			packageProductDependencies = (
+			);
+			productName = OhMyWorktreeTests;
+			productReference = 051710DB8E7D2B5BEF352CDF /* OhMyWorktreeTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		34411DDBFA81DF087C7226BF /* OhMyWorktree */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = BF5369B062753B98966CC775 /* Build configuration list for PBXNativeTarget "OhMyWorktree" */;
@@ -225,6 +266,7 @@
 			projectRoot = "";
 			targets = (
 				34411DDBFA81DF087C7226BF /* OhMyWorktree */,
+				182EF5A2C09972E8E65C175F /* OhMyWorktreeTests */,
 			);
 		};
 /* End PBXProject section */
@@ -243,6 +285,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		8EFEEB81275CB55136AE36B6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				671DEF7953036D7C339F1C16 /* WorktreeFileCopierTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		BBA496511C689A80B7DB5528 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -251,7 +301,6 @@
 				C504C333F22E91D5E0B35628 /* AppDelegate.swift in Sources */,
 				96B92319C7A41781AC764E80 /* AppSettings.swift in Sources */,
 				BE5701A4F52B99C834D7ACB5 /* ContentView.swift in Sources */,
-				E36E00E654C8ED1C731ADE85 /* EnvFileCopier.swift in Sources */,
 				1D5329DDE42009E76C2650C5 /* ExternalToolLauncher.swift in Sources */,
 				D13B27C586A4730DF2924206 /* GitCommandExecutor.swift in Sources */,
 				A1B84A7C2495A084A1A9A9C3 /* GitHeadMonitor.swift in Sources */,
@@ -267,6 +316,7 @@
 				ADBE2761848EDD4D7448F958 /* UpdaterManager.swift in Sources */,
 				638E6CA1194A56DF7C449566 /* WindowObserver.swift in Sources */,
 				41DAD45FEC5310D0E461CE31 /* Worktree.swift in Sources */,
+				90B73335B9C85BA0C70843D0 /* WorktreeFileCopier.swift in Sources */,
 				9CA230CEB954B49CE4036FB9 /* WorktreeListView.swift in Sources */,
 				C81634CFFA3B0D0B1D6DC1E4 /* WorktreeListViewModel.swift in Sources */,
 				F086186299A64C5B427A5474 /* WorktreeManager.swift in Sources */,
@@ -276,6 +326,14 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		811AF664EE98D0FBEB970FCF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 34411DDBFA81DF087C7226BF /* OhMyWorktree */;
+			targetProxy = D69515A915863799468B4D9D /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		11CC73044E1EDE39BDB2ABE4 /* Debug */ = {
@@ -441,9 +499,58 @@
 			};
 			name = Release;
 		};
+		94FBB1FFAD502CC5A562CBCE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ohmyworktree.OhMyWorktreeTests;
+				PRODUCT_MODULE_NAME = OhMyWorktreeTests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.9;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OhMyWorktree.app/Contents/MacOS/OhMyWorktree";
+			};
+			name = Debug;
+		};
+		E6E14D1787F73729955BD96B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ohmyworktree.OhMyWorktreeTests;
+				PRODUCT_MODULE_NAME = OhMyWorktreeTests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.9;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OhMyWorktree.app/Contents/MacOS/OhMyWorktree";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		2CC06542532DEEBD3CC3851F /* Build configuration list for PBXNativeTarget "OhMyWorktreeTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				94FBB1FFAD502CC5A562CBCE /* Debug */,
+				E6E14D1787F73729955BD96B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		47A4DC02C75C6B13C2C826D7 /* Build configuration list for PBXProject "OhMyWorktree" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

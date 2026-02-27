@@ -31,8 +31,8 @@ struct SettingsView: View {
             }
 
             Section("Worktree Creation") {
-                Toggle("Copy .env files to new worktrees", isOn: $copyEnvFilesEnabled)
-                Text("When enabled, .env files from the repository root are automatically copied into newly created worktrees.")
+                Toggle("Copy files to new worktrees", isOn: $copyEnvFilesEnabled)
+                Text("When enabled, files matching .worktreeinclude patterns (or .env files by default) are automatically copied into newly created worktrees.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

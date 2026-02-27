@@ -15,7 +15,12 @@ xcodebuild -project OhMyWorktree.xcodeproj -scheme OhMyWorktree -destination 'pl
 xcodebuild archive -project OhMyWorktree.xcodeproj -scheme OhMyWorktree -archivePath build/OhMyWorktree.xcarchive
 ```
 
-No test target exists yet. No linter configured.
+No linter configured.
+
+```bash
+# Run tests
+xcodebuild -project OhMyWorktree.xcodeproj -scheme OhMyWorktreeTests -destination 'platform=macOS' test
+```
 
 ## Architecture
 
@@ -39,7 +44,7 @@ No test target exists yet. No linter configured.
 | `GitHeadMonitor` | `DispatchSource` file watcher on `.git/HEAD` for real-time branch detection |
 | `UpdaterManager` | Sparkle 2.x `SPUStandardUpdaterController` wrapper |
 | `RandomNameGenerator` | `{adjective/city}-{noun}` name generation with collision versioning |
-| `EnvFileCopier` | Copies `.env*` files from repo root to new worktrees |
+| `WorktreeFileCopier` | Copies files to new worktrees using `.worktreeinclude` patterns (falls back to `.env*`) |
 
 ### Data Flow
 
