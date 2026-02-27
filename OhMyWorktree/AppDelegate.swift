@@ -285,6 +285,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             submenu.addItem(item)
         }
 
+        if worktreeViewModel?.isCmuxAvailable == true {
+            let item = NSMenuItem(
+                title: "Open in cmux",
+                action: #selector(openInCmuxClicked(_:)),
+                keyEquivalent: ""
+            )
+            item.target = self
+            item.representedObject = ref
+            submenu.addItem(item)
+        }
+
         if submenu.numberOfItems > 0 {
             submenu.addItem(.separator())
         }
@@ -411,6 +422,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             guard let self else { return }
             let worktree = self.worktreeViewModel?.worktrees.first(where: { $0.id == ref.id })
             await self.worktreeViewModel?.openInCursor(worktree)
+        }
+    }
+
+    @objc private func openInCmuxClicked(_ sender: NSMenuItem) {
+        guard let ref = sender.representedObject as? WorktreeRef else { return }
+
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let worktree = self.worktreeViewModel?.worktrees.first(where: { $0.id == ref.id })
+            await self.worktreeViewModel?.openInCmux(worktree)
         }
     }
 
