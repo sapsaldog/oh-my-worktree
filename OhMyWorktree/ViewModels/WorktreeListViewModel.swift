@@ -9,26 +9,38 @@ final class WorktreeListViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var pullResultMessage: String?
     @Published var pullingWorktrees: Set<UUID> = []
+    @Published var pullRequests: [String: PullRequestInfo] = [:]
     private let worktreeManager: WorktreeManager
     private let toolLauncher: ExternalToolLauncher
     private let store: RepositoryStore
     private let fileCopier: WorktreeFileCopier
+    private let pullRequestService: PullRequestFetching
     private var loadTask: Task<Void, Never>?
+    private var prFetchTask: Task<Void, Never>?
     private var lastLoadTime: Date?
     private static let debounceInterval: TimeInterval = 2.0
 
-    var repository: Repository?
+    var repository: Repository? {
+        didSet {
+            if repository?.id != oldValue?.id {
+                prFetchTask?.cancel()
+                pullRequests = [:]
+            }
+        }
+    }
 
     init(
         worktreeManager: WorktreeManager = WorktreeManager(),
         toolLauncher: ExternalToolLauncher = ExternalToolLauncher(),
         store: RepositoryStore = .shared,
-        fileCopier: WorktreeFileCopier = WorktreeFileCopier()
+        fileCopier: WorktreeFileCopier = WorktreeFileCopier(),
+        pullRequestService: PullRequestFetching = PullRequestService()
     ) {
         self.worktreeManager = worktreeManager
         self.toolLauncher = toolLauncher
         self.store = store
         self.fileCopier = fileCopier
+        self.pullRequestService = pullRequestService
     }
 
     // MARK: - Load Worktrees
@@ -97,6 +109,16 @@ final class WorktreeListViewModel: ObservableObject {
                     } else {
                         self.selectedWorktree = nil
                     }
+                }
+
+                // Fetch PR info in a non-blocking side task
+                let repoPath = repository.path
+                let prService = self.pullRequestService
+                self.prFetchTask?.cancel()
+                self.prFetchTask = Task { @MainActor [weak self] in
+                    let prs = await prService.fetchPullRequests(repositoryPath: repoPath)
+                    guard !Task.isCancelled else { return }
+                    self?.pullRequests = prs
                 }
             } catch {
                 if !Task.isCancelled {
@@ -216,6 +238,16 @@ final class WorktreeListViewModel: ObservableObject {
 
     func clearPullResult() {
         pullResultMessage = nil
+    }
+
+    // MARK: - Open Pull Request
+
+    func openPullRequest(for worktree: Worktree) {
+        guard let branch = worktree.branch,
+              let pr = pullRequests[branch]
+        else { return }
+
+        NSWorkspace.shared.open(pr.url)
     }
 
     // MARK: - Open in External Tools

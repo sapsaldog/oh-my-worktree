@@ -2,6 +2,8 @@ import SwiftUI
 
 struct WorktreeRowView: View {
     let worktree: Worktree
+    var pullRequest: PullRequestInfo?
+    var onOpenPullRequest: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 10) {
@@ -12,6 +14,10 @@ struct WorktreeRowView: View {
                     Text(worktree.displayName)
                         .font(.system(.body, design: .default, weight: .medium))
                         .lineLimit(1)
+
+                    if let pr = pullRequest {
+                        prBadge(pr)
+                    }
 
                     if worktree.isBare {
                         badge("bare", color: .gray)
@@ -86,5 +92,26 @@ struct WorktreeRowView: View {
             .background(color.opacity(0.2))
             .foregroundStyle(color)
             .clipShape(Capsule())
+    }
+
+    // MARK: - PR Badge
+
+    private func prBadge(_ pr: PullRequestInfo) -> some View {
+        Button(action: {
+            onOpenPullRequest?()
+        }) {
+            HStack(spacing: 3) {
+                PullRequestStateIcon(state: pr.state, size: 12)
+                Text("#\(pr.number)")
+                    .font(.system(size: 9, weight: .medium))
+            }
+            .padding(.horizontal, 5)
+            .padding(.vertical, 1)
+            .background(pr.state.color.opacity(0.15))
+            .foregroundStyle(pr.state.color)
+            .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .help("Open Pull Request #\(pr.number)")
     }
 }

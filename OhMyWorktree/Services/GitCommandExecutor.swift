@@ -6,7 +6,7 @@ struct CommandResult {
     let exitCode: Int32
 }
 
-protocol GitCommandExecuting {
+protocol GitCommandExecuting: Sendable {
     func execute(command: String, arguments: [String], workingDirectory: String?) async throws -> CommandResult
 }
 
