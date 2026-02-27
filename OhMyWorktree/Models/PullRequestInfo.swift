@@ -2,6 +2,6 @@ import Foundation
 
 struct PullRequestInfo: Sendable {
     let number: Int
-    let url: String
+    let url: URL
     let branch: String
 }

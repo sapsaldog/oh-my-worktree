@@ -501,8 +501,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func openPullRequestClicked(_ sender: NSMenuItem) {
         guard let ref = sender.representedObject as? WorktreeRef,
-              let urlString = ref.prURL,
-              let url = URL(string: urlString)
+              let url = ref.prURL
         else { return }
 
         NSWorkspace.shared.open(url)
@@ -551,9 +550,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 private final class WorktreeRef: NSObject {
     let id: UUID
     let path: String
-    let prURL: String?
+    let prURL: URL?
 
-    init(id: UUID, path: String, prURL: String? = nil) {
+    init(id: UUID, path: String, prURL: URL? = nil) {
         self.id = id
         self.path = path
         self.prURL = prURL

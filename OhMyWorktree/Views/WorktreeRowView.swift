@@ -97,9 +97,7 @@ struct WorktreeRowView: View {
 
     private func prBadge(_ pr: PullRequestInfo) -> some View {
         Button(action: {
-            if let url = URL(string: pr.url) {
-                NSWorkspace.shared.open(url)
-            }
+            NSWorkspace.shared.open(pr.url)
         }) {
             Text("#\(pr.number)")
                 .font(.system(size: 9, weight: .medium))

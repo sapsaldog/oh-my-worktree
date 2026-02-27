@@ -83,7 +83,7 @@ final class PullRequestServiceTests: XCTestCase {
         let loginPR = result["feature/login"]
         XCTAssertNotNil(loginPR)
         XCTAssertEqual(loginPR?.number, 42)
-        XCTAssertEqual(loginPR?.url, "https://github.com/user/repo/pull/42")
+        XCTAssertEqual(loginPR?.url, URL(string: "https://github.com/user/repo/pull/42"))
         XCTAssertEqual(loginPR?.branch, "feature/login")
 
         let crashPR = result["fix/crash"]
@@ -150,19 +150,14 @@ final class PullRequestServiceTests: XCTestCase {
 
     // MARK: - gh CLI Missing
 
-    func testFetchPullRequests_withoutGhCli_returnsEmpty() async {
+    func testFetchPullRequests_withNonExistentGhPath_returnsEmpty() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
-        // No ghCliPath override, and gh is unlikely at a fake path
-        let sut = PullRequestService(gitExecutor: mock, ghCliPath: nil)
+        let sut = PullRequestService(gitExecutor: mock, ghCliPath: "/nonexistent/path/to/gh")
 
-        // When gh is not found on system, this returns empty
-        // On CI or machines without gh, this tests the guard-let path
         let result = await sut.fetchPullRequests(repositoryPath: "/tmp/repo")
 
-        // Either empty (gh not found) or has results (gh found) - test passes either way
-        // The important thing is it doesn't crash
-        _ = result
+        XCTAssertTrue(result.isEmpty)
     }
 
     // MARK: - gh Command Failures

@@ -1,8 +1,15 @@
 import Foundation
+import os
+
+protocol PullRequestFetching: Sendable {
+    func fetchPullRequests(repositoryPath: String) async -> [String: PullRequestInfo]
+}
 
 /// Fetches GitHub pull request information using the `gh` CLI.
 /// Gracefully degrades when `gh` is not installed, not authenticated, or the repository is not on GitHub.
-final class PullRequestService: @unchecked Sendable {
+final class PullRequestService: PullRequestFetching, @unchecked Sendable {
+
+    private static let logger = Logger(subsystem: "com.ohmyworktree", category: "PullRequestService")
 
     private let gitExecutor: GitCommandExecuting
     private let ghCliPath: String?
@@ -16,8 +23,12 @@ final class PullRequestService: @unchecked Sendable {
 
     /// Fetches open pull requests for the given repository, returning a mapping of branch name to PR info.
     /// Returns an empty dictionary if `gh` is unavailable, the repo is not GitHub, or any error occurs.
+    /// Note: Limited to the 100 most recent open PRs.
     func fetchPullRequests(repositoryPath: String) async -> [String: PullRequestInfo] {
-        guard let ghPath = ghCliPath ?? findGhCli() else { return [:] }
+        guard let ghPath = ghCliPath ?? findGhCli() else {
+            Self.logger.debug("gh CLI not found, skipping PR fetch")
+            return [:]
+        }
         guard await isGitHubRepository(repositoryPath: repositoryPath) else { return [:] }
 
         do {
@@ -27,9 +38,13 @@ final class PullRequestService: @unchecked Sendable {
                 workingDirectory: repositoryPath
             )
 
-            guard result.exitCode == 0 else { return [:] }
+            guard result.exitCode == 0 else {
+                Self.logger.debug("gh pr list failed with exit code \(result.exitCode)")
+                return [:]
+            }
             return parsePullRequests(from: result.stdout)
         } catch {
+            Self.logger.debug("Failed to fetch PRs: \(error.localizedDescription)")
             return [:]
         }
     }
@@ -55,7 +70,8 @@ final class PullRequestService: @unchecked Sendable {
                 workingDirectory: repositoryPath
             )
             guard result.exitCode == 0 else { return false }
-            return result.stdout.contains("github.com")
+            let url = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+            return url.contains("github.com:") || url.contains("github.com/")
         } catch {
             return false
         }
@@ -75,14 +91,16 @@ final class PullRequestService: @unchecked Sendable {
             let prs = try JSONDecoder().decode([GhPullRequest].self, from: data)
             var result: [String: PullRequestInfo] = [:]
             for pr in prs {
+                guard let url = URL(string: pr.url) else { continue }
                 result[pr.headRefName] = PullRequestInfo(
                     number: pr.number,
-                    url: pr.url,
+                    url: url,
                     branch: pr.headRefName
                 )
             }
             return result
         } catch {
+            Self.logger.debug("Failed to parse PR JSON: \(error.localizedDescription)")
             return [:]
         }
     }

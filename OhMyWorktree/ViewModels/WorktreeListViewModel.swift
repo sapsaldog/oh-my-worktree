@@ -14,7 +14,7 @@ final class WorktreeListViewModel: ObservableObject {
     private let toolLauncher: ExternalToolLauncher
     private let store: RepositoryStore
     private let fileCopier: WorktreeFileCopier
-    private let pullRequestService: PullRequestService
+    private let pullRequestService: PullRequestFetching
     private var loadTask: Task<Void, Never>?
     private var prFetchTask: Task<Void, Never>?
     private var lastLoadTime: Date?
@@ -23,6 +23,7 @@ final class WorktreeListViewModel: ObservableObject {
     var repository: Repository? {
         didSet {
             if repository?.id != oldValue?.id {
+                prFetchTask?.cancel()
                 pullRequests = [:]
             }
         }
@@ -33,7 +34,7 @@ final class WorktreeListViewModel: ObservableObject {
         toolLauncher: ExternalToolLauncher = ExternalToolLauncher(),
         store: RepositoryStore = .shared,
         fileCopier: WorktreeFileCopier = WorktreeFileCopier(),
-        pullRequestService: PullRequestService = PullRequestService()
+        pullRequestService: PullRequestFetching = PullRequestService()
     ) {
         self.worktreeManager = worktreeManager
         self.toolLauncher = toolLauncher
@@ -243,11 +244,10 @@ final class WorktreeListViewModel: ObservableObject {
 
     func openPullRequest(for worktree: Worktree) {
         guard let branch = worktree.branch,
-              let pr = pullRequests[branch],
-              let url = URL(string: pr.url)
+              let pr = pullRequests[branch]
         else { return }
 
-        NSWorkspace.shared.open(url)
+        NSWorkspace.shared.open(pr.url)
     }
 
     // MARK: - Open in External Tools
