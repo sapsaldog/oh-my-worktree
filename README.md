@@ -14,7 +14,7 @@ A native macOS menu bar app for managing Git worktrees with speed and elegance.
 - **GitHub PR Integration** — Shows PR status badges (#number) next to branch names; click to open PR in browser (requires [`gh` CLI](https://cli.github.com/))
 - **External Tool Integration** — Open worktrees directly in iTerm, Ghostty, cmux, VSCode, or Cursor with one click
 - **Menu Bar Mode** — Lives in the menu bar with quick-access dropdown for repositories, worktrees, and tool launching
-- **`.worktreeinclude` Patterns** — Flexible glob-based file copying when creating new worktrees (falls back to `.env*` files)
+- **`.worktreeinclude` Patterns** — Flexible glob-based file copying when creating new worktrees; compatible with [Claude Code](https://claude.ai/code) worktree patterns
 - **Activity Tracking** — View relative last activity time per worktree (e.g., "2h ago", "7d ago", "just now")
 - **Git Pull** — Pull latest changes for any worktree with result summary and conflict detection
 - **Real-Time Branch Detection** — Menu bar title updates instantly when branches change externally
@@ -108,7 +108,7 @@ If [`gh` CLI](https://cli.github.com/) is installed and authenticated, Oh My Wor
 
 ### 6. `.worktreeinclude` Patterns
 
-Control which files are copied into new worktrees by creating a `.worktreeinclude` file in your repository root:
+Control which files are copied into new worktrees by creating a `.worktreeinclude` file in your repository root. This uses the same pattern format supported by [Claude Code](https://claude.ai/code) worktrees, so a single `.worktreeinclude` file works for both Oh My Worktree and Claude Code.
 
 ```
 # Copy environment files
