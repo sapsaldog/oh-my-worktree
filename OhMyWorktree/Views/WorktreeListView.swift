@@ -30,7 +30,10 @@ struct WorktreeListView: View {
                     }
                 )) {
                     ForEach(viewModel.worktrees) { worktree in
-                        WorktreeRowView(worktree: worktree)
+                        WorktreeRowView(
+                            worktree: worktree,
+                            pullRequest: worktree.branch.flatMap { viewModel.pullRequests[$0] }
+                        )
                             .tag(worktree.id)
                             .contextMenu {
                                 contextMenuItems(for: worktree)
@@ -110,6 +113,14 @@ struct WorktreeListView: View {
             Task { await viewModel.openInCmux(worktree) }
         }
         .disabled(!viewModel.isCmuxAvailable)
+
+        if let branch = worktree.branch, let pr = viewModel.pullRequests[branch] {
+            Divider()
+
+            Button("Open Pull Request #\(pr.number)") {
+                viewModel.openPullRequest(for: worktree)
+            }
+        }
 
         if let repository = viewModel.repository, worktree.isRoot(of: repository) {
             Divider()

@@ -164,12 +164,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         // --- Worktree Section ---
 
+        let pullRequests = worktreeViewModel?.pullRequests ?? [:]
+
         for worktree in worktrees {
             if worktree.isBare { continue }
 
             let bullet = (worktreeViewModel?.selectedWorktree?.id == worktree.id) ? "\u{25CF} " : "   "
+            let pr = worktree.branch.flatMap { pullRequests[$0] }
+            let prLabel = pr.map { " #\($0.number)" } ?? ""
             let activity = worktree.relativeLastActivity.map { "  \($0)" } ?? ""
-            let title = "\(bullet)\(worktree.displayName)\(activity)"
+            let title = "\(bullet)\(worktree.displayName)\(prLabel)\(activity)"
 
             let item = NSMenuItem(
                 title: title,
@@ -177,7 +181,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 keyEquivalent: ""
             )
             item.target = self
-            item.representedObject = WorktreeRef(id: worktree.id, path: worktree.path)
+            item.representedObject = WorktreeRef(id: worktree.id, path: worktree.path, prURL: pr?.url)
 
             // Build submenu for external tools
             let submenu = buildWorktreeSubmenu(for: worktree)
@@ -304,6 +308,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item.target = self
             item.representedObject = ref
             submenu.addItem(item)
+        }
+
+        // Open Pull Request — only if PR exists for this branch
+        if let branch = worktree.branch,
+           let pr = (worktreeViewModel?.pullRequests ?? [:])[branch] {
+            if submenu.numberOfItems > 0 {
+                submenu.addItem(.separator())
+            }
+            let prItem = NSMenuItem(
+                title: "Open Pull Request #\(pr.number)",
+                action: #selector(openPullRequestClicked(_:)),
+                keyEquivalent: ""
+            )
+            prItem.target = self
+            prItem.representedObject = WorktreeRef(id: worktree.id, path: worktree.path, prURL: pr.url)
+            submenu.addItem(prItem)
         }
 
         if submenu.numberOfItems > 0 {
@@ -477,6 +497,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    // MARK: - Actions: Open Pull Request
+
+    @objc private func openPullRequestClicked(_ sender: NSMenuItem) {
+        guard let ref = sender.representedObject as? WorktreeRef,
+              let urlString = ref.prURL,
+              let url = URL(string: urlString)
+        else { return }
+
+        NSWorkspace.shared.open(url)
+    }
+
     // MARK: - Actions: New Worktree
 
     @objc private func newWorktreeClicked(_ sender: NSMenuItem) {
@@ -520,10 +551,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 private final class WorktreeRef: NSObject {
     let id: UUID
     let path: String
+    let prURL: String?
 
-    init(id: UUID, path: String) {
+    init(id: UUID, path: String, prURL: String? = nil) {
         self.id = id
         self.path = path
+        self.prURL = prURL
         super.init()
     }
 }
