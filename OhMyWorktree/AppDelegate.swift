@@ -184,7 +184,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item.representedObject = WorktreeRef(id: worktree.id, path: worktree.path, prURL: pr?.url)
 
             // Build submenu for external tools
-            let submenu = buildWorktreeSubmenu(for: worktree)
+            let submenu = buildWorktreeSubmenu(for: worktree, pullRequest: pr)
             item.submenu = submenu
 
             menu.addItem(item)
@@ -251,7 +251,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // MARK: - Worktree Submenu
 
-    private func buildWorktreeSubmenu(for worktree: Worktree) -> NSMenu {
+    private func buildWorktreeSubmenu(for worktree: Worktree, pullRequest: PullRequestInfo? = nil) -> NSMenu {
         let submenu = NSMenu()
         let ref = WorktreeRef(id: worktree.id, path: worktree.path)
 
@@ -311,8 +311,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         // Open Pull Request — only if PR exists for this branch
-        if let branch = worktree.branch,
-           let pr = (worktreeViewModel?.pullRequests ?? [:])[branch] {
+        if let pr = pullRequest {
             if submenu.numberOfItems > 0 {
                 submenu.addItem(.separator())
             }

@@ -226,9 +226,10 @@ final class PullRequestServiceTests: XCTestCase {
 
     // MARK: - Branch Mapping
 
-    func testFetchPullRequests_duplicateBranch_lastOneWins() async {
+    func testFetchPullRequests_duplicateBranch_mostRecentWins() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
+        // gh pr list returns most recent first
         mock.stubGhPrList(json: """
         [
             {"number": 1, "url": "https://github.com/user/repo/pull/1", "headRefName": "feature/x", "state": "CLOSED"},
@@ -240,7 +241,7 @@ final class PullRequestServiceTests: XCTestCase {
         let result = await sut.fetchPullRequests(repositoryPath: "/tmp/repo")
 
         XCTAssertEqual(result.count, 1)
-        XCTAssertEqual(result["feature/x"]?.number, 2)
+        XCTAssertEqual(result["feature/x"]?.number, 1)
     }
 
     func testFetchPullRequests_duplicateBranch_openTakesPriority() async {

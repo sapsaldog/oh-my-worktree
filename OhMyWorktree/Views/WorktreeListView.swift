@@ -32,7 +32,8 @@ struct WorktreeListView: View {
                     ForEach(viewModel.worktrees) { worktree in
                         WorktreeRowView(
                             worktree: worktree,
-                            pullRequest: worktree.branch.flatMap { viewModel.pullRequests[$0] }
+                            pullRequest: worktree.branch.flatMap { viewModel.pullRequests[$0] },
+                            onOpenPullRequest: { viewModel.openPullRequest(for: worktree) }
                         )
                             .tag(worktree.id)
                             .contextMenu {

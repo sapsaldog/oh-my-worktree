@@ -3,6 +3,7 @@ import SwiftUI
 struct WorktreeRowView: View {
     let worktree: Worktree
     var pullRequest: PullRequestInfo?
+    var onOpenPullRequest: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 10) {
@@ -97,7 +98,7 @@ struct WorktreeRowView: View {
 
     private func prBadge(_ pr: PullRequestInfo) -> some View {
         Button(action: {
-            NSWorkspace.shared.open(pr.url)
+            onOpenPullRequest?()
         }) {
             HStack(spacing: 3) {
                 PullRequestStateIcon(state: pr.state, size: 12)

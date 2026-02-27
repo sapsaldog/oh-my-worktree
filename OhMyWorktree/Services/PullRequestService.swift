@@ -7,7 +7,7 @@ protocol PullRequestFetching: Sendable {
 
 /// Fetches GitHub pull request information using the `gh` CLI.
 /// Gracefully degrades when `gh` is not installed, not authenticated, or the repository is not on GitHub.
-final class PullRequestService: PullRequestFetching, @unchecked Sendable {
+final class PullRequestService: PullRequestFetching, Sendable {
 
     private static let logger = Logger(subsystem: "com.ohmyworktree", category: "PullRequestService")
 
@@ -62,6 +62,7 @@ final class PullRequestService: PullRequestFetching, @unchecked Sendable {
     }
 
     /// Determines whether the repository's origin remote points to GitHub.
+    /// Note: Only supports github.com; GitHub Enterprise instances are not detected.
     private func isGitHubRepository(repositoryPath: String) async -> Bool {
         do {
             let result = try await gitExecutor.execute(
@@ -78,7 +79,7 @@ final class PullRequestService: PullRequestFetching, @unchecked Sendable {
     }
 
     /// Parses the JSON output from `gh pr list` into a branch-keyed dictionary.
-    /// When multiple PRs exist for the same branch, open PRs take priority; otherwise the last one wins.
+    /// When multiple PRs exist for the same branch, open PRs take priority; otherwise the most recent one wins.
     private func parsePullRequests(from jsonString: String) -> [String: PullRequestInfo] {
         guard let data = jsonString.data(using: .utf8) else { return [:] }
 
@@ -101,9 +102,11 @@ final class PullRequestService: PullRequestFetching, @unchecked Sendable {
                     branch: pr.headRefName,
                     state: state
                 )
-                // Open PRs take priority over merged/closed for the same branch
-                if let existing = result[pr.headRefName], existing.state == .open {
-                    continue
+                // Keep first entry (most recent from gh) unless a new open PR replaces a non-open one
+                if let existing = result[pr.headRefName] {
+                    if existing.state == .open || info.state != .open {
+                        continue
+                    }
                 }
                 result[pr.headRefName] = info
             }

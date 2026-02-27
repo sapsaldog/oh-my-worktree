@@ -6,7 +6,7 @@ enum PullRequestState: String, Sendable, Equatable {
     case closed = "CLOSED"
 }
 
-struct PullRequestInfo: Sendable {
+struct PullRequestInfo: Sendable, Equatable {
     let number: Int
     let url: URL
     let branch: String
