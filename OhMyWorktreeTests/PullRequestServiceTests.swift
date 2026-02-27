@@ -35,7 +35,7 @@ private final class MockGitCommandExecutor: GitCommandExecuting, @unchecked Send
     func stubGhPrList(json: String, ghPath: String = "/usr/local/bin/gh") {
         results.append((
             command: ghPath,
-            arguments: ["pr", "list", "--json", "number,url,headRefName", "--limit", "100"],
+            arguments: ["pr", "list", "--json", "number,url,headRefName,state", "--state", "all", "--limit", "100"],
             result: .success(CommandResult(stdout: json, stderr: "", exitCode: 0))
         ))
     }
@@ -43,7 +43,7 @@ private final class MockGitCommandExecutor: GitCommandExecuting, @unchecked Send
     func stubGhPrListFailure(ghPath: String = "/usr/local/bin/gh") {
         results.append((
             command: ghPath,
-            arguments: ["pr", "list", "--json", "number,url,headRefName", "--limit", "100"],
+            arguments: ["pr", "list", "--json", "number,url,headRefName,state", "--state", "all", "--limit", "100"],
             result: .success(CommandResult(stdout: "", stderr: "error", exitCode: 1))
         ))
     }
@@ -51,7 +51,7 @@ private final class MockGitCommandExecutor: GitCommandExecuting, @unchecked Send
     func stubGhPrListThrows(ghPath: String = "/usr/local/bin/gh") {
         results.append((
             command: ghPath,
-            arguments: ["pr", "list", "--json", "number,url,headRefName", "--limit", "100"],
+            arguments: ["pr", "list", "--json", "number,url,headRefName,state", "--state", "all", "--limit", "100"],
             result: .failure(NSError(domain: "test", code: 1, userInfo: [NSLocalizedDescriptionKey: "connection failed"]))
         ))
     }
@@ -70,8 +70,8 @@ final class PullRequestServiceTests: XCTestCase {
         mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
         mock.stubGhPrList(json: """
         [
-            {"number": 42, "url": "https://github.com/user/repo/pull/42", "headRefName": "feature/login"},
-            {"number": 99, "url": "https://github.com/user/repo/pull/99", "headRefName": "fix/crash"}
+            {"number": 42, "url": "https://github.com/user/repo/pull/42", "headRefName": "feature/login", "state": "OPEN"},
+            {"number": 99, "url": "https://github.com/user/repo/pull/99", "headRefName": "fix/crash", "state": "MERGED"}
         ]
         """)
         let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
@@ -85,17 +85,19 @@ final class PullRequestServiceTests: XCTestCase {
         XCTAssertEqual(loginPR?.number, 42)
         XCTAssertEqual(loginPR?.url, URL(string: "https://github.com/user/repo/pull/42"))
         XCTAssertEqual(loginPR?.branch, "feature/login")
+        XCTAssertEqual(loginPR?.state, .open)
 
         let crashPR = result["fix/crash"]
         XCTAssertNotNil(crashPR)
         XCTAssertEqual(crashPR?.number, 99)
+        XCTAssertEqual(crashPR?.state, .merged)
     }
 
     func testFetchPullRequests_withSinglePR_returnsOnePR() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "https://github.com/user/repo.git")
         mock.stubGhPrList(json: """
-        [{"number": 1, "url": "https://github.com/user/repo/pull/1", "headRefName": "main-patch"}]
+        [{"number": 1, "url": "https://github.com/user/repo/pull/1", "headRefName": "main-patch", "state": "OPEN"}]
         """)
         let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
 
@@ -103,6 +105,7 @@ final class PullRequestServiceTests: XCTestCase {
 
         XCTAssertEqual(result.count, 1)
         XCTAssertEqual(result["main-patch"]?.number, 1)
+        XCTAssertEqual(result["main-patch"]?.state, .open)
     }
 
     func testFetchPullRequests_withEmptyArray_returnsEmpty() async {
@@ -228,8 +231,8 @@ final class PullRequestServiceTests: XCTestCase {
         mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
         mock.stubGhPrList(json: """
         [
-            {"number": 1, "url": "https://github.com/user/repo/pull/1", "headRefName": "feature/x"},
-            {"number": 2, "url": "https://github.com/user/repo/pull/2", "headRefName": "feature/x"}
+            {"number": 1, "url": "https://github.com/user/repo/pull/1", "headRefName": "feature/x", "state": "CLOSED"},
+            {"number": 2, "url": "https://github.com/user/repo/pull/2", "headRefName": "feature/x", "state": "MERGED"}
         ]
         """)
         let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
@@ -240,13 +243,45 @@ final class PullRequestServiceTests: XCTestCase {
         XCTAssertEqual(result["feature/x"]?.number, 2)
     }
 
+    func testFetchPullRequests_duplicateBranch_openTakesPriority() async {
+        let mock = MockGitCommandExecutor()
+        mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
+        mock.stubGhPrList(json: """
+        [
+            {"number": 1, "url": "https://github.com/user/repo/pull/1", "headRefName": "feature/x", "state": "OPEN"},
+            {"number": 2, "url": "https://github.com/user/repo/pull/2", "headRefName": "feature/x", "state": "CLOSED"}
+        ]
+        """)
+        let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
+
+        let result = await sut.fetchPullRequests(repositoryPath: "/tmp/repo")
+
+        XCTAssertEqual(result.count, 1)
+        XCTAssertEqual(result["feature/x"]?.number, 1)
+        XCTAssertEqual(result["feature/x"]?.state, .open)
+    }
+
+    func testFetchPullRequests_withMissingState_defaultsToOpen() async {
+        let mock = MockGitCommandExecutor()
+        mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
+        mock.stubGhPrList(json: """
+        [{"number": 5, "url": "https://github.com/user/repo/pull/5", "headRefName": "legacy"}]
+        """)
+        let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
+
+        let result = await sut.fetchPullRequests(repositoryPath: "/tmp/repo")
+
+        XCTAssertEqual(result.count, 1)
+        XCTAssertEqual(result["legacy"]?.state, .open)
+    }
+
     // MARK: - HTTPS Remote URL
 
     func testFetchPullRequests_withHTTPSGitHubRemote_succeeds() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "https://github.com/user/repo.git")
         mock.stubGhPrList(json: """
-        [{"number": 10, "url": "https://github.com/user/repo/pull/10", "headRefName": "dev"}]
+        [{"number": 10, "url": "https://github.com/user/repo/pull/10", "headRefName": "dev", "state": "OPEN"}]
         """)
         let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
 

@@ -99,13 +99,16 @@ struct WorktreeRowView: View {
         Button(action: {
             NSWorkspace.shared.open(pr.url)
         }) {
-            Text("#\(pr.number)")
-                .font(.system(size: 9, weight: .medium))
-                .padding(.horizontal, 5)
-                .padding(.vertical, 1)
-                .background(Color.blue.opacity(0.2))
-                .foregroundStyle(.blue)
-                .clipShape(Capsule())
+            HStack(spacing: 3) {
+                PullRequestStateIcon(state: pr.state, size: 12)
+                Text("#\(pr.number)")
+                    .font(.system(size: 9, weight: .medium))
+            }
+            .padding(.horizontal, 5)
+            .padding(.vertical, 1)
+            .background(pr.state.color.opacity(0.15))
+            .foregroundStyle(pr.state.color)
+            .clipShape(Capsule())
         }
         .buttonStyle(.plain)
         .help("Open Pull Request #\(pr.number)")

@@ -21,9 +21,9 @@ final class PullRequestService: PullRequestFetching, @unchecked Sendable {
 
     // MARK: - Public API
 
-    /// Fetches open pull requests for the given repository, returning a mapping of branch name to PR info.
+    /// Fetches pull requests (open, merged, closed) for the given repository, returning a mapping of branch name to PR info.
     /// Returns an empty dictionary if `gh` is unavailable, the repo is not GitHub, or any error occurs.
-    /// Note: Limited to the 100 most recent open PRs.
+    /// Note: Limited to the 100 most recent PRs across all states.
     func fetchPullRequests(repositoryPath: String) async -> [String: PullRequestInfo] {
         guard let ghPath = ghCliPath ?? findGhCli() else {
             Self.logger.debug("gh CLI not found, skipping PR fetch")
@@ -34,7 +34,7 @@ final class PullRequestService: PullRequestFetching, @unchecked Sendable {
         do {
             let result = try await gitExecutor.execute(
                 command: ghPath,
-                arguments: ["pr", "list", "--json", "number,url,headRefName", "--limit", "100"],
+                arguments: ["pr", "list", "--json", "number,url,headRefName,state", "--state", "all", "--limit", "100"],
                 workingDirectory: repositoryPath
             )
 
@@ -78,6 +78,7 @@ final class PullRequestService: PullRequestFetching, @unchecked Sendable {
     }
 
     /// Parses the JSON output from `gh pr list` into a branch-keyed dictionary.
+    /// When multiple PRs exist for the same branch, open PRs take priority; otherwise the last one wins.
     private func parsePullRequests(from jsonString: String) -> [String: PullRequestInfo] {
         guard let data = jsonString.data(using: .utf8) else { return [:] }
 
@@ -85,6 +86,7 @@ final class PullRequestService: PullRequestFetching, @unchecked Sendable {
             let number: Int
             let url: String
             let headRefName: String
+            let state: String?
         }
 
         do {
@@ -92,11 +94,18 @@ final class PullRequestService: PullRequestFetching, @unchecked Sendable {
             var result: [String: PullRequestInfo] = [:]
             for pr in prs {
                 guard let url = URL(string: pr.url) else { continue }
-                result[pr.headRefName] = PullRequestInfo(
+                let state = pr.state.flatMap { PullRequestState(rawValue: $0) } ?? .open
+                let info = PullRequestInfo(
                     number: pr.number,
                     url: url,
-                    branch: pr.headRefName
+                    branch: pr.headRefName,
+                    state: state
                 )
+                // Open PRs take priority over merged/closed for the same branch
+                if let existing = result[pr.headRefName], existing.state == .open {
+                    continue
+                }
+                result[pr.headRefName] = info
             }
             return result
         } catch {

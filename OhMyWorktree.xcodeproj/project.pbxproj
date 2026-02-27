@@ -10,6 +10,7 @@
 		156C6EB8ECDE30DC56C50A6B /* Repository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C1B43B188C597C61F1DC2EA /* Repository.swift */; };
 		1D280B90168CDB181DC5FAE4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 73CCA7E1C1ACBAF4E4291EA8 /* Assets.xcassets */; };
 		1D5329DDE42009E76C2650C5 /* ExternalToolLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 155B3645306233DD226910E8 /* ExternalToolLauncher.swift */; };
+		322D1AFDBFEEBF607E12181D /* PullRequestStateIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1024573DB028DE97085DF606 /* PullRequestStateIcon.swift */; };
 		360142061D0A4B3D4350737F /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 9C6FD25E01D2C241945E1D05 /* Sparkle */; };
 		38723E3C67DD58A9D57EAD4B /* PullRequestServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 038E188FA5528808D1BCFCC7 /* PullRequestServiceTests.swift */; };
 		3EB8C4AB75DF90CAAA7764C0 /* AppIcon_original.svg in Resources */ = {isa = PBXBuildFile; fileRef = D8736AEED259ECCE858F5BFE /* AppIcon_original.svg */; };
@@ -57,6 +58,7 @@
 		038E188FA5528808D1BCFCC7 /* PullRequestServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PullRequestServiceTests.swift; sourceTree = "<group>"; };
 		051710DB8E7D2B5BEF352CDF /* OhMyWorktreeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OhMyWorktreeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0590D938B57D29A509B839A9 /* RepositorySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositorySettingsView.swift; sourceTree = "<group>"; };
+		1024573DB028DE97085DF606 /* PullRequestStateIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PullRequestStateIcon.swift; sourceTree = "<group>"; };
 		155B3645306233DD226910E8 /* ExternalToolLauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalToolLauncher.swift; sourceTree = "<group>"; };
 		1E244AEB611F8ACEFC7862B5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		284A4CA5F96802A6098EA38B /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -170,6 +172,7 @@
 			children = (
 				C2067200F123B0207E5A6D16 /* ActionButtonsView.swift */,
 				284A4CA5F96802A6098EA38B /* ContentView.swift */,
+				1024573DB028DE97085DF606 /* PullRequestStateIcon.swift */,
 				64B3B3B1F44A78CB74EE99F8 /* RepositorySelectorView.swift */,
 				0590D938B57D29A509B839A9 /* RepositorySettingsView.swift */,
 				6F7C98BC9064213F12D218E3 /* SettingsView.swift */,
@@ -322,6 +325,7 @@
 				653587B67AD671EEE36C6C93 /* OhMyWorktreeError.swift in Sources */,
 				761A6C6DF0BA861B384B7BBA /* PullRequestInfo.swift in Sources */,
 				C7D0F317123923E61CFD41ED /* PullRequestService.swift in Sources */,
+				322D1AFDBFEEBF607E12181D /* PullRequestStateIcon.swift in Sources */,
 				40504C9B5C87311686050C85 /* RandomNameGenerator.swift in Sources */,
 				156C6EB8ECDE30DC56C50A6B /* Repository.swift in Sources */,
 				B1ED113BDF88D0A3D2A2A874 /* RepositoryListViewModel.swift in Sources */,
