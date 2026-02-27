@@ -13,7 +13,6 @@ struct OhMyWorktreeApp: App {
                 .frame(minWidth: 400, minHeight: 300)
                 .modifier(OpenWindowModifier(appDelegate: appDelegate))
                 .onAppear {
-                    NSApp.setActivationPolicy(.accessory)
                     appDelegate.repoViewModel = repoViewModel
                     appDelegate.worktreeViewModel = worktreeViewModel
                     appDelegate.updaterManager = updaterManager
