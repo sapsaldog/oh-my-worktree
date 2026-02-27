@@ -19,7 +19,7 @@ struct RepositorySettingsView: View {
 
             Divider()
 
-            Toggle("Copy .env files on worktree creation", isOn: Binding(
+            Toggle("Copy files on worktree creation", isOn: Binding(
                 get: { effectiveValue },
                 set: { newValue in
                     overrideValue = newValue

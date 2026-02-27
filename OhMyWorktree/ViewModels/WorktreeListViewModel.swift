@@ -12,7 +12,7 @@ final class WorktreeListViewModel: ObservableObject {
     private let worktreeManager: WorktreeManager
     private let toolLauncher: ExternalToolLauncher
     private let store: RepositoryStore
-    private let envFileCopier: EnvFileCopier
+    private let fileCopier: WorktreeFileCopier
     private var loadTask: Task<Void, Never>?
     private var lastLoadTime: Date?
     private static let debounceInterval: TimeInterval = 2.0
@@ -23,12 +23,12 @@ final class WorktreeListViewModel: ObservableObject {
         worktreeManager: WorktreeManager = WorktreeManager(),
         toolLauncher: ExternalToolLauncher = ExternalToolLauncher(),
         store: RepositoryStore = .shared,
-        envFileCopier: EnvFileCopier = EnvFileCopier()
+        fileCopier: WorktreeFileCopier = WorktreeFileCopier()
     ) {
         self.worktreeManager = worktreeManager
         self.toolLauncher = toolLauncher
         self.store = store
-        self.envFileCopier = envFileCopier
+        self.fileCopier = fileCopier
     }
 
     // MARK: - Load Worktrees
@@ -135,14 +135,14 @@ final class WorktreeListViewModel: ObservableObject {
             let metadata = WorktreeMetadata(folderName: folderName)
             await store.addWorktreeMetadata(metadata, repositoryID: repository.id)
 
-            // Copy .env files if enabled
-            let envOverride = await store.getEnvCopyOverride(for: repository.id)
+            // Copy files if enabled (.worktreeinclude patterns or .env* fallback)
+            let fileCopyOverride = await store.getEnvCopyOverride(for: repository.id)
             let globalDefault = UserDefaults.standard.object(forKey: "copyEnvFilesEnabled") as? Bool ?? true
-            let shouldCopyEnv = envOverride ?? globalDefault
-            if shouldCopyEnv {
-                let copyResult = envFileCopier.copyEnvFiles(from: repository.path, to: newWorktree.path)
+            let shouldCopyFiles = fileCopyOverride ?? globalDefault
+            if shouldCopyFiles {
+                let copyResult = fileCopier.copyFiles(from: repository.path, to: newWorktree.path)
                 if !copyResult.errors.isEmpty {
-                    errorMessage = "Some .env files could not be copied: \(copyResult.errors.joined(separator: ", "))"
+                    errorMessage = "Some files could not be copied: \(copyResult.errors.joined(separator: ", "))"
                 }
             }
 

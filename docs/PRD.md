@@ -139,7 +139,7 @@
 - 기존 브랜치 선택 옵션 제공 (선택 시 폴더명만 자동 생성)
 - `git worktree add -b <name> <path/name>` 명령어 실행 후 목록 자동 갱신
 - 브랜치명은 생성 후 사용자가 언제든지 변경 가능
-- .env 파일 복사 설정이 활성화된 경우, repository 내 .env 파일들이 재귀적으로 탐색되어 자동으로 복사됨 (모노레포 하위 디렉토리 지원)
+- 파일 복사 설정이 활성화된 경우, `.worktreeinclude` 패턴에 매칭되는 파일이 자동 복사됨 (`.worktreeinclude` 미존재 시 `.env*` 파일 폴백)
 
 ---
 
@@ -513,6 +513,42 @@ branch refs/heads/feature/new-feature
 
 ---
 
+#### FR-027: .worktreeinclude 파일 지원 (P1)
+
+**설명**: Repository 루트에 `.worktreeinclude` 파일을 통해 worktree 생성 시 복사할 파일 패턴을 사용자가 지정
+
+**상세 요구사항**:
+- `.worktreeinclude` 파일이 repository 루트에 존재하면 해당 파일의 glob 패턴을 사용
+- `.worktreeinclude` 파일이 없으면 기존 `.env*` 파일 복사 동작 유지 (하위호환)
+- 빈 `.worktreeinclude` 파일은 아무 파일도 복사하지 않음
+- 파일 포맷:
+  - UTF-8 인코딩
+  - `#`으로 시작하는 줄은 주석
+  - 빈 줄은 무시
+  - 그 외 줄은 glob 패턴
+- 패턴 매칭 (`Darwin.fnmatch` 기반):
+  - 슬래시(`/`) 없는 패턴: 파일명만 매칭 (예: `.env*` → 모든 깊이의 `.env`, `.env.local`)
+  - 슬래시 있는 패턴: 전체 상대경로 매칭 (예: `config/local.yml`)
+  - `**/` 접두사: 모든 깊이에서 tail 패턴 매칭 (예: `**/*.local.json`)
+- `.worktreeinclude` 예시:
+  ```
+  # Environment files
+  .env*
+
+  # Local configuration
+  config/local.yml
+  **/*.local.json
+
+  # IDE settings
+  .vscode/settings.json
+  ```
+
+**영향받는 컴포넌트**:
+- `WorktreeFileCopier` (기존 `EnvFileCopier` 대체)
+- FR-018과 연동: FR-018의 파일 복사 로직이 `.worktreeinclude` 패턴을 우선 사용
+
+---
+
 #### FR-022: 메뉴바 타이틀 실시간 브랜치 감지 (P1)
 
 **설명**: 선택된 worktree의 git HEAD 파일을 모니터링하여 외부 브랜치 변경 시 메뉴바 타이틀을 실시간 갱신
@@ -643,19 +679,21 @@ Force Remove Worktree
 
 ---
 
-#### FR-018: .env 파일 자동 복사 (P1)
+#### FR-018: Worktree 파일 자동 복사 (P1)
 
-**설명**: 새 worktree 생성 시 repository 내 .env 파일들을 재귀적으로 탐색하여 자동으로 복사
+**설명**: 새 worktree 생성 시 `.worktreeinclude` 패턴에 매칭되는 파일을 자동으로 복사 (`.worktreeinclude` 미존재 시 `.env*` 파일 폴백)
 
 **상세 요구사항**:
-- Repository 디렉토리를 재귀적으로 탐색하여 `.env*` 패턴의 파일을 찾음 (예: `.env`, `apps/web/.env.local`, `packages/api/.env.development`)
-- 모노레포 구조의 하위 디렉토리 `.env` 파일도 디렉토리 구조를 유지하며 복사
-- `node_modules`, `.git`, `dist`, `build`, `.next`, `.nuxt`, `.output` 등 불필요한 디렉토리는 탐색에서 제외
-- 새 worktree 생성 시 해당 파일들을 자동으로 새 worktree 경로에 복사
+- `.worktreeinclude` 파일이 존재하면 해당 glob 패턴에 매칭되는 파일을 복사
+- `.worktreeinclude` 파일이 없으면 기존 `.env*` 패턴 파일을 재귀적으로 탐색하여 복사 (하위호환)
+- 패턴 매칭은 `fnmatch` 기반: 슬래시 없는 패턴은 파일명 매칭, 슬래시 있는 패턴은 상대경로 매칭, `**/` 접두사는 모든 깊이 매칭
+- `node_modules`, `.git`, `.omc`, `.claude`, `dist`, `build`, `.next`, `.nuxt`, `.output` 등 불필요한 디렉토리는 탐색에서 제외
+- 새 worktree 생성 시 매칭된 파일들을 디렉토리 구조를 유지하며 자동 복사
 - 이미 존재하는 파일은 덮어쓰지 않음 (skip)
 - 글로벌 설정에서 기능 on/off 가능 (기본값: on)
 - Repository별 설정 오버라이드 가능 (글로벌 기본값 사용 또는 개별 설정)
 - 복사 실패 시 에러 메시지 표시 (worktree 생성 자체는 중단하지 않음)
+- `.worktreeinclude` 파일 상세 사양은 FR-027 참조
 
 ---
 
@@ -1828,6 +1866,7 @@ end tell
 | 1.1.6 | 2026-02-10 | 원본 worktree Git Pull 기능 (FR-024), 원본 worktree 삭제 보호 (FR-025) 추가; 원본 vs 생성된 worktree 컨텍스트 메뉴 분리 | Claude Code |
 | 1.1.7 | 2026-02-14 | 코드 리뷰 반영 — `isMainWorktree` 저장 프로퍼티를 `isRoot(of:)` 메서드로 변경 (경로 정규화 및 안전한 비교), Git Pull 동시 실행 방지 (`pullingWorktrees` 세트), 메뉴바 Git Pull 실행 시 메인 윈도우 표시로 일관된 피드백, 메뉴바 Repository 선택 시 메인 윈도우 표시, `GitCommandExecutor` Sendable 추가 (Swift 6 대응) | Claude Code |
 | 1.1.9 | 2026-02-26 | 동적 Activation Policy (FR-026) — WindowObserver 서비스 추가, 윈도우 가시성에 따른 .accessory/.regular 전환으로 Cmd+\` 및 Cmd+Tab 포커스 복구 지원, Dock 아이콘 클릭 시 윈도우 생성, openMainWindowClicked 중복 코드 제거 | Claude Code |
+| 1.2.0 | 2026-02-26 | .worktreeinclude 패턴 기반 파일 복사 (FR-027) — EnvFileCopier를 WorktreeFileCopier로 대체, `.worktreeinclude` glob 패턴 지원, fnmatch 기반 매칭, `.worktreeinclude` 미존재 시 `.env*` 폴백으로 하위호환 유지, UI 레이블 업데이트 | Claude Code |
 
 ---
 
