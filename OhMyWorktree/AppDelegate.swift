@@ -104,7 +104,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         if let repo = repoViewModel?.selectedRepository {
             if let worktree = worktreeViewModel?.selectedWorktree {
-                let branchDisplay = liveBranchName ?? worktree.displayName
+                let branchDisplay = worktree.customName ?? liveBranchName ?? worktree.displayName
                 button.title = " \(repo.name)/\(branchDisplay)"
             } else {
                 button.title = " \(repo.name)"

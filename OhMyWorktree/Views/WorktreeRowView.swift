@@ -3,7 +3,13 @@ import SwiftUI
 struct WorktreeRowView: View {
     let worktree: Worktree
     var pullRequest: PullRequestInfo?
+    var isRenaming: Bool = false
     var onOpenPullRequest: (() -> Void)?
+    var onRename: ((String) -> Void)?
+    var onCancelRename: (() -> Void)?
+
+    @State private var editingName: String = ""
+    @FocusState private var isTextFieldFocused: Bool
 
     var body: some View {
         HStack(spacing: 10) {
@@ -11,9 +17,26 @@ struct WorktreeRowView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
-                    Text(worktree.displayName)
+                    if isRenaming {
+                        TextField("", text: $editingName)
                         .font(.system(.body, design: .default, weight: .medium))
-                        .lineLimit(1)
+                        .textFieldStyle(.plain)
+                        .focused($isTextFieldFocused)
+                        .onSubmit {
+                            onRename?(editingName)
+                        }
+                        .onExitCommand {
+                            onCancelRename?()
+                        }
+                        .onAppear {
+                            editingName = worktree.customName ?? worktree.displayName
+                            isTextFieldFocused = true
+                        }
+                    } else {
+                        Text(worktree.displayName)
+                            .font(.system(.body, design: .default, weight: .medium))
+                            .lineLimit(1)
+                    }
 
                     if let pr = pullRequest {
                         prBadge(pr)

@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		14E42FFD99B49D00630EA203 /* WorktreeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BD25714038218BA848A16DA /* WorktreeTests.swift */; };
+		150BA7D5A0121054A1307FF1 /* WorktreeMetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E37907BD97EF1278CAD9A1B /* WorktreeMetadataTests.swift */; };
 		156C6EB8ECDE30DC56C50A6B /* Repository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C1B43B188C597C61F1DC2EA /* Repository.swift */; };
 		1D280B90168CDB181DC5FAE4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 73CCA7E1C1ACBAF4E4291EA8 /* Assets.xcassets */; };
 		1D5329DDE42009E76C2650C5 /* ExternalToolLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 155B3645306233DD226910E8 /* ExternalToolLauncher.swift */; };
@@ -28,6 +30,7 @@
 		937BABFBB6A058168B1F67D3 /* MenuBarIcon.svg in Resources */ = {isa = PBXBuildFile; fileRef = BDCFA92CC6D4F4BDC422F3E2 /* MenuBarIcon.svg */; };
 		96B92319C7A41781AC764E80 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = C219D40D70456373AB9C842E /* AppSettings.swift */; };
 		9CA230CEB954B49CE4036FB9 /* WorktreeListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6AE572EAF819FF7917FB985 /* WorktreeListView.swift */; };
+		A00DF8B5591361457887300F /* RepositoryStoreRenameTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A81FF314A143B73B1AB7C8 /* RepositoryStoreRenameTests.swift */; };
 		A04EF872B11EC64861D1931F /* PullRequestInfoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9F3D7DAE61099FF17488E05 /* PullRequestInfoTests.swift */; };
 		A1B84A7C2495A084A1A9A9C3 /* GitHeadMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D0B554A7A3F05F099599D36 /* GitHeadMonitor.swift */; };
 		A7622C78F2ECEA8730DB9443 /* WorktreeMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5F0F523CFE13B485CFE49BC /* WorktreeMetadata.swift */; };
@@ -59,8 +62,10 @@
 		051710DB8E7D2B5BEF352CDF /* OhMyWorktreeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OhMyWorktreeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0590D938B57D29A509B839A9 /* RepositorySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositorySettingsView.swift; sourceTree = "<group>"; };
 		1024573DB028DE97085DF606 /* PullRequestStateIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PullRequestStateIcon.swift; sourceTree = "<group>"; };
+		13A81FF314A143B73B1AB7C8 /* RepositoryStoreRenameTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryStoreRenameTests.swift; sourceTree = "<group>"; };
 		155B3645306233DD226910E8 /* ExternalToolLauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalToolLauncher.swift; sourceTree = "<group>"; };
 		1E244AEB611F8ACEFC7862B5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		1E37907BD97EF1278CAD9A1B /* WorktreeMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeMetadataTests.swift; sourceTree = "<group>"; };
 		284A4CA5F96802A6098EA38B /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		31E4C67AC16118B79418121C /* OhMyWorktreeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OhMyWorktreeApp.swift; sourceTree = "<group>"; };
 		38E89BED48AC12D1BE0AA667 /* WorktreeListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeListViewModel.swift; sourceTree = "<group>"; };
@@ -73,6 +78,7 @@
 		73CCA7E1C1ACBAF4E4291EA8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8C48E8BD55146561E170E91A /* WorktreeRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeRowView.swift; sourceTree = "<group>"; };
 		8D0B554A7A3F05F099599D36 /* GitHeadMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHeadMonitor.swift; sourceTree = "<group>"; };
+		9BD25714038218BA848A16DA /* WorktreeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeTests.swift; sourceTree = "<group>"; };
 		A200952D514CDC6E761D7D31 /* RandomNameGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RandomNameGenerator.swift; sourceTree = "<group>"; };
 		A34554C16FE6EC54FBB5C200 /* RepositoryListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryListViewModel.swift; sourceTree = "<group>"; };
 		AB7DCB0D9BD7764BC9BC08F6 /* OhMyWorktree.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OhMyWorktree.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -137,7 +143,10 @@
 			children = (
 				C9F3D7DAE61099FF17488E05 /* PullRequestInfoTests.swift */,
 				038E188FA5528808D1BCFCC7 /* PullRequestServiceTests.swift */,
+				13A81FF314A143B73B1AB7C8 /* RepositoryStoreRenameTests.swift */,
 				45E90BF743990ABDF5F54752 /* WorktreeFileCopierTests.swift */,
+				1E37907BD97EF1278CAD9A1B /* WorktreeMetadataTests.swift */,
+				9BD25714038218BA848A16DA /* WorktreeTests.swift */,
 			);
 			path = OhMyWorktreeTests;
 			sourceTree = "<group>";
@@ -306,7 +315,10 @@
 			files = (
 				A04EF872B11EC64861D1931F /* PullRequestInfoTests.swift in Sources */,
 				38723E3C67DD58A9D57EAD4B /* PullRequestServiceTests.swift in Sources */,
+				A00DF8B5591361457887300F /* RepositoryStoreRenameTests.swift in Sources */,
 				671DEF7953036D7C339F1C16 /* WorktreeFileCopierTests.swift in Sources */,
+				150BA7D5A0121054A1307FF1 /* WorktreeMetadataTests.swift in Sources */,
+				14E42FFD99B49D00630EA203 /* WorktreeTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

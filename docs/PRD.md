@@ -597,6 +597,37 @@ branch refs/heads/feature/new-feature
 
 ---
 
+#### FR-030: Worktree 이름 변경 (Rename) (P1)
+
+**설명**: Worktree에 사용자 지정 이름(customName)을 설정하여 표시 이름을 변경할 수 있음. 이름을 비우면 기존 표기 룰(브랜치명 또는 Detached)로 복귀.
+
+**상세 요구사항**:
+- `WorktreeMetadata`에 `customName: String?` 필드 추가
+- `Worktree`에 `customName: String?` 필드 추가, ViewModel에서 metadata로부터 주입
+- `displayName` 로직 변경: `customName(비어있지 않으면) → branch → "Detached (commit)"`
+- 이름 변경 트리거:
+  - 메인 윈도우 리스트에서 우클릭 → "Rename" 컨텍스트 메뉴 항목
+  - 워크트리 선택 후 Enter 키 입력 (Finder 파일 이름 변경과 동일 UX)
+- 인라인 편집:
+  - 워크트리 행의 displayName 텍스트가 TextField로 전환
+  - Enter 입력 시 저장, Escape 입력 시 취소
+  - 빈 문자열 제출 시 customName 제거 (기존 표기 룰 복귀)
+- `RepositoryStore`에 `updateCustomName(folderName:customName:repositoryID:)` 메서드 추가
+- `WorktreeListViewModel`에 `renameWorktree(_:newName:)` 메서드 추가
+- 메뉴 바 드롭다운 및 상태 바 타이틀에도 customName 자동 반영 (displayName 로직 변경으로 커버)
+- JSON 하위호환: customName 필드 없는 기존 데이터 로드 시 nil로 처리
+
+**영향받는 컴포넌트**:
+- `WorktreeMetadata` (customName 필드 추가)
+- `Worktree` (customName 필드, displayName 로직 변경)
+- `RepositoryStore` (updateCustomName 메서드)
+- `WorktreeListViewModel` (renameWorktree, loadWorktrees enrichment)
+- `WorktreeListView` (컨텍스트 메뉴 Rename 항목, Enter 키 바인딩)
+- `WorktreeRowView` (인라인 TextField 전환)
+- `AppDelegate` (displayName 변경으로 자동 반영)
+
+---
+
 #### FR-022: 메뉴바 타이틀 실시간 브랜치 감지 (P1)
 
 **설명**: 선택된 worktree의 git HEAD 파일을 모니터링하여 외부 브랜치 변경 시 메뉴바 타이틀을 실시간 갱신
@@ -847,6 +878,7 @@ Force Remove Worktree
   - **Worktree 메타데이터** (각 repository별):
     - 폴더명 (folderName) - 안정적인 식별자
     - 생성 날짜
+    - 사용자 지정 이름 (customName, optional) — FR-030
 - **중요**: 브랜치명은 저장하지 않음 (항상 `git worktree list --porcelain`로 실시간 조회)
 
 **데이터 구조**:
@@ -1485,9 +1517,13 @@ struct Worktree: Identifiable {
     let isDetached: Bool
     let isBare: Bool
     let isLocked: Bool
+    var customName: String?  // 사용자 지정 이름 (FR-030, WorktreeMetadata에서 주입)
 
     var displayName: String {
-        branch ?? "Detached (\(commitHash.prefix(7)))"
+        if let customName, !customName.isEmpty {
+            return customName
+        }
+        return branch ?? "Detached (\(commitHash.prefix(7)))"
     }
 }
 ```
@@ -1501,10 +1537,12 @@ struct Worktree: Identifiable {
 - `isDetached`: detached HEAD 상태 여부
 - `isBare`: bare worktree 여부
 - `isLocked`: locked 상태 여부
+- `customName`: 사용자 지정 표시 이름 (nil이면 기존 룰; RepositoryStore에서 저장 시 trim/nil 변환 보장) — FR-030
 
 **중요**:
 - `branch`는 메타데이터에 저장되지 않음 (사용자가 CLI에서 브랜치 변경 가능)
 - `folderName`은 불변이며 worktree의 안정적인 식별자로 사용됨
+- `customName`은 `WorktreeMetadata`에 저장되며, ViewModel에서 로드 시 주입됨
 
 ---
 
@@ -1752,7 +1790,7 @@ gantt
 
 | 기능 | 우선순위 | 예상 일정 |
 |------|----------|-----------|
-| Worktree 이름 변경 | P2 | v1.1 |
+| ~~Worktree 이름 변경~~ | ~~P2~~ | ✅ FR-030으로 구현 완료 |
 | 브랜치 전환 (in worktree) | P2 | v1.1 |
 | 커밋 히스토리 간단 표시 | P2 | v1.2 |
 | 다른 터미널 앱 지원 (Alacritty 등) | P2 | v1.2 |
@@ -1917,6 +1955,7 @@ end tell
 | 1.2.0 | 2026-02-26 | .worktreeinclude 패턴 기반 파일 복사 (FR-027) — EnvFileCopier를 WorktreeFileCopier로 대체, `.worktreeinclude` glob 패턴 지원, fnmatch 기반 매칭, `.worktreeinclude` 미존재 시 `.env*` 폴백으로 하위호환 유지, UI 레이블 업데이트 | Claude Code |
 | 1.2.1 | 2026-02-26 | GitHub PR 번호 표시 (FR-028) — `gh` CLI 기반 PR 정보 조회, 브랜치별 PR 번호 배지, 클릭 시 PR 페이지 열기, PullRequestFetching 프로토콜, race condition 방지 | Claude Code |
 | 1.2.2 | 2026-02-27 | GitHub PR 상태 아이콘 (FR-029) — open/merged/closed 상태 표시, GitHub 옥티콘 SVG 아이콘 (Asset Catalog), 상태별 색상 배지, `--state all`로 전체 PR 조회, open 우선순위 로직 | Claude Code |
+| 1.3.0 | 2026-02-27 | Worktree 이름 변경 (FR-030) — WorktreeMetadata에 customName 필드 추가, displayName 우선순위 로직 (customName → branch → detached), 인라인 TextField 편집 (Finder 스타일), 컨텍스트 메뉴 Rename 항목, Enter 키 트리거, 빈 문자열로 기본 표기 복귀, JSON 하위호환 | Claude Code |
 
 ---
 

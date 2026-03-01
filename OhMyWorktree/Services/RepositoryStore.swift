@@ -162,6 +162,18 @@ actor RepositoryStore {
         saveToDisk()
     }
 
+    func updateCustomName(folderName: String, customName: String?, repositoryID: UUID) {
+        guard let index = worktreeMetadata[repositoryID]?.firstIndex(where: { $0.folderName == folderName }) else {
+            return
+        }
+        let sanitized = customName.flatMap { name in
+            let trimmed = name.trimmingCharacters(in: .whitespaces)
+            return trimmed.isEmpty ? nil : trimmed
+        }
+        worktreeMetadata[repositoryID]?[index].customName = sanitized
+        saveToDisk()
+    }
+
     // MARK: - Env Copy Overrides
 
     func getEnvCopyOverride(for repositoryID: UUID) -> Bool? {
