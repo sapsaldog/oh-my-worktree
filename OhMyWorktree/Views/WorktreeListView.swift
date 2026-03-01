@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WorktreeListView: View {
     @ObservedObject var viewModel: WorktreeListViewModel
+    @State private var renamingWorktreeID: UUID?
 
     var body: some View {
         Group {
@@ -33,7 +34,17 @@ struct WorktreeListView: View {
                         WorktreeRowView(
                             worktree: worktree,
                             pullRequest: worktree.branch.flatMap { viewModel.pullRequests[$0] },
-                            onOpenPullRequest: { viewModel.openPullRequest(for: worktree) }
+                            isRenaming: renamingWorktreeID == worktree.id,
+                            onOpenPullRequest: { viewModel.openPullRequest(for: worktree) },
+                            onRename: { newName in
+                                renamingWorktreeID = nil
+                                Task {
+                                    await viewModel.renameWorktree(worktree, newName: newName)
+                                }
+                            },
+                            onCancelRename: {
+                                renamingWorktreeID = nil
+                            }
                         )
                             .tag(worktree.id)
                             .contextMenu {
@@ -42,6 +53,13 @@ struct WorktreeListView: View {
                     }
                 }
                 .listStyle(.inset(alternatesRowBackgrounds: true))
+                .onKeyPress(.return) {
+                    if renamingWorktreeID == nil, let selected = viewModel.selectedWorktree {
+                        renamingWorktreeID = selected.id
+                        return .handled
+                    }
+                    return .ignored
+                }
             }
         }
         .overlay(alignment: .bottomTrailing) {
@@ -90,6 +108,12 @@ struct WorktreeListView: View {
 
     @ViewBuilder
     private func contextMenuItems(for worktree: Worktree) -> some View {
+        Button("Rename") {
+            renamingWorktreeID = worktree.id
+        }
+
+        Divider()
+
         Button("Open in iTerm") {
             Task { await viewModel.openInITerm(worktree) }
         }

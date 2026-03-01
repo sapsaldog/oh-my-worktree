@@ -72,11 +72,13 @@ final class WorktreeListViewModel: ObservableObject {
                 guard !Task.isCancelled else { return }
                 let metadata = await self.store.getWorktreeMetadata(repositoryID: repository.id)
 
-                // Enrich worktrees with last activity time
+                // Enrich worktrees with metadata (customName, last activity time)
                 for i in freshWorktrees.indices {
                     guard !Task.isCancelled else { return }
                     let wt = freshWorktrees[i]
-                    let metaActivity = metadata.first(where: { $0.folderName == wt.folderName })?.lastActivityAt
+                    let meta = metadata.first(where: { $0.folderName == wt.folderName })
+                    freshWorktrees[i].customName = meta?.customName
+                    let metaActivity = meta?.lastActivityAt
                     let commitDate = await self.worktreeManager.lastCommitDate(worktreePath: wt.path)
 
                     // Use the most recent of metadata activity and last commit
@@ -248,6 +250,29 @@ final class WorktreeListViewModel: ObservableObject {
         else { return }
 
         NSWorkspace.shared.open(pr.url)
+    }
+
+    // MARK: - Rename Worktree
+
+    func renameWorktree(_ worktree: Worktree, newName: String) async {
+        guard let repository else { return }
+
+        let trimmed = newName.trimmingCharacters(in: .whitespaces)
+        let customName: String? = trimmed.isEmpty ? nil : trimmed
+
+        await store.updateCustomName(
+            folderName: worktree.folderName,
+            customName: customName,
+            repositoryID: repository.id
+        )
+
+        // Update local state immediately
+        if let index = worktrees.firstIndex(where: { $0.id == worktree.id }) {
+            worktrees[index].customName = customName
+        }
+        if selectedWorktree?.id == worktree.id {
+            selectedWorktree?.customName = customName
+        }
     }
 
     // MARK: - Open in External Tools

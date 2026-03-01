@@ -10,9 +10,13 @@ struct Worktree: Identifiable, Hashable {
     let isBare: Bool
     let isLocked: Bool
     var lastActivityAt: Date?
+    var customName: String?
 
     var displayName: String {
-        branch ?? "Detached (\(commitHash.prefix(7)))"
+        if let customName, !customName.isEmpty {
+            return customName
+        }
+        return branch ?? "Detached (\(commitHash.prefix(7)))"
     }
 
     /// Check if this worktree is the root/main worktree of the given repository.
@@ -94,7 +98,8 @@ struct Worktree: Identifiable, Hashable {
         lhs.commitHash == rhs.commitHash &&
         lhs.isDetached == rhs.isDetached &&
         lhs.isBare == rhs.isBare &&
-        lhs.isLocked == rhs.isLocked
+        lhs.isLocked == rhs.isLocked &&
+        lhs.customName == rhs.customName
     }
 
     func hash(into hasher: inout Hasher) {
@@ -105,5 +110,6 @@ struct Worktree: Identifiable, Hashable {
         hasher.combine(isDetached)
         hasher.combine(isBare)
         hasher.combine(isLocked)
+        hasher.combine(customName)
     }
 }
