@@ -100,7 +100,7 @@ final class WindowObserver {
             "_NSPopoverWindow",
             "NSToolTipPanel",
             "NSMenuWindowManagerWindow",
-            "_NSAlertPanel",
+            "_NSAlertPanel"
         ]
         if transientTypes.contains(className) {
             return false

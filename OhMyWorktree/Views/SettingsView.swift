@@ -21,7 +21,8 @@ struct SettingsView: View {
                                 try SMAppService.mainApp.unregister()
                             }
                         } catch {
-                            logger.error("Failed to \(newValue ? "enable" : "disable") launch at login: \(error.localizedDescription)")
+                            let action = newValue ? "enable" : "disable"
+                            logger.error("Failed to \(action) launch at login: \(error.localizedDescription)")
                             launchAtLogin = SMAppService.mainApp.status == .enabled
                         }
                     }
@@ -32,7 +33,10 @@ struct SettingsView: View {
 
             Section("Worktree Creation") {
                 Toggle("Copy files to new worktrees", isOn: $copyEnvFilesEnabled)
-                Text("When enabled, files matching .worktreeinclude patterns (or .env files by default) are automatically copied into newly created worktrees.")
+                Text(
+                    "When enabled, files matching .worktreeinclude patterns " +
+                    "(or .env files by default) are automatically copied into newly created worktrees."
+                )
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

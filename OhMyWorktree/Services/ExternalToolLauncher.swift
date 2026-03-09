@@ -74,6 +74,10 @@ final class ExternalToolLauncher {
 
     // MARK: - cmux
 
+    private static let cmuxAccessDeniedMessage =
+        "cmux socket access denied. Open cmux Settings → Automation → Socket Control Mode → " +
+        "set to \"Full open access\", then restart cmux."
+
     func openInCmux(path: String) async throws {
         guard isCmuxInstalled() else {
             throw OhMyWorktreeError.externalToolNotFound(tool: "cmux")
@@ -93,7 +97,12 @@ final class ExternalToolLauncher {
                 if FileManager.default.fileExists(atPath: socketPath) { break }
                 try await Task.sleep(nanoseconds: 100_000_000)
             }
-            guard FileManager.default.fileExists(atPath: socketPath) else { return }
+            guard FileManager.default.fileExists(atPath: socketPath) else {
+                throw OhMyWorktreeError.commandExecutionFailed(
+                    command: "cmux",
+                    stderr: "cmux did not start within 5 seconds"
+                )
+            }
         }
 
         try cmuxSocketCommand(socketPath: socketPath) { send in
@@ -136,10 +145,8 @@ final class ExternalToolLauncher {
             "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
         ]
 
-        for path in possiblePaths {
-            if FileManager.default.fileExists(atPath: path) {
-                return path
-            }
+        for path in possiblePaths where FileManager.default.fileExists(atPath: path) {
+            return path
         }
 
         throw OhMyWorktreeError.externalToolNotFound(tool: "Visual Studio Code")
@@ -154,10 +161,17 @@ final class ExternalToolLauncher {
 
         var addr = sockaddr_un()
         addr.sun_family = sa_family_t(AF_UNIX)
+        let maxPathLength = MemoryLayout.size(ofValue: addr.sun_path) - 1  // -1 for null terminator
+        guard socketPath.utf8.count <= maxPathLength else {
+            throw OhMyWorktreeError.commandExecutionFailed(
+                command: "cmux",
+                stderr: "Socket path too long: \(socketPath)"
+            )
+        }
         socketPath.withCString { src in
             withUnsafeMutableBytes(of: &addr.sun_path) { rawBuf in
                 let dest = rawBuf.baseAddress!.assumingMemoryBound(to: CChar.self)
-                _ = strcpy(dest, src)
+                strlcpy(dest, src, rawBuf.count)
             }
         }
 
@@ -182,12 +196,13 @@ final class ExternalToolLauncher {
             guard bytesRead > 0 else {
                 throw OhMyWorktreeError.commandExecutionFailed(command: "cmux \(command)", stderr: "No response")
             }
-            let response = String(bytes: buffer[..<bytesRead], encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let rawResponse = String(bytes: buffer[..<bytesRead], encoding: .utf8)
+            let response = rawResponse?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             guard !response.hasPrefix("ERROR") else {
                 if response.contains("Access denied") {
                     throw OhMyWorktreeError.commandExecutionFailed(
                         command: "cmux",
-                        stderr: "cmux socket access denied. Open cmux Settings → Automation → Socket Control Mode → set to \"Full open access\", then restart cmux."
+                        stderr: Self.cmuxAccessDeniedMessage
                     )
                 }
                 throw OhMyWorktreeError.commandExecutionFailed(command: "cmux \(command)", stderr: response)

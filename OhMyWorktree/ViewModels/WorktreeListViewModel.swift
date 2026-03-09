@@ -70,61 +70,21 @@ final class WorktreeListViewModel: ObservableObject {
             defer { self.isLoading = false }
 
             do {
-                // Always fetch fresh from git
                 var freshWorktrees = try await self.worktreeManager.listWorktrees(repositoryPath: repository.path)
                 guard !Task.isCancelled else { return }
                 let metadata = await self.store.getWorktreeMetadata(repositoryID: repository.id)
 
-                // Enrich worktrees with metadata (customName, last activity time)
-                for i in freshWorktrees.indices {
-                    guard !Task.isCancelled else { return }
-                    let wt = freshWorktrees[i]
-                    let meta = metadata.first(where: { $0.folderName == wt.folderName })
-                    freshWorktrees[i].customName = meta?.customName
-                    let metaActivity = meta?.lastActivityAt
-                    let commitDate = await self.worktreeManager.lastCommitDate(worktreePath: wt.path)
-
-                    // Use the most recent of metadata activity and last commit
-                    switch (metaActivity, commitDate) {
-                    case let (a?, c?):
-                        freshWorktrees[i].lastActivityAt = max(a, c)
-                    case let (a?, nil):
-                        freshWorktrees[i].lastActivityAt = a
-                    case let (nil, c?):
-                        freshWorktrees[i].lastActivityAt = c
-                    case (nil, nil):
-                        break
-                    }
-                }
-
+                freshWorktrees = await self.enriched(freshWorktrees, metadata: metadata)
                 guard !Task.isCancelled else { return }
 
-                // Sort by last activity (most recent first)
                 freshWorktrees.sort { a, b in
                     (a.lastActivityAt ?? .distantPast) > (b.lastActivityAt ?? .distantPast)
                 }
 
                 self.worktrees = freshWorktrees
                 self.lastLoadTime = Date()
-
-                // Update selected worktree with fresh data, or reset if gone
-                if let selected = self.selectedWorktree {
-                    if let updated = self.worktrees.first(where: { $0.path == selected.path }) {
-                        self.selectedWorktree = updated
-                    } else {
-                        self.selectedWorktree = nil
-                    }
-                }
-
-                // Fetch PR info in a non-blocking side task
-                let repoPath = repository.path
-                let prService = self.pullRequestService
-                self.prFetchTask?.cancel()
-                self.prFetchTask = Task { @MainActor [weak self] in
-                    let prs = await prService.fetchPullRequests(repositoryPath: repoPath)
-                    guard !Task.isCancelled else { return }
-                    self?.pullRequests = prs
-                }
+                self.updateSelectedWorktree(from: freshWorktrees)
+                self.schedulePRFetch(repositoryPath: repository.path)
             } catch {
                 if !Task.isCancelled {
                     self.errorMessage = error.localizedDescription
@@ -134,6 +94,42 @@ final class WorktreeListViewModel: ObservableObject {
         }
         loadTask = task
         await task.value
+    }
+
+    // MARK: - Load Helpers
+
+    private func enriched(_ worktrees: [Worktree], metadata: [WorktreeMetadata]) async -> [Worktree] {
+        var result = worktrees
+        for i in result.indices {
+            guard !Task.isCancelled else { return result }
+            let wt = result[i]
+            let meta = metadata.first(where: { $0.folderName == wt.folderName })
+            result[i].customName = meta?.customName
+            let metaActivity = meta?.lastActivityAt
+            let commitDate = await worktreeManager.lastCommitDate(worktreePath: wt.path)
+            switch (metaActivity, commitDate) {
+            case let (date1?, date2?): result[i].lastActivityAt = max(date1, date2)
+            case let (date1?, nil):    result[i].lastActivityAt = date1
+            case let (nil, date2?):    result[i].lastActivityAt = date2
+            case (nil, nil):           break
+            }
+        }
+        return result
+    }
+
+    private func updateSelectedWorktree(from worktrees: [Worktree]) {
+        guard let selected = selectedWorktree else { return }
+        selectedWorktree = worktrees.first(where: { $0.path == selected.path })
+    }
+
+    private func schedulePRFetch(repositoryPath: String) {
+        let prService = pullRequestService
+        prFetchTask?.cancel()
+        prFetchTask = Task { @MainActor [weak self] in
+            let prs = await prService.fetchPullRequests(repositoryPath: repositoryPath)
+            guard !Task.isCancelled else { return }
+            self?.pullRequests = prs
+        }
     }
 
     // MARK: - Add Worktree

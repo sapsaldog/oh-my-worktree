@@ -23,3 +23,6 @@ release/
 
 # OMC state
 .omc/
+
+# Claude Code internal session data
+.claude/worktrees/

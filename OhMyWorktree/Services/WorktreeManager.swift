@@ -6,9 +6,9 @@ struct GitPullResult: Sendable {
 }
 
 final class WorktreeManager: Sendable {
-    private let executor: GitCommandExecutor
+    private let executor: GitCommandExecuting
 
-    init(executor: GitCommandExecutor = GitCommandExecutor()) {
+    init(executor: GitCommandExecuting = GitCommandExecutor()) {
         self.executor = executor
     }
 
@@ -199,7 +199,9 @@ final class WorktreeManager: Sendable {
 
         // Parse the summary line like "3 files changed, 5 insertions(+), 2 deletions(-)"
         let lines = output.components(separatedBy: "\n")
-        if let summaryLine = lines.last(where: { $0.contains("changed") || $0.contains("insertion") || $0.contains("deletion") }) {
+        if let summaryLine = lines.last(where: {
+            $0.contains("changed") || $0.contains("insertion") || $0.contains("deletion")
+        }) {
             return GitPullResult(alreadyUpToDate: false, summary: summaryLine.trimmingCharacters(in: .whitespaces))
         }
 
@@ -277,62 +279,67 @@ final class WorktreeManager: Sendable {
     // MARK: - Parsing
 
     private func parseWorktreeList(_ output: String) -> [Worktree] {
-        var worktrees: [Worktree] = []
-        let blocks = output.components(separatedBy: "\n\n")
+        return output.components(separatedBy: "\n\n").compactMap { parseWorktreeBlock($0) }
+    }
 
-        for block in blocks {
-            let trimmedBlock = block.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmedBlock.isEmpty else { continue }
+    private func parseWorktreeBlock(_ block: String) -> Worktree? {
+        let trimmedBlock = block.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedBlock.isEmpty else { return nil }
 
-            var path: String?
-            var commitHash = ""
-            var branch: String?
-            var isDetached = false
-            var isBare = false
-            var isLocked = false
+        let lines = trimmedBlock.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        let parsed = parseWorktreeLines(lines)
 
-            let lines = trimmedBlock.split(separator: "\n", omittingEmptySubsequences: false)
+        guard let worktreePath = parsed.path else { return nil }
+        return Worktree(
+            path: worktreePath,
+            folderName: (worktreePath as NSString).lastPathComponent,
+            branch: parsed.branch,
+            commitHash: parsed.commitHash,
+            isDetached: parsed.isDetached,
+            isBare: parsed.isBare,
+            isLocked: parsed.isLocked
+        )
+    }
 
-            for line in lines {
-                let lineStr = String(line)
+    private func parseWorktreeLines(_ lines: [String]) -> WorktreeLineTokens {
+        var path: String?
+        var commitHash = ""
+        var branch: String?
+        var isDetached = false
+        var isBare = false
+        var isLocked = false
 
-                if lineStr.hasPrefix("worktree ") {
-                    path = String(lineStr.dropFirst("worktree ".count))
-                } else if lineStr.hasPrefix("HEAD ") {
-                    commitHash = String(lineStr.dropFirst("HEAD ".count))
-                } else if lineStr.hasPrefix("branch ") {
-                    let refPath = String(lineStr.dropFirst("branch ".count))
-                    // Convert refs/heads/branch-name to branch-name
-                    if refPath.hasPrefix("refs/heads/") {
-                        branch = String(refPath.dropFirst("refs/heads/".count))
-                    } else {
-                        branch = refPath
-                    }
-                } else if lineStr == "detached" {
-                    isDetached = true
-                } else if lineStr == "bare" {
-                    isBare = true
-                } else if lineStr.hasPrefix("locked") {
-                    isLocked = true
-                }
+        for lineStr in lines {
+            if lineStr.hasPrefix("worktree ") {
+                path = String(lineStr.dropFirst("worktree ".count))
+            } else if lineStr.hasPrefix("HEAD ") {
+                commitHash = String(lineStr.dropFirst("HEAD ".count))
+            } else if lineStr.hasPrefix("branch ") {
+                let refPath = String(lineStr.dropFirst("branch ".count))
+                branch = refPath.hasPrefix("refs/heads/")
+                    ? String(refPath.dropFirst("refs/heads/".count))
+                    : refPath
+            } else if lineStr == "detached" {
+                isDetached = true
+            } else if lineStr == "bare" {
+                isBare = true
+            } else if lineStr.hasPrefix("locked") {
+                isLocked = true
             }
-
-            guard let worktreePath = path else { continue }
-
-            let folderName = (worktreePath as NSString).lastPathComponent
-
-            let worktree = Worktree(
-                path: worktreePath,
-                folderName: folderName,
-                branch: branch,
-                commitHash: commitHash,
-                isDetached: isDetached,
-                isBare: isBare,
-                isLocked: isLocked
-            )
-            worktrees.append(worktree)
         }
 
-        return worktrees
+        return WorktreeLineTokens(
+            path: path, commitHash: commitHash, branch: branch,
+            isDetached: isDetached, isBare: isBare, isLocked: isLocked
+        )
     }
+}
+
+private struct WorktreeLineTokens {
+    let path: String?
+    let commitHash: String
+    let branch: String?
+    let isDetached: Bool
+    let isBare: Bool
+    let isLocked: Bool
 }

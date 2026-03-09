@@ -10,7 +10,7 @@ final class WorktreeFileCopier {
 
     private static let excludedDirs: Set<String> = [
         "node_modules", ".git", ".omc", ".claude",
-        "dist", "build", ".next", ".nuxt", ".output",
+        "dist", "build", ".next", ".nuxt", ".output"
     ]
 
     /// Copies files from the repository to a new worktree.
@@ -92,11 +92,9 @@ final class WorktreeFileCopier {
                 continue
             }
 
-            for pattern in patterns {
-                if matchesPattern(relativePath: relativePath, pattern: pattern) {
-                    matched.append(relativePath)
-                    break
-                }
+            for pattern in patterns where matchesPattern(relativePath: relativePath, pattern: pattern) {
+                matched.append(relativePath)
+                break
             }
         }
 

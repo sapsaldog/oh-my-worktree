@@ -164,7 +164,7 @@ final class WorktreeFileCopierTests: XCTestCase {
         XCTAssertEqual(Set(result.copiedFiles), [
             "config/db.local.json",
             "deep/nested/app.local.json",
-            "settings.local.json",
+            "settings.local.json"
         ])
         XCTAssertFalse(fileExists("config/db.production.json"))
     }
@@ -204,7 +204,7 @@ final class WorktreeFileCopierTests: XCTestCase {
             ".env.local",
             ".vscode/settings.json",
             "config/local.yml",
-            "src/db.local.json",
+            "src/db.local.json"
         ])
     }
 
@@ -309,7 +309,7 @@ final class WorktreeFileCopierTests: XCTestCase {
         XCTAssertEqual(Set(result.copiedFiles), [
             "apps/web/config/local.yml",
             "config/local.yml",
-            "packages/api/config/db.yml",
+            "packages/api/config/db.yml"
         ])
     }
 

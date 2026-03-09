@@ -97,7 +97,7 @@ final class PullRequestService: PullRequestFetching, Sendable {
         let paths = [
             "/opt/homebrew/bin/gh",
             "/usr/local/bin/gh",
-            "/usr/bin/gh",
+            "/usr/bin/gh"
         ]
         return paths.first { FileManager.default.isExecutableFile(atPath: $0) }
     }
@@ -185,7 +185,11 @@ final class PullRequestService: PullRequestFetching, Sendable {
                     branch: pr.headRefName,
                     state: state
                 )
-                // Keep first entry (most recent from gh) unless a new open PR replaces a non-open one
+                // gh returns PRs in reverse-chronological order, so the first entry per branch
+                // is the most recent. Preserve it in two cases:
+                //   1. The existing PR is open — open PRs always take priority.
+                //   2. The new PR is not open — never replace with a closed/merged PR.
+                // In other words, we only overwrite when existing is non-open AND the new one is open.
                 if let existing = result[pr.headRefName] {
                     if existing.state == .open || info.state != .open {
                         continue

@@ -25,6 +25,15 @@ targets:
       - OhMyWorktree
     dependencies:
       - package: Sparkle
+    preBuildScripts:
+      - name: SwiftLint
+        script: |
+          if which swiftlint > /dev/null; then
+            swiftlint
+          else
+            echo "warning: SwiftLint not installed. Run: brew install swiftlint"
+          fi
+        basedOnDependencyAnalysis: false
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.ohmyworktree.app
       INFOPLIST_KEY_CFBundleDisplayName: OhMyWorktree
