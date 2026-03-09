@@ -21,12 +21,14 @@ final class BackgroundTaskQueue: ObservableObject {
 
     func enqueue(_ job: BackgroundJob) {
         jobs.append(job)
+        refreshBusyWorktreeIDs()
         startProcessingIfNeeded(for: job.repositoryPath)
     }
 
     func enqueue(_ newJobs: [BackgroundJob]) {
         guard !newJobs.isEmpty else { return }
         jobs.append(contentsOf: newJobs)
+        refreshBusyWorktreeIDs()
         Set(newJobs.map { $0.repositoryPath }).forEach { startProcessingIfNeeded(for: $0) }
     }
 
@@ -34,6 +36,7 @@ final class BackgroundTaskQueue: ObservableObject {
         guard let index = jobs.firstIndex(where: { $0.id == jobID }),
               case .pending = jobs[index].state else { return }
         jobs[index].state = .cancelled
+        refreshBusyWorktreeIDs()
         onJobStateChange?(jobs[index])
     }
 
@@ -42,17 +45,19 @@ final class BackgroundTaskQueue: ObservableObject {
             jobs[i].state = .cancelled
             onJobStateChange?(jobs[i])
         }
+        refreshBusyWorktreeIDs()
     }
 
     // MARK: - Derived State
 
     var activeJobs: [BackgroundJob] { jobs.filter { $0.state.isActive } }
     var hasActiveJobs: Bool { !activeJobs.isEmpty }
-    var busyWorktreeIDs: Set<UUID> { Set(activeJobs.map { $0.worktreeID }) }
+    @Published private(set) var busyWorktreeIDs: Set<UUID> = []
     var hasFailedJobs: Bool { jobs.contains { if case .failed = $0.state { return true }; return false } }
 
     func clearFailed() {
         jobs = jobs.filter { if case .failed = $0.state { return false }; return true }
+        refreshBusyWorktreeIDs()
     }
 
     var progressFraction: Double {
@@ -91,6 +96,7 @@ final class BackgroundTaskQueue: ObservableObject {
     private func executeJob(at index: Int) async {
         let jobID = jobs[index].id
         jobs[index].state = .inProgress
+        refreshBusyWorktreeIDs()
 
         do {
             let job = jobs[index]
@@ -110,19 +116,33 @@ final class BackgroundTaskQueue: ObservableObject {
             }
             if let i = jobs.firstIndex(where: { $0.id == jobID }) {
                 jobs[i].state = .completed
+                refreshBusyWorktreeIDs()
                 onJobStateChange?(jobs[i])
             }
         } catch {
             if let i = jobs.firstIndex(where: { $0.id == jobID }) {
-                jobs[i].state = .failed(error.localizedDescription)
+                let job = jobs[i]
+                jobs[i].state = .failed("'\(job.displayName)' \(job.kind.failureMessage): \(error.localizedDescription)")
+                refreshBusyWorktreeIDs()
                 onJobStateChange?(jobs[i])
             }
         }
     }
 
+    private static let maxFailedJobs = 50
+
     private func clearJobsIfIdle() {
         guard activeJobs.isEmpty else { return }
         // Keep failed jobs visible until the user dismisses them
         jobs = jobs.filter { if case .failed = $0.state { return true }; return false }
+        // Auto-prune oldest failed jobs if over limit
+        if jobs.count > Self.maxFailedJobs {
+            jobs = Array(jobs.suffix(Self.maxFailedJobs))
+        }
+        refreshBusyWorktreeIDs()
+    }
+
+    private func refreshBusyWorktreeIDs() {
+        busyWorktreeIDs = Set(jobs.filter { $0.state.isActive }.map { $0.worktreeID })
     }
 }

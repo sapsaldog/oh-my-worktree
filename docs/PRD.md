@@ -1,6 +1,6 @@
 # Oh My Worktree - 제품 요구사항 문서 (PRD)
 
-**버전**: 1.3.0
+**버전**: 1.2.2
 **작성일**: 2026-03-09
 **대상 플랫폼**: macOS 14+ (Sonoma 이상)
 **상태**: Draft
@@ -705,6 +705,37 @@ branch refs/heads/feature/new-feature
 - `QueueDetailPopoverView` (신규 — 상세 팝오버)
 - `ContentView` (ActionButtonsView → QueueStatusBarView 교체)
 - `AppDelegate` (메뉴바 목록 필터링 로직 추가)
+
+---
+
+#### FR-034: 백그라운드 작업 완료 시스템 알림 (P2)
+
+**설명**: 백그라운드 큐의 작업이 완료되거나 실패할 때 macOS 시스템 알림(UNUserNotificationCenter)을 통해 사용자에게 결과를 전달. 팝오버가 닫혀있어도 알림을 수신할 수 있음.
+
+**설계 결정 — macOS 시스템 알림 채택**:
+- 팝오버 내 인라인 토스트는 팝오버가 열려있을 때만 유효 → 발견성 낮음
+- `QueueStatusBarView` 팝오버가 이미 진행 중 상태를 표시하므로 중복
+- 시스템 알림은 팝오버 닫힘 여부와 관계없이 도달 → 장시간 작업(pull, 다중 삭제)에 적합
+
+**알림 발송 조건**:
+- `.completed` (remove/pull): 작업 성공 시 배너 알림
+- `.failed`: 작업 실패 시 Critical 사운드와 함께 배너 알림
+
+**알림 내용**:
+- **성공 (remove)**: Title "Oh My Worktree" / Body "'워크트리명' removed"
+- **성공 (pull)**: Title "Oh My Worktree" / Body "'워크트리명' pulled successfully"
+- **실패**: Title "Oh My Worktree — Task Failed" / Body 에러 메시지 (워크트리명 포함)
+
+**포그라운드 동작**:
+- `UNUserNotificationCenterDelegate.willPresent` 구현으로 앱 팝오버가 열린 상태에서도 배너 표시
+
+**권한 요청**:
+- `WorktreeListViewModel.init()` 시점에 `requestAuthorization(options: [.alert, .sound])` 호출
+- 최초 실행 시 시스템 권한 프롬프트 표시; 이후 저장
+
+**영향받는 컴포넌트**:
+- `NotificationManager` (신규 — `UNUserNotificationCenterDelegate` 구현체)
+- `WorktreeListViewModel` (init에서 권한 요청, `onJobStateChange`에서 알림 발송)
 
 ---
 
@@ -2087,10 +2118,9 @@ end tell
 | 1.1.6 | 2026-02-10 | 원본 worktree Git Pull 기능 (FR-024), 원본 worktree 삭제 보호 (FR-025) 추가; 원본 vs 생성된 worktree 컨텍스트 메뉴 분리 | Claude Code |
 | 1.1.7 | 2026-02-14 | 코드 리뷰 반영 — `isMainWorktree` 저장 프로퍼티를 `isRoot(of:)` 메서드로 변경 (경로 정규화 및 안전한 비교), Git Pull 동시 실행 방지 (`pullingWorktrees` 세트), 메뉴바 Git Pull 실행 시 메인 윈도우 표시로 일관된 피드백, 메뉴바 Repository 선택 시 메인 윈도우 표시, `GitCommandExecutor` Sendable 추가 (Swift 6 대응) | Claude Code |
 | 1.1.9 | 2026-02-26 | 동적 Activation Policy (FR-026) — WindowObserver 서비스 추가, 윈도우 가시성에 따른 .accessory/.regular 전환으로 Cmd+\` 및 Cmd+Tab 포커스 복구 지원, Dock 아이콘 클릭 시 윈도우 생성, openMainWindowClicked 중복 코드 제거 | Claude Code |
-| 1.2.0 | 2026-02-26 | .worktreeinclude 패턴 기반 파일 복사 (FR-027) — EnvFileCopier를 WorktreeFileCopier로 대체, `.worktreeinclude` glob 패턴 지원, fnmatch 기반 매칭, `.worktreeinclude` 미존재 시 `.env*` 폴백으로 하위호환 유지, UI 레이블 업데이트 | Claude Code |
-| 1.2.1 | 2026-02-26 | GitHub PR 번호 표시 (FR-028) — `gh` CLI 기반 PR 정보 조회, 브랜치별 PR 번호 배지, 클릭 시 PR 페이지 열기, PullRequestFetching 프로토콜, race condition 방지 | Claude Code |
-| 1.2.2 | 2026-02-27 | GitHub PR 상태 아이콘 (FR-029) — open/merged/closed 상태 표시, GitHub 옥티콘 SVG 아이콘 (Asset Catalog), 상태별 색상 배지, `--state all`로 전체 PR 조회, open 우선순위 로직 | Claude Code |
-| 1.3.0 | 2026-02-27 | Worktree 이름 변경 (FR-030) — WorktreeMetadata에 customName 필드 추가, displayName 우선순위 로직 (customName → branch → detached), 인라인 TextField 편집 (Finder 스타일), 컨텍스트 메뉴 Rename 항목, Enter 키 트리거, 빈 문자열로 기본 표기 복귀, JSON 하위호환 | Claude Code |
+| 1.2.0 | 2026-02-26 | .worktreeinclude 패턴 기반 파일 복사 (FR-027) + GitHub PR 번호 및 상태 아이콘 (FR-028, FR-029) — EnvFileCopier를 WorktreeFileCopier로 대체, glob 패턴 지원, fnmatch 기반 매칭, `.env*` 폴백 하위호환, `gh` CLI 기반 PR 정보 조회, open/merged/closed 상태 배지, 옥티콘 SVG 아이콘 (Asset Catalog) | Claude Code |
+| 1.2.1 | 2026-02-27 | Worktree 이름 변경 (FR-030) — WorktreeMetadata에 customName 필드 추가, displayName 우선순위 로직 (customName → branch → detached), 인라인 TextField 편집 (Finder 스타일), 컨텍스트 메뉴 Rename 항목, Enter 키 트리거, 빈 문자열로 기본 표기 복귀, JSON 하위호환 | Claude Code |
+| 1.2.2 | 2026-03-09 | 백그라운드 작업 큐 및 다중 선택 일괄 삭제 (FR-031/032/033) — BackgroundTaskQueue (actor 기반), 네이티브 List 다중 선택, 컨텍스트 메뉴 일괄 Remove/Force Remove, QueueStatusBarView, AppDelegate 리팩토링, CI/CD 추가, 보안 수정 + 코드 리뷰 반영 (FR-034): loadWorktrees 이중 경로 제거, busyWorktreeIDs 캐싱(@Published 저장 프로퍼티), 에러 메시지 컨텍스트 추가, Force Remove 확인 다이얼로그, Job 배열 자동 정리(maxFailedJobs=50), macOS 시스템 알림(NotificationManager/UNUserNotificationCenter), 스트레스 테스트 추가 | Claude Code |
 
 ---
 

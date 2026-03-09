@@ -57,6 +57,9 @@ final class WorktreeListViewModel: ObservableObject {
                 self?.objectWillChange.send()
             }
 
+        // Request notification permission early so the system prompt doesn't appear mid-task
+        NotificationManager.shared.requestAuthorization()
+
         // React to job state changes
         jobQueue.onJobStateChange = { [weak self] job in
             guard let self else { return }
@@ -68,10 +71,13 @@ final class WorktreeListViewModel: ObservableObject {
                     self.selectedWorktree = nil
                 }
                 self.selectedWorktreeIDs.remove(job.worktreeID)
+                NotificationManager.shared.notifyCompleted(job: job)
             case (.completed, .pull):
                 Task { [weak self] in await self?.loadWorktrees() }
+                NotificationManager.shared.notifyCompleted(job: job)
             case (.failed(let msg), _):
                 self.errorMessage = msg
+                NotificationManager.shared.notifyFailed(message: msg, jobID: job.id)
             default:
                 break
             }
@@ -112,14 +118,7 @@ final class WorktreeListViewModel: ObservableObject {
                     (a.lastActivityAt ?? .distantPast) > (b.lastActivityAt ?? .distantPast)
                 }
 
-                // Filter out worktrees currently being deleted
-                let deletingIDs = Set(self.jobQueue.jobs
-                    .filter { $0.state.isActive }
-                    .compactMap { job -> UUID? in
-                        if case .removeWorktree = job.kind { return job.worktreeID }
-                        return nil
-                    })
-                self.worktrees = freshWorktrees.filter { !deletingIDs.contains($0.id) }
+                self.worktrees = freshWorktrees
                 self.lastLoadTime = Date()
                 self.updateSelectedWorktree(from: freshWorktrees)
                 self.schedulePRFetch(repositoryPath: repository.path)

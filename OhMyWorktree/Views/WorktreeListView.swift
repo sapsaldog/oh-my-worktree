@@ -3,6 +3,12 @@ import SwiftUI
 struct WorktreeListView: View {
     @ObservedObject var viewModel: WorktreeListViewModel
     @State private var renamingWorktreeID: UUID?
+    @State private var forceRemoveTarget: ForceRemoveTarget?
+
+    private enum ForceRemoveTarget {
+        case single(Worktree)
+        case selectedWorktrees(count: Int)
+    }
 
     var body: some View {
         Group {
@@ -60,6 +66,40 @@ struct WorktreeListView: View {
                 addWorktreeButton
                     .padding(12)
             }
+        }
+        .confirmationDialog(
+            forceRemoveConfirmationTitle,
+            isPresented: Binding(
+                get: { forceRemoveTarget != nil },
+                set: { if !$0 { forceRemoveTarget = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Force Remove", role: .destructive) {
+                switch forceRemoveTarget {
+                case .single(let worktree):
+                    viewModel.removeWorktree(worktree, force: true)
+                case .selectedWorktrees:
+                    viewModel.removeSelectedWorktrees(force: true)
+                case nil:
+                    break
+                }
+                forceRemoveTarget = nil
+            }
+            Button("Cancel", role: .cancel) { forceRemoveTarget = nil }
+        } message: {
+            Text("Uncommitted changes will be lost. This cannot be undone.")
+        }
+    }
+
+    private var forceRemoveConfirmationTitle: String {
+        switch forceRemoveTarget {
+        case .single(let worktree):
+            return "Force Remove '\(worktree.displayName)'?"
+        case .selectedWorktrees(let count):
+            return "Force Remove \(count) Worktree\(count == 1 ? "" : "s")?"
+        case nil:
+            return ""
         }
     }
 
@@ -170,7 +210,7 @@ struct WorktreeListView: View {
                 .disabled(!actions.canRemove)
 
                 Button("Force Remove Selected Worktrees", role: .destructive) {
-                    viewModel.removeSelectedWorktrees(force: true)
+                    forceRemoveTarget = .selectedWorktrees(count: viewModel.selectedWorktreeIDs.count)
                 }
                 .disabled(!actions.canForceRemove)
             } else {
@@ -180,7 +220,7 @@ struct WorktreeListView: View {
                 .disabled(!actions.canRemove)
 
                 Button("Force Remove Worktree", role: .destructive) {
-                    viewModel.removeWorktree(worktree, force: true)
+                    forceRemoveTarget = .single(worktree)
                 }
                 .disabled(!actions.canForceRemove)
             }

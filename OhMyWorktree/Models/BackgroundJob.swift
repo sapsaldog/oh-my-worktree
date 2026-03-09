@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - BackgroundJobKind
 
-enum BackgroundJobKind: Equatable {
+enum BackgroundJobKind: Equatable, Sendable {
     case removeWorktree(force: Bool)
     case pull
 
@@ -12,11 +12,18 @@ enum BackgroundJobKind: Equatable {
         case .pull: return "Git Pull"
         }
     }
+
+    var failureMessage: String {
+        switch self {
+        case .removeWorktree: return "remove failed"
+        case .pull: return "pull failed"
+        }
+    }
 }
 
 // MARK: - BackgroundJobState
 
-enum BackgroundJobState: Equatable {
+enum BackgroundJobState: Equatable, Sendable {
     case pending
     case inProgress
     case completed
@@ -35,7 +42,7 @@ enum BackgroundJobState: Equatable {
 
 // MARK: - BackgroundJob
 
-struct BackgroundJob: Identifiable, Equatable {
+struct BackgroundJob: Identifiable, Equatable, Sendable {
     let id: UUID
     let worktreeID: UUID
     let worktreePath: String

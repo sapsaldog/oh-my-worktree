@@ -232,6 +232,80 @@ final class BackgroundTaskQueueTests: XCTestCase {
         sut.clearFailed()
         XCTAssertFalse(sut.hasFailedJobs)
     }
+
+    // MARK: - busyWorktreeIDs caching
+
+    func testBusyWorktreeIDs_updatesOnEnqueue() {
+        let job = makeJob(kind: .pull)
+        XCTAssertFalse(sut.busyWorktreeIDs.contains(job.worktreeID))
+        sut.enqueue(job)
+        XCTAssertTrue(sut.busyWorktreeIDs.contains(job.worktreeID))
+    }
+
+    func testBusyWorktreeIDs_clearsAfterIdle() async {
+        let job = makeJob(kind: .pull)
+        sut.enqueue(job)
+        XCTAssertFalse(sut.busyWorktreeIDs.isEmpty)
+        await waitForIdle()
+        XCTAssertTrue(sut.busyWorktreeIDs.isEmpty)
+    }
+
+    func testBusyWorktreeIDs_updatesOnCancel() {
+        let job1 = makeJob(kind: .pull)
+        let job2 = makeJob(kind: .pull)
+        sut.enqueue([job1, job2])
+
+        if let pendingJob = sut.jobs.first(where: { $0.state == .pending }) {
+            let worktreeID = pendingJob.worktreeID
+            XCTAssertTrue(sut.busyWorktreeIDs.contains(worktreeID))
+            sut.cancel(pendingJob.id)
+            XCTAssertFalse(sut.busyWorktreeIDs.contains(worktreeID))
+        }
+    }
+
+    // MARK: - Stress Tests
+
+    func testRapidEnqueueAndCancelAll_allReachTerminalState() async {
+        let jobs = (0..<20).map { _ in makeJob(kind: .pull) }
+        sut.enqueue(jobs)
+        sut.cancelAll()
+        await waitForIdle(timeout: 5)
+
+        let pendingCount = sut.jobs.filter { $0.state == .pending }.count
+        XCTAssertEqual(pendingCount, 0, "No jobs should remain pending after cancelAll")
+        XCTAssertFalse(sut.hasActiveJobs)
+    }
+
+    func testRapidEnqueueMultipleRepos_eachProcessedIndependently() async {
+        let repo2Path = "/tmp/bq-test-repo-2"
+        let jobs1 = (0..<5).map { _ in makeJob(kind: .pull) }
+        let jobs2 = (0..<5).map { _ in
+            BackgroundJob(
+                worktreeID: UUID(),
+                worktreePath: "\(repo2Path)/wt-\(UUID().uuidString.prefix(8))",
+                folderName: "wt",
+                displayName: "Repo2 Worktree",
+                repositoryPath: repo2Path,
+                repositoryID: UUID(),
+                kind: .pull
+            )
+        }
+        sut.enqueue(jobs1 + jobs2)
+        await waitForIdle(timeout: 5)
+
+        XCTAssertFalse(sut.hasActiveJobs)
+        XCTAssertTrue(sut.busyWorktreeIDs.isEmpty)
+    }
+
+    func testRepeatedEnqueueAfterIdle_cleansUpCorrectly() async {
+        for _ in 0..<5 {
+            sut.enqueue(makeJob(kind: .pull))
+            await waitForIdle()
+            XCTAssertFalse(sut.hasActiveJobs)
+            XCTAssertTrue(sut.busyWorktreeIDs.isEmpty)
+        }
+        XCTAssertTrue(sut.jobs.isEmpty)
+    }
 }
 
 // MARK: - WorktreeListViewModel Bulk Remove Tests

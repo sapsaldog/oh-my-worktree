@@ -7,10 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		018CEB4BA33463D66FC56390 /* BackgroundTaskQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04943FBE79E108AEA932BE7A /* BackgroundTaskQueueTests.swift */; };
 		0349E56A97431ED05B90B995 /* BackgroundTaskQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 688E52A50119AE1D61EBC870 /* BackgroundTaskQueue.swift */; };
 		069FE3565BC42960E0CFBDEA /* BackgroundJob.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E235697287DAAC0D8A697C /* BackgroundJob.swift */; };
 		14E42FFD99B49D00630EA203 /* WorktreeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BD25714038218BA848A16DA /* WorktreeTests.swift */; };
-		56819A73460C44AAA35BDD82 /* BackgroundTaskQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A8EF1E52C4A4EF0A55A8E52 /* BackgroundTaskQueueTests.swift */; };
 		150BA7D5A0121054A1307FF1 /* WorktreeMetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E37907BD97EF1278CAD9A1B /* WorktreeMetadataTests.swift */; };
 		156C6EB8ECDE30DC56C50A6B /* Repository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C1B43B188C597C61F1DC2EA /* Repository.swift */; };
 		1D280B90168CDB181DC5FAE4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 73CCA7E1C1ACBAF4E4291EA8 /* Assets.xcassets */; };
@@ -29,6 +29,7 @@
 		7DC6228DB15054EE52B4F8CB /* WorktreeManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2A39FCA55BDC5AFC0131335 /* WorktreeManagerTests.swift */; };
 		80092B38847E833C625A2FC9 /* WorktreeListViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABF450885A0658CB279EE089 /* WorktreeListViewModelTests.swift */; };
 		83813D0890D4D7B8E1705EE3 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7C98BC9064213F12D218E3 /* SettingsView.swift */; };
+		83D7231E6DC8D4F148FC9F67 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 811A9D3615B46E7D12735276 /* NotificationManager.swift */; };
 		904051CD4BAE23C83E6F05EA /* RepositorySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0590D938B57D29A509B839A9 /* RepositorySettingsView.swift */; };
 		90573263CD7CCB51F38F1F2C /* RepositorySelectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64B3B3B1F44A78CB74EE99F8 /* RepositorySelectorView.swift */; };
 		90B73335B9C85BA0C70843D0 /* WorktreeFileCopier.swift in Sources */ = {isa = PBXBuildFile; fileRef = B344DBF698890D1B13BB69D6 /* WorktreeFileCopier.swift */; };
@@ -65,11 +66,11 @@
 
 /* Begin PBXFileReference section */
 		038E188FA5528808D1BCFCC7 /* PullRequestServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PullRequestServiceTests.swift; sourceTree = "<group>"; };
+		04943FBE79E108AEA932BE7A /* BackgroundTaskQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundTaskQueueTests.swift; sourceTree = "<group>"; };
 		051710DB8E7D2B5BEF352CDF /* OhMyWorktreeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OhMyWorktreeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0590D938B57D29A509B839A9 /* RepositorySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositorySettingsView.swift; sourceTree = "<group>"; };
 		1024573DB028DE97085DF606 /* PullRequestStateIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PullRequestStateIcon.swift; sourceTree = "<group>"; };
 		11E235697287DAAC0D8A697C /* BackgroundJob.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundJob.swift; sourceTree = "<group>"; };
-		0A8EF1E52C4A4EF0A55A8E52 /* BackgroundTaskQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundTaskQueueTests.swift; sourceTree = "<group>"; };
 		13A81FF314A143B73B1AB7C8 /* RepositoryStoreRenameTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryStoreRenameTests.swift; sourceTree = "<group>"; };
 		155B3645306233DD226910E8 /* ExternalToolLauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalToolLauncher.swift; sourceTree = "<group>"; };
 		1E244AEB611F8ACEFC7862B5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -87,6 +88,7 @@
 		6A761722B5707AF84AB6CA37 /* WorktreeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeManager.swift; sourceTree = "<group>"; };
 		6F7C98BC9064213F12D218E3 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		73CCA7E1C1ACBAF4E4291EA8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		811A9D3615B46E7D12735276 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 		8C48E8BD55146561E170E91A /* WorktreeRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeRowView.swift; sourceTree = "<group>"; };
 		8D0B554A7A3F05F099599D36 /* GitHeadMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHeadMonitor.swift; sourceTree = "<group>"; };
 		9BD25714038218BA848A16DA /* WorktreeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeTests.swift; sourceTree = "<group>"; };
@@ -140,6 +142,7 @@
 				155B3645306233DD226910E8 /* ExternalToolLauncher.swift */,
 				E12BD14A8E992E6A9B4668B7 /* GitCommandExecutor.swift */,
 				8D0B554A7A3F05F099599D36 /* GitHeadMonitor.swift */,
+				811A9D3615B46E7D12735276 /* NotificationManager.swift */,
 				B8362992DEC2BA4D89D03E2A /* PullRequestService.swift */,
 				A200952D514CDC6E761D7D31 /* RandomNameGenerator.swift */,
 				5DE83D40D208FBAE22E78A33 /* RepositoryStore.swift */,
@@ -154,10 +157,10 @@
 		3B56166A537E658017960706 /* OhMyWorktreeTests */ = {
 			isa = PBXGroup;
 			children = (
+				04943FBE79E108AEA932BE7A /* BackgroundTaskQueueTests.swift */,
 				C9F3D7DAE61099FF17488E05 /* PullRequestInfoTests.swift */,
 				038E188FA5528808D1BCFCC7 /* PullRequestServiceTests.swift */,
-				0A8EF1E52C4A4EF0A55A8E52 /* BackgroundTaskQueueTests.swift */,
-			13A81FF314A143B73B1AB7C8 /* RepositoryStoreRenameTests.swift */,
+				13A81FF314A143B73B1AB7C8 /* RepositoryStoreRenameTests.swift */,
 				45E90BF743990ABDF5F54752 /* WorktreeFileCopierTests.swift */,
 				ABF450885A0658CB279EE089 /* WorktreeListViewModelTests.swift */,
 				A2A39FCA55BDC5AFC0131335 /* WorktreeManagerTests.swift */,
@@ -354,10 +357,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				018CEB4BA33463D66FC56390 /* BackgroundTaskQueueTests.swift in Sources */,
 				A04EF872B11EC64861D1931F /* PullRequestInfoTests.swift in Sources */,
 				38723E3C67DD58A9D57EAD4B /* PullRequestServiceTests.swift in Sources */,
-				56819A73460C44AAA35BDD82 /* BackgroundTaskQueueTests.swift in Sources */,
-			A00DF8B5591361457887300F /* RepositoryStoreRenameTests.swift in Sources */,
+				A00DF8B5591361457887300F /* RepositoryStoreRenameTests.swift in Sources */,
 				671DEF7953036D7C339F1C16 /* WorktreeFileCopierTests.swift in Sources */,
 				80092B38847E833C625A2FC9 /* WorktreeListViewModelTests.swift in Sources */,
 				7DC6228DB15054EE52B4F8CB /* WorktreeManagerTests.swift in Sources */,
@@ -379,6 +382,7 @@
 				1D5329DDE42009E76C2650C5 /* ExternalToolLauncher.swift in Sources */,
 				D13B27C586A4730DF2924206 /* GitCommandExecutor.swift in Sources */,
 				A1B84A7C2495A084A1A9A9C3 /* GitHeadMonitor.swift in Sources */,
+				83D7231E6DC8D4F148FC9F67 /* NotificationManager.swift in Sources */,
 				CE306852AB0277CAE4E88BCA /* OhMyWorktreeApp.swift in Sources */,
 				653587B67AD671EEE36C6C93 /* OhMyWorktreeError.swift in Sources */,
 				761A6C6DF0BA861B384B7BBA /* PullRequestInfo.swift in Sources */,
