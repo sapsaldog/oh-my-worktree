@@ -82,7 +82,11 @@ final class RepositoryStoreRenameTests: XCTestCase {
 
     func testUpdateCustomName_nonExistentFolder_doesNothing() async {
         // When: update customName for non-existent folder
-        await store.updateCustomName(folderName: "nonexistent-\(testRepoID!.uuidString)", customName: "Name", repositoryID: testRepoID)
+        await store.updateCustomName(
+            folderName: "nonexistent-\(testRepoID!.uuidString)",
+            customName: "Name",
+            repositoryID: testRepoID
+        )
 
         // Then: no metadata created
         let result = await store.getWorktreeMetadata(repositoryID: testRepoID)

@@ -137,114 +137,75 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func rebuildMenu() {
         guard let menu = statusItem?.menu else { return }
         menu.removeAllItems()
+        addRepositorySection(to: menu)
+        addWorktreeSection(to: menu)
+        addSystemMenuItems(to: menu)
+    }
 
+    // MARK: - Menu Section Builders
+
+    private func addRepositorySection(to menu: NSMenu) {
         let repositories = repoViewModel?.repositories ?? []
         let selectedRepo = repoViewModel?.selectedRepository
-        let worktrees = worktreeViewModel?.worktrees ?? []
-
-        // --- Repository Section ---
-
         for repo in repositories {
-            let item = NSMenuItem(
-                title: repo.name,
-                action: #selector(repositorySelected(_:)),
-                keyEquivalent: ""
-            )
+            let item = NSMenuItem(title: repo.name, action: #selector(repositorySelected(_:)), keyEquivalent: "")
             item.target = self
             item.representedObject = repo.id
-            if let selectedRepo, selectedRepo.id == repo.id {
-                item.state = .on
-            }
+            if let selectedRepo, selectedRepo.id == repo.id { item.state = .on }
             menu.addItem(item)
         }
+        if !repositories.isEmpty { menu.addItem(.separator()) }
+    }
 
-        if !repositories.isEmpty {
-            menu.addItem(.separator())
-        }
-
-        // --- Worktree Section ---
-
+    private func addWorktreeSection(to menu: NSMenu) {
+        let worktrees = worktreeViewModel?.worktrees ?? []
         let pullRequests = worktreeViewModel?.pullRequests ?? [:]
-
         for worktree in worktrees {
-            if worktree.isBare { continue }
-
-            let bullet = (worktreeViewModel?.selectedWorktree?.id == worktree.id) ? "\u{25CF} " : "   "
+            guard !worktree.isBare else { continue }
+            let isSelected = worktreeViewModel?.selectedWorktree?.id == worktree.id
+            let bullet = isSelected ? "\u{25CF} " : "   "
             let pr = worktree.branch.flatMap { pullRequests[$0] }
             let prLabel = pr.map { " #\($0.number)" } ?? ""
             let activity = worktree.relativeLastActivity.map { "  \($0)" } ?? ""
-            let title = "\(bullet)\(worktree.displayName)\(prLabel)\(activity)"
-
             let item = NSMenuItem(
-                title: title,
+                title: "\(bullet)\(worktree.displayName)\(prLabel)\(activity)",
                 action: #selector(worktreeSelected(_:)),
                 keyEquivalent: ""
             )
             item.target = self
             item.representedObject = WorktreeRef(id: worktree.id, path: worktree.path, prURL: pr?.url)
-
-            // Build submenu for external tools
-            let submenu = buildWorktreeSubmenu(for: worktree, pullRequest: pr)
-            item.submenu = submenu
-
+            item.submenu = buildWorktreeSubmenu(for: worktree, pullRequest: pr)
             menu.addItem(item)
         }
+        if menu.numberOfItems > 0 { menu.addItem(.separator()) }
+    }
 
-        if !worktrees.isEmpty || !repositories.isEmpty {
-            menu.addItem(.separator())
-        }
-
-        // --- New Worktree ---
-
-        let addItem = NSMenuItem(
-            title: "+ New Worktree",
-            action: #selector(newWorktreeClicked(_:)),
-            keyEquivalent: "n"
-        )
+    private func addSystemMenuItems(to menu: NSMenu) {
+        let addItem = NSMenuItem(title: "+ New Worktree", action: #selector(newWorktreeClicked(_:)), keyEquivalent: "n")
         addItem.target = self
-        addItem.isEnabled = (repoViewModel?.selectedRepository != nil)
+        addItem.isEnabled = repoViewModel?.selectedRepository != nil
         menu.addItem(addItem)
-
         menu.addItem(.separator())
 
-        // --- Open Main Window ---
-
         let openWindowItem = NSMenuItem(
-            title: "Open Main Window",
-            action: #selector(openMainWindowClicked(_:)),
-            keyEquivalent: "o"
+            title: "Open Main Window", action: #selector(openMainWindowClicked(_:)), keyEquivalent: "o"
         )
         openWindowItem.target = self
         menu.addItem(openWindowItem)
 
-        // --- Settings ---
-
-        let settingsItem = NSMenuItem(
-            title: "Settings...",
-            action: #selector(settingsClicked(_:)),
-            keyEquivalent: ","
-        )
+        let settingsItem = NSMenuItem(title: "Settings...", action: #selector(settingsClicked(_:)), keyEquivalent: ",")
         settingsItem.target = self
         menu.addItem(settingsItem)
 
-        let checkForUpdatesItem = NSMenuItem(
-            title: "Check for Updates...",
-            action: #selector(checkForUpdatesClicked(_:)),
-            keyEquivalent: ""
+        let updatesItem = NSMenuItem(
+            title: "Check for Updates...", action: #selector(checkForUpdatesClicked(_:)), keyEquivalent: ""
         )
-        checkForUpdatesItem.target = self
-        checkForUpdatesItem.isEnabled = updaterManager?.canCheckForUpdates ?? false
-        menu.addItem(checkForUpdatesItem)
-
+        updatesItem.target = self
+        updatesItem.isEnabled = updaterManager?.canCheckForUpdates ?? false
+        menu.addItem(updatesItem)
         menu.addItem(.separator())
 
-        // --- Quit ---
-
-        let quitItem = NSMenuItem(
-            title: "Quit Oh My Worktree",
-            action: #selector(quitClicked(_:)),
-            keyEquivalent: "q"
-        )
+        let quitItem = NSMenuItem(title: "Quit Oh My Worktree", action: #selector(quitClicked(_:)), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
     }
@@ -255,107 +216,34 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let submenu = NSMenu()
         let ref = WorktreeRef(id: worktree.id, path: worktree.path)
 
-        if worktreeViewModel?.isITermAvailable == true {
-            let item = NSMenuItem(
-                title: "Open in iTerm",
-                action: #selector(openInITermClicked(_:)),
-                keyEquivalent: ""
-            )
-            item.target = self
-            item.representedObject = ref
-            submenu.addItem(item)
-        }
+        addExternalToolItems(to: submenu, ref: ref)
 
-        if worktreeViewModel?.isGhosttyAvailable == true {
-            let item = NSMenuItem(
-                title: "Open in Ghostty",
-                action: #selector(openInGhosttyClicked(_:)),
-                keyEquivalent: ""
-            )
-            item.target = self
-            item.representedObject = ref
-            submenu.addItem(item)
-        }
-
-        if worktreeViewModel?.isVSCodeAvailable == true {
-            let item = NSMenuItem(
-                title: "Open in VSCode",
-                action: #selector(openInVSCodeClicked(_:)),
-                keyEquivalent: ""
-            )
-            item.target = self
-            item.representedObject = ref
-            submenu.addItem(item)
-        }
-
-        if worktreeViewModel?.isCursorAvailable == true {
-            let item = NSMenuItem(
-                title: "Open in Cursor",
-                action: #selector(openInCursorClicked(_:)),
-                keyEquivalent: ""
-            )
-            item.target = self
-            item.representedObject = ref
-            submenu.addItem(item)
-        }
-
-        if worktreeViewModel?.isCmuxAvailable == true {
-            let item = NSMenuItem(
-                title: "Open in cmux",
-                action: #selector(openInCmuxClicked(_:)),
-                keyEquivalent: ""
-            )
-            item.target = self
-            item.representedObject = ref
-            submenu.addItem(item)
-        }
-
-        // Open Pull Request — only if PR exists for this branch
         if let pr = pullRequest {
-            if submenu.numberOfItems > 0 {
-                submenu.addItem(.separator())
-            }
+            if submenu.numberOfItems > 0 { submenu.addItem(.separator()) }
             let prItem = NSMenuItem(
-                title: "Open Pull Request #\(pr.number)",
-                action: #selector(openPullRequestClicked(_:)),
-                keyEquivalent: ""
+                title: "Open Pull Request #\(pr.number)", action: #selector(openPullRequestClicked(_:)), keyEquivalent: ""
             )
             prItem.target = self
             prItem.representedObject = WorktreeRef(id: worktree.id, path: worktree.path, prURL: pr.url)
             submenu.addItem(prItem)
         }
 
-        if submenu.numberOfItems > 0 {
-            submenu.addItem(.separator())
-        }
+        if submenu.numberOfItems > 0 { submenu.addItem(.separator()) }
 
-        // Git Pull — only for root worktree
         if let repository = repoViewModel?.selectedRepository, worktree.isRoot(of: repository) {
-            let pullItem = NSMenuItem(
-                title: "Git Pull",
-                action: #selector(gitPullClicked(_:)),
-                keyEquivalent: ""
-            )
+            let pullItem = NSMenuItem(title: "Git Pull", action: #selector(gitPullClicked(_:)), keyEquivalent: "")
             pullItem.target = self
             pullItem.representedObject = ref
             submenu.addItem(pullItem)
             submenu.addItem(.separator())
         }
 
-        let copyItem = NSMenuItem(
-            title: "Copy Path",
-            action: #selector(copyPathClicked(_:)),
-            keyEquivalent: ""
-        )
+        let copyItem = NSMenuItem(title: "Copy Path", action: #selector(copyPathClicked(_:)), keyEquivalent: "")
         copyItem.target = self
         copyItem.representedObject = ref
         submenu.addItem(copyItem)
 
-        let finderItem = NSMenuItem(
-            title: "Show in Finder",
-            action: #selector(showInFinderClicked(_:)),
-            keyEquivalent: ""
-        )
+        let finderItem = NSMenuItem(title: "Show in Finder", action: #selector(showInFinderClicked(_:)), keyEquivalent: "")
         finderItem.target = self
         finderItem.representedObject = ref
         submenu.addItem(finderItem)
@@ -363,9 +251,25 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return submenu
     }
 
+    private func addExternalToolItems(to submenu: NSMenu, ref: WorktreeRef) {
+        let tools: [(available: Bool, title: String, action: Selector)] = [
+            (worktreeViewModel?.isITermAvailable == true, "Open in iTerm", #selector(openInITermClicked(_:))),
+            (worktreeViewModel?.isGhosttyAvailable == true, "Open in Ghostty", #selector(openInGhosttyClicked(_:))),
+            (worktreeViewModel?.isVSCodeAvailable == true, "Open in VSCode", #selector(openInVSCodeClicked(_:))),
+            (worktreeViewModel?.isCursorAvailable == true, "Open in Cursor", #selector(openInCursorClicked(_:))),
+            (worktreeViewModel?.isCmuxAvailable == true, "Open in cmux", #selector(openInCmuxClicked(_:)))
+        ]
+        for (available, title, action) in tools where available {
+            let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
+            item.target = self
+            item.representedObject = ref
+            submenu.addItem(item)
+        }
+    }
+
     // MARK: - Helpers
 
-    private func showOrCreateMainWindow() {
+    func showOrCreateMainWindow() {
         NSApp.activate(ignoringOtherApps: true)
 
         // Try to show an existing window first
@@ -381,181 +285,4 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         openMainWindow?()
     }
 
-    // MARK: - Actions: Repository
-
-    @objc private func repositorySelected(_ sender: NSMenuItem) {
-        guard let repoID = sender.representedObject as? UUID,
-              let repo = repoViewModel?.repositories.first(where: { $0.id == repoID })
-        else { return }
-
-        // Show main window to display the worktree list
-        showOrCreateMainWindow()
-
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            await self.repoViewModel?.selectRepository(repo)
-            self.worktreeViewModel?.repository = repo
-            await self.worktreeViewModel?.loadWorktrees()
-            self.updateStatusItemTitle()
-        }
-    }
-
-    // MARK: - Actions: Worktree Selection
-
-    @objc private func worktreeSelected(_ sender: NSMenuItem) {
-        guard let ref = sender.representedObject as? WorktreeRef else { return }
-
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            self.worktreeViewModel?.selectedWorktree = self.worktreeViewModel?.worktrees.first(where: { $0.id == ref.id })
-            self.updateStatusItemTitle()
-        }
-    }
-
-    // MARK: - Actions: External Tools
-
-    @objc private func openInITermClicked(_ sender: NSMenuItem) {
-        guard let ref = sender.representedObject as? WorktreeRef else { return }
-
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            let worktree = self.worktreeViewModel?.worktrees.first(where: { $0.id == ref.id })
-            await self.worktreeViewModel?.openInITerm(worktree)
-        }
-    }
-
-    @objc private func openInGhosttyClicked(_ sender: NSMenuItem) {
-        guard let ref = sender.representedObject as? WorktreeRef else { return }
-
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            let worktree = self.worktreeViewModel?.worktrees.first(where: { $0.id == ref.id })
-            await self.worktreeViewModel?.openInGhostty(worktree)
-        }
-    }
-
-    @objc private func openInVSCodeClicked(_ sender: NSMenuItem) {
-        guard let ref = sender.representedObject as? WorktreeRef else { return }
-
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            let worktree = self.worktreeViewModel?.worktrees.first(where: { $0.id == ref.id })
-            await self.worktreeViewModel?.openInVSCode(worktree)
-        }
-    }
-
-    @objc private func openInCursorClicked(_ sender: NSMenuItem) {
-        guard let ref = sender.representedObject as? WorktreeRef else { return }
-
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            let worktree = self.worktreeViewModel?.worktrees.first(where: { $0.id == ref.id })
-            await self.worktreeViewModel?.openInCursor(worktree)
-        }
-    }
-
-    @objc private func openInCmuxClicked(_ sender: NSMenuItem) {
-        guard let ref = sender.representedObject as? WorktreeRef else { return }
-
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            let worktree = self.worktreeViewModel?.worktrees.first(where: { $0.id == ref.id })
-            await self.worktreeViewModel?.openInCmux(worktree)
-        }
-    }
-
-    // MARK: - Actions: Path & Finder
-
-    @objc private func copyPathClicked(_ sender: NSMenuItem) {
-        guard let ref = sender.representedObject as? WorktreeRef else { return }
-
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.setString(ref.path, forType: .string)
-    }
-
-    @objc private func showInFinderClicked(_ sender: NSMenuItem) {
-        guard let ref = sender.representedObject as? WorktreeRef else { return }
-
-        let url = URL(fileURLWithPath: ref.path)
-        NSWorkspace.shared.open(url)
-    }
-
-    @objc private func gitPullClicked(_ sender: NSMenuItem) {
-        guard let ref = sender.representedObject as? WorktreeRef else { return }
-
-        // Show main window to display the result alert
-        showOrCreateMainWindow()
-
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            if let worktree = self.worktreeViewModel?.worktrees.first(where: { $0.id == ref.id }) {
-                await self.worktreeViewModel?.gitPull(worktree)
-                // ContentView alert will show the result
-            }
-        }
-    }
-
-    // MARK: - Actions: Open Pull Request
-
-    @objc private func openPullRequestClicked(_ sender: NSMenuItem) {
-        guard let ref = sender.representedObject as? WorktreeRef,
-              let url = ref.prURL
-        else { return }
-
-        NSWorkspace.shared.open(url)
-    }
-
-    // MARK: - Actions: New Worktree
-
-    @objc private func newWorktreeClicked(_ sender: NSMenuItem) {
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            await self.worktreeViewModel?.addWorktree()
-            self.updateStatusItemTitle()
-        }
-    }
-
-    // MARK: - Actions: Open Main Window
-
-    @objc private func openMainWindowClicked(_ sender: NSMenuItem) {
-        showOrCreateMainWindow()
-    }
-
-    // MARK: - Actions: Settings
-
-    @objc private func settingsClicked(_ sender: NSMenuItem) {
-        NSApp.activate(ignoringOtherApps: true)
-        openSettings?()
-    }
-
-    // MARK: - Actions: Check for Updates
-
-    @objc private func checkForUpdatesClicked(_ sender: NSMenuItem) {
-        updaterManager?.checkForUpdates()
-    }
-
-    // MARK: - Actions: Quit
-
-    @objc private func quitClicked(_ sender: NSMenuItem) {
-        NSApplication.shared.terminate(nil)
-    }
 }
-
-// MARK: - WorktreeRef
-
-/// Lightweight reference type used as `representedObject` on NSMenuItems
-/// to identify which worktree a menu action targets.
-private final class WorktreeRef: NSObject {
-    let id: UUID
-    let path: String
-    let prURL: URL?
-
-    init(id: UUID, path: String, prURL: URL? = nil) {
-        self.id = id
-        self.path = path
-        self.prURL = prURL
-        super.init()
-    }
-}
-

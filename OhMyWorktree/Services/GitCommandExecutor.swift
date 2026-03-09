@@ -10,6 +10,12 @@ protocol GitCommandExecuting: Sendable {
     func execute(command: String, arguments: [String], workingDirectory: String?) async throws -> CommandResult
 }
 
+extension GitCommandExecuting {
+    func execute(arguments: [String], workingDirectory: String?) async throws -> CommandResult {
+        try await execute(command: "/usr/bin/git", arguments: arguments, workingDirectory: workingDirectory)
+    }
+}
+
 /// Executes Git commands via Process. Thread-safe because it has no mutable state.
 /// @unchecked Sendable is safe here because all operations are stateless.
 final class GitCommandExecutor: GitCommandExecuting, @unchecked Sendable {

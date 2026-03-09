@@ -23,6 +23,8 @@
 		671DEF7953036D7C339F1C16 /* WorktreeFileCopierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45E90BF743990ABDF5F54752 /* WorktreeFileCopierTests.swift */; };
 		69D877CD7133DCC2B86870EC /* WorktreeRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C48E8BD55146561E170E91A /* WorktreeRowView.swift */; };
 		761A6C6DF0BA861B384B7BBA /* PullRequestInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F95F0D684BC863684D8241 /* PullRequestInfo.swift */; };
+		7DC6228DB15054EE52B4F8CB /* WorktreeManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2A39FCA55BDC5AFC0131335 /* WorktreeManagerTests.swift */; };
+		80092B38847E833C625A2FC9 /* WorktreeListViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABF450885A0658CB279EE089 /* WorktreeListViewModelTests.swift */; };
 		83813D0890D4D7B8E1705EE3 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7C98BC9064213F12D218E3 /* SettingsView.swift */; };
 		904051CD4BAE23C83E6F05EA /* RepositorySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0590D938B57D29A509B839A9 /* RepositorySettingsView.swift */; };
 		90573263CD7CCB51F38F1F2C /* RepositorySelectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64B3B3B1F44A78CB74EE99F8 /* RepositorySelectorView.swift */; };
@@ -44,6 +46,7 @@
 		CE306852AB0277CAE4E88BCA /* OhMyWorktreeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31E4C67AC16118B79418121C /* OhMyWorktreeApp.swift */; };
 		D13B27C586A4730DF2924206 /* GitCommandExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E12BD14A8E992E6A9B4668B7 /* GitCommandExecutor.swift */; };
 		E2606717B65AB4B466E7B6F6 /* ActionButtonsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2067200F123B0207E5A6D16 /* ActionButtonsView.swift */; };
+		EDF2ADCE568E4FA4FCA3C8F9 /* AppDelegate+Actions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55F7FDE98A327CB12943BBD9 /* AppDelegate+Actions.swift */; };
 		F086186299A64C5B427A5474 /* WorktreeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A761722B5707AF84AB6CA37 /* WorktreeManager.swift */; };
 /* End PBXBuildFile section */
 
@@ -71,6 +74,7 @@
 		38E89BED48AC12D1BE0AA667 /* WorktreeListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeListViewModel.swift; sourceTree = "<group>"; };
 		3C1B43B188C597C61F1DC2EA /* Repository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Repository.swift; sourceTree = "<group>"; };
 		45E90BF743990ABDF5F54752 /* WorktreeFileCopierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeFileCopierTests.swift; sourceTree = "<group>"; };
+		55F7FDE98A327CB12943BBD9 /* AppDelegate+Actions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDelegate+Actions.swift"; sourceTree = "<group>"; };
 		5DE83D40D208FBAE22E78A33 /* RepositoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryStore.swift; sourceTree = "<group>"; };
 		64B3B3B1F44A78CB74EE99F8 /* RepositorySelectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositorySelectorView.swift; sourceTree = "<group>"; };
 		6A761722B5707AF84AB6CA37 /* WorktreeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeManager.swift; sourceTree = "<group>"; };
@@ -80,8 +84,10 @@
 		8D0B554A7A3F05F099599D36 /* GitHeadMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHeadMonitor.swift; sourceTree = "<group>"; };
 		9BD25714038218BA848A16DA /* WorktreeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeTests.swift; sourceTree = "<group>"; };
 		A200952D514CDC6E761D7D31 /* RandomNameGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RandomNameGenerator.swift; sourceTree = "<group>"; };
+		A2A39FCA55BDC5AFC0131335 /* WorktreeManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeManagerTests.swift; sourceTree = "<group>"; };
 		A34554C16FE6EC54FBB5C200 /* RepositoryListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryListViewModel.swift; sourceTree = "<group>"; };
 		AB7DCB0D9BD7764BC9BC08F6 /* OhMyWorktree.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OhMyWorktree.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		ABF450885A0658CB279EE089 /* WorktreeListViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeListViewModelTests.swift; sourceTree = "<group>"; };
 		AFE7A83D915B984C5F6EEEAC /* Worktree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Worktree.swift; sourceTree = "<group>"; };
 		B344DBF698890D1B13BB69D6 /* WorktreeFileCopier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeFileCopier.swift; sourceTree = "<group>"; };
 		B8362992DEC2BA4D89D03E2A /* PullRequestService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PullRequestService.swift; sourceTree = "<group>"; };
@@ -145,6 +151,8 @@
 				038E188FA5528808D1BCFCC7 /* PullRequestServiceTests.swift */,
 				13A81FF314A143B73B1AB7C8 /* RepositoryStoreRenameTests.swift */,
 				45E90BF743990ABDF5F54752 /* WorktreeFileCopierTests.swift */,
+				ABF450885A0658CB279EE089 /* WorktreeListViewModelTests.swift */,
+				A2A39FCA55BDC5AFC0131335 /* WorktreeManagerTests.swift */,
 				1E37907BD97EF1278CAD9A1B /* WorktreeMetadataTests.swift */,
 				9BD25714038218BA848A16DA /* WorktreeTests.swift */,
 			);
@@ -155,6 +163,7 @@
 			isa = PBXGroup;
 			children = (
 				C49FD4751640C27A346AD443 /* AppDelegate.swift */,
+				55F7FDE98A327CB12943BBD9 /* AppDelegate+Actions.swift */,
 				73CCA7E1C1ACBAF4E4291EA8 /* Assets.xcassets */,
 				1E244AEB611F8ACEFC7862B5 /* Info.plist */,
 				31E4C67AC16118B79418121C /* OhMyWorktreeApp.swift */,
@@ -247,6 +256,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = BF5369B062753B98966CC775 /* Build configuration list for PBXNativeTarget "OhMyWorktree" */;
 			buildPhases = (
+				86AFCA224C3663917CE6196A /* SwiftLint */,
 				BBA496511C689A80B7DB5528 /* Sources */,
 				346CF7640FFC5EE403C6A669 /* Resources */,
 				8887AF1AF9D10274C5F0E81D /* Frameworks */,
@@ -308,6 +318,28 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		86AFCA224C3663917CE6196A /* SwiftLint */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = SwiftLint;
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if which swiftlint > /dev/null; then\n  swiftlint\nelse\n  echo \"warning: SwiftLint not installed. Run: brew install swiftlint\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		8EFEEB81275CB55136AE36B6 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -317,6 +349,8 @@
 				38723E3C67DD58A9D57EAD4B /* PullRequestServiceTests.swift in Sources */,
 				A00DF8B5591361457887300F /* RepositoryStoreRenameTests.swift in Sources */,
 				671DEF7953036D7C339F1C16 /* WorktreeFileCopierTests.swift in Sources */,
+				80092B38847E833C625A2FC9 /* WorktreeListViewModelTests.swift in Sources */,
+				7DC6228DB15054EE52B4F8CB /* WorktreeManagerTests.swift in Sources */,
 				150BA7D5A0121054A1307FF1 /* WorktreeMetadataTests.swift in Sources */,
 				14E42FFD99B49D00630EA203 /* WorktreeTests.swift in Sources */,
 			);
@@ -327,6 +361,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E2606717B65AB4B466E7B6F6 /* ActionButtonsView.swift in Sources */,
+				EDF2ADCE568E4FA4FCA3C8F9 /* AppDelegate+Actions.swift in Sources */,
 				C504C333F22E91D5E0B35628 /* AppDelegate.swift in Sources */,
 				96B92319C7A41781AC764E80 /* AppSettings.swift in Sources */,
 				BE5701A4F52B99C834D7ACB5 /* ContentView.swift in Sources */,

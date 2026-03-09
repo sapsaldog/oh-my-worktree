@@ -15,7 +15,13 @@ xcodebuild -project OhMyWorktree.xcodeproj -scheme OhMyWorktree -destination 'pl
 xcodebuild archive -project OhMyWorktree.xcodeproj -scheme OhMyWorktree -archivePath build/OhMyWorktree.xcarchive
 ```
 
-No linter configured.
+```bash
+# Install SwiftLint (required for local builds)
+brew install swiftlint
+
+# Run manually
+swiftlint lint
+```
 
 ```bash
 # Run tests
