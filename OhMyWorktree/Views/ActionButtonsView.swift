@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ActionButtonsView: View {
     @ObservedObject var viewModel: WorktreeListViewModel
+    @Environment(\.openWindow) private var openWindow
 
     private var hasSelection: Bool {
         viewModel.selectedWorktree != nil
@@ -51,6 +52,8 @@ struct ActionButtonsView: View {
 
             Spacer()
 
+            newWorktreeButton
+
             if hasSelection {
                 Button(role: .destructive) {
                     Task { await viewModel.removeSelectedWorktree() }
@@ -62,6 +65,46 @@ struct ActionButtonsView: View {
                 .help("Remove selected worktree")
             }
         }
+    }
+
+    // MARK: - New Worktree Button
+
+    private var newWorktreeButton: some View {
+        HStack(spacing: 0) {
+            Button(action: { Task { await viewModel.addWorktree() } }) {
+                Image(systemName: "plus")
+                    .font(.system(size: 12, weight: .medium))
+                    .frame(width: 28, height: 22)
+            }
+            .buttonStyle(.plain)
+            .disabled(viewModel.repository == nil)
+            .help("New Worktree")
+
+            if viewModel.isGitHubAvailable {
+                Divider()
+                    .frame(height: 13)
+
+                Menu {
+                    Button("Import from GitHub PR") {
+                        openWindow(id: "import-pr")
+                    }
+                } label: {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 8, weight: .semibold))
+                        .frame(width: 20, height: 22)
+                }
+                .menuStyle(.button)
+                .buttonStyle(.plain)
+                .help("More options")
+            }
+        }
+        .foregroundStyle(viewModel.repository == nil ? .tertiary : .primary)
+        .background(.background)
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .overlay(
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(.separator, lineWidth: 1)
+        )
     }
 
     // MARK: - Action Button

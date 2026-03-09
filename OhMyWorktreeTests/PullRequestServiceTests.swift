@@ -55,6 +55,23 @@ private final class MockGitCommandExecutor: GitCommandExecuting, @unchecked Send
             result: .failure(NSError(domain: "test", code: 1, userInfo: [NSLocalizedDescriptionKey: "connection failed"]))
         ))
     }
+
+    // Stubs for fetchPullRequestList (FR-031)
+    func stubGhPrListFull(json: String, ghPath: String = "/usr/local/bin/gh") {
+        results.append((
+            command: ghPath,
+            arguments: ["pr", "list", "--json", "number,url,headRefName,state,title,author,updatedAt,isDraft", "--state", "all", "--limit", "100"],
+            result: .success(CommandResult(stdout: json, stderr: "", exitCode: 0))
+        ))
+    }
+
+    func stubGhPrListFullFailure(ghPath: String = "/usr/local/bin/gh") {
+        results.append((
+            command: ghPath,
+            arguments: ["pr", "list", "--json", "number,url,headRefName,state,title,author,updatedAt,isDraft", "--state", "all", "--limit", "100"],
+            result: .success(CommandResult(stdout: "", stderr: "error", exitCode: 1))
+        ))
+    }
 }
 
 // MARK: - Tests
@@ -290,5 +307,179 @@ final class PullRequestServiceTests: XCTestCase {
 
         XCTAssertEqual(result.count, 1)
         XCTAssertEqual(result["dev"]?.number, 10)
+    }
+
+    // MARK: - isGitHubAvailable (FR-031)
+
+    func testIsGitHubAvailable_withGitHubRemote_returnsTrue() async {
+        let mock = MockGitCommandExecutor()
+        mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
+        // Use /bin/sh as a stand-in for an executable gh CLI (always present on macOS)
+        let sut = PullRequestService(gitExecutor: mock, ghCliPath: "/bin/sh")
+
+        let result = await sut.isGitHubAvailable(repositoryPath: "/tmp/repo")
+
+        XCTAssertTrue(result)
+    }
+
+    func testIsGitHubAvailable_withNonGitHubRemote_returnsFalse() async {
+        let mock = MockGitCommandExecutor()
+        mock.stubGitConfig(remoteURL: "git@gitlab.com:user/repo.git")
+        let sut = PullRequestService(gitExecutor: mock, ghCliPath: "/bin/sh")
+
+        let result = await sut.isGitHubAvailable(repositoryPath: "/tmp/repo")
+
+        XCTAssertFalse(result)
+    }
+
+    func testIsGitHubAvailable_withNoGhCli_returnsFalse() async {
+        let mock = MockGitCommandExecutor()
+        mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
+        let sut = PullRequestService(gitExecutor: mock, ghCliPath: "/nonexistent/gh")
+
+        let result = await sut.isGitHubAvailable(repositoryPath: "/tmp/repo")
+
+        XCTAssertFalse(result)
+    }
+
+    // MARK: - fetchPullRequestList (FR-031)
+
+    func testFetchPullRequestList_withValidJSON_parsesAllFields() async throws {
+        let mock = MockGitCommandExecutor()
+        mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
+        mock.stubGhPrListFull(json: """
+        [{
+            "number": 42,
+            "url": "https://github.com/user/repo/pull/42",
+            "headRefName": "feature/dark-mode",
+            "state": "OPEN",
+            "title": "Add dark mode support",
+            "author": {"login": "alice"},
+            "updatedAt": "2024-01-15T10:30:00Z",
+            "isDraft": false
+        }]
+        """)
+        let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
+
+        let rawResult = await sut.fetchPullRequestList(repositoryPath: "/tmp/repo")
+        let result = try XCTUnwrap(rawResult)
+
+        XCTAssertEqual(result.count, 1)
+        let pr = result[0]
+        XCTAssertEqual(pr.number, 42)
+        XCTAssertEqual(pr.branch, "feature/dark-mode")
+        XCTAssertEqual(pr.title, "Add dark mode support")
+        XCTAssertEqual(pr.author, "alice")
+        XCTAssertEqual(pr.state, .open)
+        XCTAssertFalse(pr.isDraft)
+        XCTAssertNotNil(pr.updatedAt)
+    }
+
+    func testFetchPullRequestList_withDraftPR_setsDraftFlag() async throws {
+        let mock = MockGitCommandExecutor()
+        mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
+        mock.stubGhPrListFull(json: """
+        [{
+            "number": 7,
+            "url": "https://github.com/user/repo/pull/7",
+            "headRefName": "wip/feature",
+            "state": "OPEN",
+            "title": "WIP: new feature",
+            "author": {"login": "bob"},
+            "updatedAt": null,
+            "isDraft": true
+        }]
+        """)
+        let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
+
+        let rawResult = await sut.fetchPullRequestList(repositoryPath: "/tmp/repo")
+        let result = try XCTUnwrap(rawResult)
+
+        XCTAssertEqual(result.count, 1)
+        XCTAssertTrue(result[0].isDraft)
+    }
+
+    func testFetchPullRequestList_withMissingAuthor_usesEmptyString() async throws {
+        let mock = MockGitCommandExecutor()
+        mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
+        mock.stubGhPrListFull(json: """
+        [{
+            "number": 1,
+            "url": "https://github.com/user/repo/pull/1",
+            "headRefName": "main",
+            "state": "OPEN",
+            "title": "No author",
+            "updatedAt": null,
+            "isDraft": false
+        }]
+        """)
+        let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
+
+        let rawResult = await sut.fetchPullRequestList(repositoryPath: "/tmp/repo")
+        let result = try XCTUnwrap(rawResult)
+
+        XCTAssertEqual(result.count, 1)
+        XCTAssertEqual(result[0].author, "")
+    }
+
+    func testFetchPullRequestList_preservesOrder() async throws {
+        let mock = MockGitCommandExecutor()
+        mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
+        mock.stubGhPrListFull(json: """
+        [
+            {"number": 10, "url": "https://github.com/user/repo/pull/10", "headRefName": "a", "state": "OPEN", "title": "A", "author": {"login": "a"}, "updatedAt": null, "isDraft": false},
+            {"number": 5,  "url": "https://github.com/user/repo/pull/5",  "headRefName": "b", "state": "OPEN", "title": "B", "author": {"login": "b"}, "updatedAt": null, "isDraft": false}
+        ]
+        """)
+        let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
+
+        let rawResult = await sut.fetchPullRequestList(repositoryPath: "/tmp/repo")
+        let result = try XCTUnwrap(rawResult)
+
+        XCTAssertEqual(result.count, 2)
+        XCTAssertEqual(result[0].number, 10)
+        XCTAssertEqual(result[1].number, 5)
+    }
+
+    func testFetchPullRequestList_withNonGitHubRemote_returnsNil() async {
+        let mock = MockGitCommandExecutor()
+        mock.stubGitConfig(remoteURL: "git@gitlab.com:user/repo.git")
+        let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
+
+        let result = await sut.fetchPullRequestList(repositoryPath: "/tmp/repo")
+
+        XCTAssertNil(result)
+    }
+
+    func testFetchPullRequestList_withNoGhCli_returnsNil() async {
+        let mock = MockGitCommandExecutor()
+        mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
+        let sut = PullRequestService(gitExecutor: mock, ghCliPath: "/nonexistent/gh")
+
+        let result = await sut.fetchPullRequestList(repositoryPath: "/tmp/repo")
+
+        XCTAssertNil(result)
+    }
+
+    func testFetchPullRequestList_withCommandFailure_returnsNil() async {
+        let mock = MockGitCommandExecutor()
+        mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
+        mock.stubGhPrListFullFailure()
+        let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
+
+        let result = await sut.fetchPullRequestList(repositoryPath: "/tmp/repo")
+
+        XCTAssertNil(result)
+    }
+
+    func testFetchPullRequestList_withInvalidJSON_returnsNil() async {
+        let mock = MockGitCommandExecutor()
+        mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
+        mock.stubGhPrListFull(json: "not json")
+        let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
+
+        let result = await sut.fetchPullRequestList(repositoryPath: "/tmp/repo")
+
+        XCTAssertNil(result)
     }
 }

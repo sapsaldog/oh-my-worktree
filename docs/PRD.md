@@ -1,7 +1,7 @@
 # Oh My Worktree - 제품 요구사항 문서 (PRD)
 
-**버전**: 1.1.6
-**작성일**: 2026-02-10
+**버전**: 1.2.1
+**작성일**: 2026-03-09
 **대상 플랫폼**: macOS 14+ (Sonoma 이상)
 **상태**: Draft
 
@@ -189,6 +189,26 @@
 - 원본 worktree(`worktree.path == repository.path`)의 컨텍스트 메뉴에 "Remove Worktree" / "Force Remove Worktree" 항목 미표시
 - `git worktree add`로 생성된 worktree에만 삭제 메뉴 표시
 - SwiftUI 컨텍스트 메뉴와 NSMenu 서브메뉴 양쪽 모두 적용
+
+---
+
+**US-013**: GitHub PR에서 워크트리 생성
+**우선순위**: P1
+**사용자로서**, 나는 GitHub PR을 선택하여 해당 PR의 브랜치로 워크트리를 바로 생성하고 싶다.
+
+**인수 조건**:
+- Repository가 GitHub에 호스팅되어 있고 `gh` CLI가 설치/인증된 경우에만 기능 노출
+- `+` 버튼에 Split Menu Button 형태로 "Import from GitHub PR" 항목 표시
+  - 버튼 클릭 (primary action): 기존 워크트리 생성 동작 유지
+  - 화살표 클릭 (menu): "Import from GitHub PR" 항목 표시
+- 항목 선택 시 별도 macOS 창에서 PR 목록 표시 (일반 창, 자유롭게 이동 가능)
+- PR 창에서 Open (기본) / Draft / Closed 탭으로 필터링 가능
+- PR 번호, 제목, 브랜치명, 작성자, 시간 표시
+- PR 검색 (번호 또는 제목)
+- PR 선택 후 "Create Worktree" 클릭 시 해당 브랜치로 워크트리 생성
+- 워크트리 이름은 PR 브랜치명 사용 (`/` → `-` 치환하여 폴더명 생성, 예: `feature/dark-mode` → `feature-dark-mode`)
+- 이미 해당 브랜치의 워크트리가 존재하는 경우 오류 메시지 표시
+- 생성 완료 후 창 닫힘, 워크트리 목록 자동 갱신 및 신규 워크트리 선택
 
 ---
 
@@ -625,6 +645,71 @@ branch refs/heads/feature/new-feature
 - `WorktreeListView` (컨텍스트 메뉴 Rename 항목, Enter 키 바인딩)
 - `WorktreeRowView` (인라인 TextField 전환)
 - `AppDelegate` (displayName 변경으로 자동 반영)
+
+---
+
+#### FR-031: GitHub PR로부터 워크트리 생성 (P1)
+
+**설명**: GitHub Pull Request를 선택하여 해당 PR의 브랜치를 기반으로 워크트리를 생성
+
+**사전 조건**:
+- `remote.origin.url`에 `github.com`이 포함된 경우에만 기능 활성화
+- `gh` CLI가 설치되어 있고 인증된 경우에만 기능 활성화
+- 위 조건 미충족 시 Split Menu Button 대신 기존 단순 `+` 버튼 유지 (graceful degradation)
+
+**트리거 UI — Split Menu Button**:
+- `WorktreeListView`의 `+` 버튼을 SwiftUI `Menu` + `primaryAction` 조합으로 교체
+  ```swift
+  Menu {
+      Button("Import from GitHub PR") { /* 창 열기 */ }
+  } label: {
+      Image(systemName: "plus.circle.fill")
+  } primaryAction: {
+      Task { await viewModel.addWorktree() }
+  }
+  ```
+- GitHub 미감지 또는 `gh` 미설치 시 기존 단순 `Button`으로 폴백
+
+**PR 선택 창 (`ImportPRWindow`)**:
+- SwiftUI `Window` Scene으로 구현, 일반 macOS 창 (자유롭게 이동 가능)
+- 창 크기: 약 480 × 560px
+- 창 제목: "Import from GitHub PR — {repository name}"
+- 구성:
+  - 필터 탭: **Open** (기본) / Draft / Closed
+  - 검색 필드: PR 번호 또는 제목으로 필터링
+  - PR 목록 (각 항목): PR 번호, 제목, 브랜치명, 작성자, 상대 시간, 상태 아이콘 (FR-029 스타일)
+  - 하단: "Cancel" 버튼, "Create Worktree" 버튼 (PR 선택 시 활성화)
+- 창 열릴 때 PR 조회 시작, 로딩 인디케이터 표시
+
+**PR 데이터 조회**:
+- `gh pr list --json number,title,headRefName,state,author,updatedAt --state all --limit 100` 실행
+- 기존 `PullRequestService` 확장 사용 (author, updatedAt 필드 추가)
+
+**워크트리 생성 로직**:
+1. 선택된 PR의 `headRefName` (브랜치명) 확인
+2. 폴더명 생성: 브랜치명의 `/`를 `-`로 치환 (예: `feature/dark-mode` → `feature-dark-mode`)
+3. 동일 브랜치명의 워크트리가 이미 존재하는 경우 오류 표시 후 중단
+4. `git fetch origin <headRefName>` 실행 (리모트 브랜치 최신화)
+5. `git worktree add <worktreePath> <headRefName>` 실행
+6. `WorktreeMetadata` 생성 및 저장 (folderName 기반)
+7. 파일 복사 설정이 활성화된 경우 FR-018 연동
+8. 창 닫힘 → 워크트리 목록 갱신 → 신규 워크트리 자동 선택
+
+**오류 처리**:
+- `gh` CLI 미설치/미인증: "Import from GitHub PR" 메뉴 항목 비표시
+- PR 조회 실패: 창 내 오류 메시지 + 재시도 버튼
+- 동일 브랜치 워크트리 이미 존재: 오류 메시지 표시
+- `git fetch` 실패: 오류 메시지 (네트워크, 권한 등)
+- 폴더명 충돌: 버전 접미사 자동 추가 (FR-005 로직과 동일)
+
+**영향받는 컴포넌트**:
+- `ImportPRWindowView` (신규 SwiftUI View)
+- `ImportPRViewModel` (신규 ViewModel)
+- `PullRequestInfo` (author, updatedAt 필드 추가)
+- `PullRequestService` (확장: author, updatedAt 조회)
+- `WorktreeManager` (신규 메서드: `fetchAndAddWorktree(branch:folderName:repositoryPath:)`)
+- `WorktreeListViewModel` (신규 메서드: `addWorktreeFromPR(_:)`, `isGitHubRepository` 상태)
+- `WorktreeListView` (Split Menu Button으로 `+` 버튼 교체)
 
 ---
 
@@ -1176,6 +1261,37 @@ flowchart TD
     E --> G{실행 성공?}
     G -->|예| H[도구에서 worktree 열림]
     G -->|아니오| I[오류 메시지]
+```
+
+#### 플로우 4: GitHub PR에서 워크트리 생성 (FR-031)
+
+```mermaid
+flowchart TD
+    A[+ 버튼 화살표 클릭] --> B{GitHub repo + gh CLI?}
+    B -->|아니오| C[기존 단순 + 버튼 표시]
+    B -->|예| D[Import from GitHub PR 메뉴 항목 표시]
+    D --> E[Import from GitHub PR 선택]
+    E --> F[ImportPRWindow 열림]
+    F --> G[gh pr list 실행 - 로딩 표시]
+    G --> H{조회 성공?}
+    H -->|아니오| I[오류 메시지 + 재시도]
+    H -->|예| J[PR 목록 표시 - Open 필터 기본]
+    J --> K[탭 필터링 또는 검색]
+    K --> L[PR 선택]
+    L --> M[Create Worktree 버튼 활성화]
+    M --> N[Create Worktree 클릭]
+    N --> O[브랜치명으로 폴더명 생성 - /를 -로 치환]
+    O --> P{동일 브랜치 워크트리 존재?}
+    P -->|예| Q[오류 메시지]
+    P -->|아니오| R[git fetch origin branch]
+    R --> S{fetch 성공?}
+    S -->|아니오| T[오류 메시지]
+    S -->|예| U[git worktree add path branch]
+    U --> V{생성 성공?}
+    V -->|아니오| W[오류 메시지]
+    V -->|예| X[메타데이터 저장 + 파일 복사 FR-018]
+    X --> Y[창 닫힘]
+    Y --> Z[워크트리 목록 갱신 + 신규 워크트리 선택]
 ```
 
 ---
@@ -1784,20 +1900,23 @@ gantt
 
 ---
 
-### 10.6 향후 로드맵 (v1.1+)
+### 10.6 향후 로드맵 (v1.3+)
+
+**현재 출시 버전**: v1.2.1
 
 **Phase 5: 추가 기능 (선택)**
 
 | 기능 | 우선순위 | 예상 일정 |
 |------|----------|-----------|
-| ~~Worktree 이름 변경~~ | ~~P2~~ | ✅ FR-030으로 구현 완료 |
-| 브랜치 전환 (in worktree) | P2 | v1.1 |
-| 커밋 히스토리 간단 표시 | P2 | v1.2 |
-| 다른 터미널 앱 지원 (Alacritty 등) | P2 | v1.2 |
-| Xcode 연동 | P2 | v1.3 |
-| 테마 커스터마이징 | P2 | v1.3 |
-| 단축키 커스터마이징 | P2 | v1.3 |
-| iCloud 동기화 (Repository 목록) | P2 | v1.4 |
+| ~~Worktree 이름 변경~~ | ~~P2~~ | ✅ v1.2.0 — FR-030으로 구현 완료 |
+| GitHub PR에서 워크트리 생성 | P1 | v1.3 (FR-031) |
+| 브랜치 전환 (in worktree) | P2 | 미정 |
+| 커밋 히스토리 간단 표시 | P2 | 미정 |
+| 다른 터미널 앱 지원 (Alacritty 등) | P2 | 미정 |
+| Xcode 연동 | P2 | 미정 |
+| 테마 커스터마이징 | P2 | 미정 |
+| 단축키 커스터마이징 | P2 | 미정 |
+| iCloud 동기화 (Repository 목록) | P2 | 미정 |
 
 ---
 

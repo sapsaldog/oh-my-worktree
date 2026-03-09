@@ -10,6 +10,7 @@ final class WorktreeListViewModel: ObservableObject {
     @Published var pullResultMessage: String?
     @Published var pullingWorktrees: Set<UUID> = []
     @Published var pullRequests: [String: PullRequestInfo] = [:]
+    @Published var isGitHubAvailable = false
     private let worktreeManager: WorktreeManager
     private let toolLauncher: ExternalToolLauncher
     private let store: RepositoryStore
@@ -25,6 +26,8 @@ final class WorktreeListViewModel: ObservableObject {
             if repository?.id != oldValue?.id {
                 prFetchTask?.cancel()
                 pullRequests = [:]
+                isGitHubAvailable = false
+                Task { [weak self] in await self?.checkGitHubAvailability() }
             }
         }
     }
@@ -176,6 +179,65 @@ final class WorktreeListViewModel: ObservableObject {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    // MARK: - Add Worktree from PR
+
+    /// Creates a worktree from a GitHub PR branch. Throws on failure so the caller can display the error.
+    func addWorktreeFromPR(_ pr: PullRequestInfo) async throws {
+        guard let repository else {
+            throw OhMyWorktreeError.repositoryNotFound
+        }
+
+        // Prevent duplicate worktrees for the same branch
+        if worktrees.contains(where: { $0.branch == pr.branch }) {
+            throw OhMyWorktreeError.worktreeAlreadyExists(branch: pr.branch)
+        }
+
+        // Derive folder name from branch, handling slash characters
+        var folderName = pr.branch.replacingOccurrences(of: "/", with: "-")
+        let existingNames = Set(worktrees.map { $0.folderName })
+        if existingNames.contains(folderName) {
+            var version = 2
+            while existingNames.contains("\(folderName)-v\(version)") { version += 1 }
+            folderName = "\(folderName)-v\(version)"
+        }
+
+        isLoading = true
+        defer { isLoading = false }
+
+        try await worktreeManager.fetchBranch(pr.branch, repositoryPath: repository.path)
+
+        let newWorktree = try await worktreeManager.addWorktreeFromExistingBranch(
+            repositoryPath: repository.path,
+            folderName: folderName,
+            branch: pr.branch
+        )
+
+        let metadata = WorktreeMetadata(folderName: folderName)
+        await store.addWorktreeMetadata(metadata, repositoryID: repository.id)
+
+        let fileCopyOverride = await store.getEnvCopyOverride(for: repository.id)
+        let globalDefault = UserDefaults.standard.object(forKey: "copyEnvFilesEnabled") as? Bool ?? true
+        if fileCopyOverride ?? globalDefault {
+            let copyResult = fileCopier.copyFiles(from: repository.path, to: newWorktree.path)
+            if !copyResult.errors.isEmpty {
+                errorMessage = "Some files could not be copied: \(copyResult.errors.joined(separator: ", "))"
+            }
+        }
+
+        await loadWorktrees()
+        selectedWorktree = worktrees.first { $0.path == newWorktree.path }
+    }
+
+    // MARK: - GitHub Availability
+
+    func checkGitHubAvailability() async {
+        guard let repository else {
+            isGitHubAvailable = false
+            return
+        }
+        isGitHubAvailable = await pullRequestService.isGitHubAvailable(repositoryPath: repository.path)
     }
 
     // MARK: - Remove Worktree

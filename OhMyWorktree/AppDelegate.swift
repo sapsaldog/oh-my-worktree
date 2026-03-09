@@ -16,6 +16,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
     var openMainWindow: (() -> Void)?
+    var openImportPRWindow: (() -> Void)?
     var openSettings: (() -> Void)?
     var updaterManager: UpdaterManager?
     private var menuRefreshTask: Task<Void, Never>?
@@ -204,6 +205,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         addItem.target = self
         addItem.isEnabled = (repoViewModel?.selectedRepository != nil)
         menu.addItem(addItem)
+
+        if worktreeViewModel?.isGitHubAvailable == true {
+            let importItem = NSMenuItem(
+                title: "Import from GitHub PR…",
+                action: #selector(importFromGitHubPRClicked(_:)),
+                keyEquivalent: ""
+            )
+            importItem.target = self
+            menu.addItem(importItem)
+        }
 
         menu.addItem(.separator())
 
@@ -520,6 +531,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func openMainWindowClicked(_ sender: NSMenuItem) {
         showOrCreateMainWindow()
+    }
+
+    // MARK: - Actions: Import from GitHub PR
+
+    @objc private func importFromGitHubPRClicked(_ sender: NSMenuItem) {
+        NSApp.activate(ignoringOtherApps: true)
+        openImportPRWindow?()
     }
 
     // MARK: - Actions: Settings

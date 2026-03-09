@@ -21,6 +21,12 @@ struct OhMyWorktreeApp: App {
         .defaultSize(width: 500, height: 400)
         .windowResizability(.contentSize)
 
+        Window("Import from GitHub PR", id: "import-pr") {
+            ImportPRView(worktreeViewModel: worktreeViewModel)
+        }
+        .defaultSize(width: 480, height: 560)
+        .windowResizability(.contentSize)
+
         Settings {
             SettingsView(updaterManager: updaterManager)
         }
@@ -40,6 +46,9 @@ private struct OpenWindowModifier: ViewModifier {
             .onAppear {
                 appDelegate.openMainWindow = { [openWindow] in
                     openWindow(id: "main")
+                }
+                appDelegate.openImportPRWindow = { [openWindow] in
+                    openWindow(id: "import-pr")
                 }
                 appDelegate.openSettings = { [openSettings] in
                     openSettings()

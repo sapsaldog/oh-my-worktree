@@ -1,0 +1,190 @@
+import SwiftUI
+
+struct ImportPRView: View {
+    @ObservedObject var worktreeViewModel: WorktreeListViewModel
+    @StateObject private var viewModel = ImportPRViewModel()
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 0) {
+            headerArea
+            Divider()
+            contentArea
+            Divider()
+            footerArea
+        }
+        .onAppear {
+            viewModel.repositoryPath = worktreeViewModel.repository?.path ?? ""
+            viewModel.repositoryName = worktreeViewModel.repository?.name ?? ""
+            Task { await viewModel.loadPRs() }
+        }
+        .alert("Error", isPresented: Binding(
+            get: { viewModel.errorMessage != nil },
+            set: { if !$0 { viewModel.errorMessage = nil } }
+        )) {
+            Button("OK") { viewModel.errorMessage = nil }
+        } message: {
+            Text(viewModel.errorMessage ?? "")
+        }
+    }
+
+    // MARK: - Header
+
+    private var headerArea: some View {
+        VStack(spacing: 8) {
+            Picker("", selection: $viewModel.selectedTab) {
+                ForEach(ImportPRViewModel.PRTab.allCases, id: \.self) { tab in
+                    Text(tab.rawValue).tag(tab)
+                }
+            }
+            .pickerStyle(.segmented)
+            .onChange(of: viewModel.selectedTab) { _, _ in viewModel.selectedPR = nil }
+
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                    .font(.callout)
+                TextField("Search by title, number, or branch…", text: $viewModel.searchText)
+                    .textFieldStyle(.plain)
+                if !viewModel.searchText.isEmpty {
+                    Button(action: { viewModel.searchText = "" }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(.background.secondary)
+            .clipShape(RoundedRectangle(cornerRadius: 7))
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 16)
+        .padding(.bottom, 10)
+    }
+
+    // MARK: - Content
+
+    @ViewBuilder
+    private var contentArea: some View {
+        if viewModel.isLoading {
+            Spacer()
+            ProgressView("Loading pull requests…")
+                .frame(maxWidth: .infinity)
+            Spacer()
+        } else if viewModel.loadFailed {
+            Spacer()
+            ContentUnavailableView(
+                "Could Not Load Pull Requests",
+                systemImage: "exclamationmark.triangle",
+                description: Text("Make sure `gh` is installed, authenticated, and this repository is on GitHub.")
+            )
+            Button("Retry") { viewModel.retry() }
+                .padding(.top, 4)
+            Spacer()
+        } else if viewModel.filteredPRs.isEmpty {
+            Spacer()
+            if viewModel.allPRs.isEmpty {
+                ContentUnavailableView(
+                    "No Pull Requests",
+                    systemImage: "arrow.triangle.pull",
+                    description: Text("There are no pull requests in this repository.")
+                )
+            } else {
+                ContentUnavailableView(
+                    "No Results",
+                    systemImage: "magnifyingglass",
+                    description: Text("No \(viewModel.selectedTab.rawValue.lowercased()) pull requests match your search.")
+                )
+            }
+            Spacer()
+        } else {
+            List(viewModel.filteredPRs, id: \.number, selection: $viewModel.selectedPR) { pr in
+                ImportPRRowView(pr: pr)
+                    .tag(pr)
+            }
+            .listStyle(.inset(alternatesRowBackgrounds: true))
+        }
+    }
+
+    // MARK: - Footer
+
+    private var footerArea: some View {
+        HStack {
+            Spacer()
+
+            Button("Cancel") { dismiss() }
+                .keyboardShortcut(.cancelAction)
+
+            Button("Create Worktree") {
+                Task {
+                    let success = await viewModel.createWorktree { pr in
+                        try await worktreeViewModel.addWorktreeFromPR(pr)
+                    }
+                    if success { dismiss() }
+                }
+            }
+            .keyboardShortcut(.defaultAction)
+            .disabled(viewModel.selectedPR == nil || viewModel.isCreating)
+        }
+        .padding(16)
+    }
+}
+
+// MARK: - PR Row
+
+private struct ImportPRRowView: View {
+    let pr: PullRequestInfo
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                PullRequestStateIcon(state: pr.state, size: 14)
+
+                Text("#\(pr.number)")
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.secondary)
+
+                Text(pr.title.isEmpty ? pr.branch : pr.title)
+                    .font(.body)
+                    .fontWeight(.medium)
+                    .lineLimit(1)
+
+                if pr.isDraft {
+                    Text("Draft")
+                        .font(.system(size: 9, weight: .medium))
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .background(.secondary.opacity(0.2))
+                        .foregroundStyle(.secondary)
+                        .clipShape(Capsule())
+                }
+            }
+
+            HStack(spacing: 8) {
+                Text(pr.branch)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+
+                if !pr.author.isEmpty {
+                    Text("·")
+                        .foregroundStyle(.quaternary)
+                    Text("@\(pr.author)")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+
+                if let updatedAt = pr.updatedAt {
+                    Text("·")
+                        .foregroundStyle(.quaternary)
+                    Text(updatedAt.relativeTimeString)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+        }
+        .padding(.vertical, 3)
+    }
+}

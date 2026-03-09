@@ -118,6 +118,24 @@ final class WorktreeManager: Sendable {
         return newWorktree
     }
 
+    // MARK: - Fetch Remote Branch
+
+    func fetchBranch(_ branch: String, repositoryPath: String) async throws {
+        let result = try await executor.execute(
+            arguments: ["fetch", "origin", branch],
+            workingDirectory: repositoryPath
+        )
+        guard result.exitCode == 0 else {
+            let stderr = result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+            let isNotFound = stderr.contains("couldn't find remote ref") ||
+                             stderr.contains("does not appear to be a git repository")
+            let message = isNotFound
+                ? "Branch '\(branch)' was not found on the remote."
+                : stderr.isEmpty ? "Failed to fetch branch '\(branch)' from origin." : stderr
+            throw OhMyWorktreeError.commandExecutionFailed(command: "git fetch", stderr: message)
+        }
+    }
+
     // MARK: - Remove Worktree
 
     func removeWorktree(repositoryPath: String, worktreePath: String, force: Bool = false) async throws {

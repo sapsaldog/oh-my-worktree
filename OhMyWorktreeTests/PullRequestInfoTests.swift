@@ -35,6 +35,56 @@ final class PullRequestInfoTests: XCTestCase {
         XCTAssertEqual(result.state, pr.state)
     }
 
+    // MARK: - New Fields (FR-031)
+
+    func testInit_newFieldsHaveDefaults() {
+        let pr = PullRequestInfo(number: 1, url: URL(string: "https://example.com/pull/1")!, branch: "main", state: .open)
+
+        XCTAssertEqual(pr.title, "")
+        XCTAssertEqual(pr.author, "")
+        XCTAssertNil(pr.updatedAt)
+        XCTAssertFalse(pr.isDraft)
+    }
+
+    func testInit_withAllFields() {
+        let date = Date(timeIntervalSince1970: 1_700_000_000)
+        let pr = PullRequestInfo(
+            number: 42,
+            url: URL(string: "https://example.com/pull/42")!,
+            branch: "feature/x",
+            state: .open,
+            title: "Add dark mode",
+            author: "alice",
+            updatedAt: date,
+            isDraft: true
+        )
+
+        XCTAssertEqual(pr.title, "Add dark mode")
+        XCTAssertEqual(pr.author, "alice")
+        XCTAssertEqual(pr.updatedAt, date)
+        XCTAssertTrue(pr.isDraft)
+    }
+
+    func testHashable_canBeUsedInSet() {
+        let url = URL(string: "https://example.com/pull/1")!
+        let pr1 = PullRequestInfo(number: 1, url: url, branch: "main", state: .open)
+        let pr2 = PullRequestInfo(number: 1, url: url, branch: "main", state: .open)
+        let pr3 = PullRequestInfo(number: 2, url: url, branch: "other", state: .open)
+
+        let set: Set<PullRequestInfo> = [pr1, pr2, pr3]
+        XCTAssertEqual(set.count, 2)
+    }
+
+    func testHashable_canBeUsedAsDictionaryKey() {
+        let url = URL(string: "https://example.com/pull/1")!
+        let pr = PullRequestInfo(number: 1, url: url, branch: "main", state: .open)
+
+        var dict: [PullRequestInfo: String] = [:]
+        dict[pr] = "value"
+
+        XCTAssertEqual(dict[pr], "value")
+    }
+
     // MARK: - PullRequestState
 
     func testPullRequestState_rawValues() {

@@ -62,12 +62,6 @@ struct WorktreeListView: View {
                 }
             }
         }
-        .overlay(alignment: .bottomTrailing) {
-            if viewModel.repository != nil {
-                addWorktreeButton
-                    .padding(12)
-            }
-        }
     }
 
     // MARK: - Empty State
@@ -85,23 +79,6 @@ struct WorktreeListView: View {
                 .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    // MARK: - Add Button
-
-    private var addWorktreeButton: some View {
-        Button(action: {
-            Task {
-                await viewModel.addWorktree()
-            }
-        }) {
-            Image(systemName: "plus.circle.fill")
-                .font(.system(size: 28))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.blue)
-        }
-        .buttonStyle(.plain)
-        .help("New Worktree")
     }
 
     // MARK: - Context Menu

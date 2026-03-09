@@ -3,6 +3,15 @@ import os
 
 protocol PullRequestFetching: Sendable {
     func fetchPullRequests(repositoryPath: String) async -> [String: PullRequestInfo]
+    func isGitHubAvailable(repositoryPath: String) async -> Bool
+    /// Returns the full PR list, or `nil` on any error (gh unavailable, not GitHub, command failed, parse error).
+    /// An empty array means success with zero PRs.
+    func fetchPullRequestList(repositoryPath: String) async -> [PullRequestInfo]?
+}
+
+extension PullRequestFetching {
+    func isGitHubAvailable(repositoryPath: String) async -> Bool { false }
+    func fetchPullRequestList(repositoryPath: String) async -> [PullRequestInfo]? { nil }
 }
 
 /// Fetches GitHub pull request information using the `gh` CLI.
@@ -49,6 +58,38 @@ final class PullRequestService: PullRequestFetching, Sendable {
         }
     }
 
+    /// Returns true when the `gh` CLI is installed and the repository is hosted on GitHub.
+    func isGitHubAvailable(repositoryPath: String) async -> Bool {
+        let resolvedPath = ghCliPath ?? findGhCli()
+        guard let path = resolvedPath, FileManager.default.isExecutableFile(atPath: path) else { return false }
+        return await isGitHubRepository(repositoryPath: repositoryPath)
+    }
+
+    /// Fetches all PRs (open, draft, merged, closed) as an ordered array with full metadata.
+    /// Returns `nil` on any error; returns an empty array when there are genuinely no PRs.
+    func fetchPullRequestList(repositoryPath: String) async -> [PullRequestInfo]? {
+        guard let ghPath = ghCliPath ?? findGhCli() else { return nil }
+        guard await isGitHubRepository(repositoryPath: repositoryPath) else { return nil }
+
+        do {
+            let result = try await gitExecutor.execute(
+                command: ghPath,
+                arguments: [
+                    "pr", "list",
+                    "--json", "number,url,headRefName,state,title,author,updatedAt,isDraft",
+                    "--state", "all",
+                    "--limit", "100"
+                ],
+                workingDirectory: repositoryPath
+            )
+            guard result.exitCode == 0 else { return nil }
+            return parsePullRequestList(from: result.stdout)
+        } catch {
+            Self.logger.debug("Failed to fetch PR list: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
     // MARK: - Private Helpers
 
     /// Checks common paths for the `gh` CLI binary.
@@ -75,6 +116,48 @@ final class PullRequestService: PullRequestFetching, Sendable {
             return url.contains("github.com:") || url.contains("github.com/")
         } catch {
             return false
+        }
+    }
+
+    /// Parses the rich JSON output from `gh pr list` (with title, author, updatedAt, isDraft) into an array.
+    /// Returns `nil` on parse error; returns an empty array when the JSON array is empty.
+    private func parsePullRequestList(from jsonString: String) -> [PullRequestInfo]? {
+        guard let data = jsonString.data(using: .utf8) else { return nil }
+
+        struct GhPR: Decodable {
+            let number: Int
+            let url: String
+            let headRefName: String
+            let state: String?
+            let title: String
+            let author: GhAuthor?
+            let updatedAt: String?
+            let isDraft: Bool?
+
+            struct GhAuthor: Decodable { let login: String }
+        }
+
+        do {
+            let prs = try JSONDecoder().decode([GhPR].self, from: data)
+            let isoFormatter = ISO8601DateFormatter()
+            return prs.compactMap { pr in
+                guard let url = URL(string: pr.url) else { return nil }
+                let state = pr.state.flatMap { PullRequestState(rawValue: $0) } ?? .open
+                let updatedAt = pr.updatedAt.flatMap { isoFormatter.date(from: $0) }
+                return PullRequestInfo(
+                    number: pr.number,
+                    url: url,
+                    branch: pr.headRefName,
+                    state: state,
+                    title: pr.title,
+                    author: pr.author?.login ?? "",
+                    updatedAt: updatedAt,
+                    isDraft: pr.isDraft ?? false
+                )
+            }
+        } catch {
+            Self.logger.debug("Failed to parse PR list JSON: \(error.localizedDescription)")
+            return nil
         }
     }
 
