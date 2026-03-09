@@ -1,7 +1,7 @@
 # Oh My Worktree - 제품 요구사항 문서 (PRD)
 
-**버전**: 1.1.6
-**작성일**: 2026-02-10
+**버전**: 1.3.0
+**작성일**: 2026-03-09
 **대상 플랫폼**: macOS 14+ (Sonoma 이상)
 **상태**: Draft
 
@@ -597,6 +597,117 @@ branch refs/heads/feature/new-feature
 
 ---
 
+#### FR-031: 범용 비동기 작업 큐 — BackgroundTaskQueue (P1)
+
+**설명**: git 작업(삭제, pull 등) 시간이 걸리는 모든 작업을 범용 비동기 큐로 관리
+
+**상세 요구사항**:
+- `BackgroundTaskQueue`: 범용 비동기 큐 (actor 기반)
+- `BackgroundJob`: 개별 작업 단위
+  - `id: UUID`
+  - `worktreeID: UUID` — 어느 워크트리의 작업인지 (UI 상태 표시용)
+  - `displayName: String` — 삭제 완료 후에도 이름 표시 가능
+  - `repositoryPath: String`
+  - `kind: BackgroundJobKind`
+  - `state: BackgroundJobState` — `.pending` / `.inProgress` / `.completed` / `.failed(String)`
+  - `enqueuedAt: Date`
+- `BackgroundJobKind`: `.removeWorktree(force: Bool)`, `.pull`, 추후 확장 가능
+- 저장소별 직렬 처리 (같은 저장소의 작업은 순차 실행 — `.git/worktrees/` lock 충돌 방지)
+- 실패 시 해당 작업 건너뛰고 다음 작업 계속 진행
+- 단일 작업 enqueue 및 배치 enqueue(`[BackgroundJob]`) 모두 지원
+- pending 상태의 작업은 개별 취소 가능
+- 전체 취소(`cancelAll`) 지원
+
+**BackgroundJobState 전이**:
+```
+.pending → .inProgress → .completed
+                       → .failed(String)
+```
+
+**영향받는 컴포넌트**:
+- `BackgroundTaskQueue` (신규 서비스, actor)
+- `BackgroundJob` (신규 모델)
+- `BackgroundJobKind` (신규 enum)
+- `BackgroundJobState` (신규 enum)
+- `WorktreeListViewModel` (큐 상태 구독, 기존 `isLoading`/`pullingWorktrees` 대체)
+
+---
+
+#### FR-032: 다중 선택 및 일괄 작업 (P1)
+
+**설명**: 여러 워크트리를 선택하여 한 번에 작업 큐에 추가. 별도 "선택 모드" 없이 macOS 네이티브 다중 선택 방식 사용.
+
+**설계 결정 — iOS 스타일 Select 버튼 제거**:
+- "Select" 텍스트 토글 버튼 및 체크박스 방식은 iOS 패턴 → macOS에서 이질감
+- 대신 SwiftUI `List`의 네이티브 다중 선택(`Set<Worktree.ID>`)을 그대로 활용
+- 별도 선택 모드 진입/해제 없이 항상 ⌘+click / ⇧+click 으로 다중 선택 가능
+
+**상세 요구사항**:
+- `⌘+click`: 개별 항목 선택/해제 (비연속 다중 선택)
+- `⇧+click`: 범위 선택 (연속 다중 선택)
+- `⌘+A`: 전체 선택 (root 워크트리 제외)
+- `Esc`: 선택 해제
+
+**컨텍스트 메뉴 동작 (우클릭)**:
+- **1개 선택 시**: 기존 메뉴 그대로 (Rename, Open in iTerm/VSCode 등)
+- **2개 이상 선택 시**:
+  - `Open in ...` 계열 항목: disabled
+  - `Rename`: disabled
+  - `Git Pull`: disabled
+  - `Remove Worktree` / `Force Remove`: 선택된 항목 전체에 일괄 enqueue (root 제외, 실행 가능)
+  - `Show in Finder`, `Copy Path`: disabled
+
+**원본 워크트리(root) 제약**:
+- root 워크트리가 다중 선택에 포함된 경우 Remove/Force Remove는 root를 제외하고 나머지만 enqueue
+- root만 선택된 경우 Remove 항목 disabled
+
+**큐에 추가된 워크트리 행**: per-row 상태 아이콘 표시 (⏳ 대기, ⟳ 진행 중)
+**완료된 워크트리**: 목록에서 즉시 제거
+
+**영향받는 컴포넌트**:
+- `WorktreeListViewModel` (`selectedWorktreeIDs: Set<Worktree.ID>` 유지, `isSelectionMode` 제거)
+- `WorktreeListView` (선택 모드 토글/체크박스 제거, 네이티브 List 다중 선택 사용)
+- `WorktreeRowView` (체크박스 제거, per-row 상태 아이콘 유지)
+- `BackgroundTaskQueue` (배치 enqueue)
+
+---
+
+#### FR-033: 큐 상태 바 (P1)
+
+**설명**: `ActionButtonsView`를 대체하는 하단 큐 상태 바. 진행 중인 작업 요약 및 상세 팝오버 진입점 제공.
+
+**ActionButtonsView 제거 배경**:
+- iTerm, Ghostty, VSCode, Cursor, cmux, 삭제 버튼은 모두 우클릭 컨텍스트 메뉴로 접근 가능
+- 하단 바를 큐 관련 전용 공간으로 활용
+
+**상태 바 상세 요구사항**:
+- 항상 표시 (Idle/Active 모두)
+- **Idle 상태**: 빈 상태 텍스트 (예: "진행 중인 작업 없음")
+- **Active 상태**:
+  - 현재 실행 중인 작업명 표시 (예: "feature/login 삭제 중...")
+  - Determinate progress gauge: `완료된 작업 수 / 전체 작업 수` 기반
+  - 예: 3개 큐, 1개 완료 → 33%
+- 상태 바 클릭 → 큐 상세 서브 팝오버 오픈
+- 배치 액션은 컨텍스트 메뉴(우클릭)로 처리 — 별도 배치 액션 바 불필요
+
+**큐 상세 서브 팝오버**:
+- 전체 작업 순차 목록
+- 각 항목: 상태 아이콘 + 작업명 + 종류 + 개별 `[×]` (pending 상태만)
+- `[모두 취소]` 버튼
+- 작업 없을 때: "진행 중인 작업 없음" 표시
+
+**메뉴바 컨텍스트 메뉴 변경**:
+- 삭제 큐에 들어간 워크트리는 메뉴바 NSMenu 목록에서 필터링
+
+**영향받는 컴포넌트**:
+- `ActionButtonsView` (제거)
+- `QueueStatusBarView` (신규 — 큐 상태 바)
+- `QueueDetailPopoverView` (신규 — 상세 팝오버)
+- `ContentView` (ActionButtonsView → QueueStatusBarView 교체)
+- `AppDelegate` (메뉴바 목록 필터링 로직 추가)
+
+---
+
 #### FR-030: Worktree 이름 변경 (Rename) (P1)
 
 **설명**: Worktree에 사용자 지정 이름(customName)을 설정하여 표시 이름을 변경할 수 있음. 이름을 비우면 기존 표기 룰(브랜치명 또는 Detached)로 복귀.
@@ -1073,48 +1184,62 @@ let nouns = ["ocean", "river", "mountain", "forest", "sky", "lunch", "pizza", ..
 graph TD
     A[윈도우 타이틀바] --> B[Repository 셀렉터 영역]
     B --> C[Worktree 리스트 영역]
-    C --> D[액션 버튼 영역]
+    C --> D[큐 상태 바]
 
     B --> B1[Repository 드롭다운 + 추가 항목]
 
-    C --> C1[Worktree 리스트 + 추가 항목]
+    C --> C1[Worktree 리스트 — ⌘+click/⇧+click 네이티브 다중 선택]
+    C --> C2[우클릭 컨텍스트 메뉴 — 단일/다중 선택에 따라 항목 활성/비활성]
 
-    D --> D1[iTerm에서 열기]
-    D --> D2[Ghostty에서 열기]
-    D --> D3[VSCode에서 열기]
+    D --> D1[Idle: 진행 중인 작업 없음]
+    D --> D2[Active: 작업명 + Progress Gauge]
+    D --> D3[클릭 → 큐 상세 서브 팝오버]
 ```
 
 ### 7.2 화면 구성
 
 ```
 ┌──────────────────────────────────────────┐
-│ Oh My Worktree                        ⚙ │
+│ Oh My Worktree                        ⚙ │  ← 상단바 (변경 없음)
 ├──────────────────────────────────────────┤
-│ Repository                               │
-│ ┌──────────────────────────────────────┐ │
-│ │ MyProject                          ▼ │ │
-│ │──────────────────────────────────────│ │
-│ │ AnotherProject                       │ │
-│ │──────────────────────────────────────│ │
-│ │ + New Repository                     │ │
-│ └──────────────────────────────────────┘ │
+│ MyProject                            ▼  │  ← Repository 셀렉터
 ├──────────────────────────────────────────┤
-│ Worktrees                                │
 │ ┌──────────────────────────────────────┐ │
-│ │ main                                 │ │
-│ │ ~/repos/myproject/main               │ │
+│ │ main               develop  2h ago  │ │  ← 원본 (삭제 불가)
 │ ├──────────────────────────────────────┤ │
-│ │ feature/login                        │ │
-│ │ ~/repos/myproject/login              │ │
+│ │ feature/login      main     7d ago  │ │
 │ ├──────────────────────────────────────┤ │
-│ │ fix/bug-123                          │ │
-│ │ ~/repos/myproject/bug                │ │
+│ │ fix/bug-123  ⟳삭제중...     1d ago  │ │  ← 큐 진행 중 (per-row 상태)
+│ ├──────────────────────────────────────┤ │
+│ │ hotfix/patch ⏳대기          3d ago  │ │  ← 큐 대기 중
 │ ├──────────────────────────────────────┤ │
 │ │ + New Worktree                       │ │
-│ └──────────────────────────────────────┘ │
-│                                          │
-│ Open in: [iTerm] [Ghostty] [VSCode]     │
+│ └──────────────────────────────────────┘ │  ← ⌘+click/⇧+click 다중 선택
+├──────────────────────────────────────────┤
+│ ⟳ fix/bug-123 삭제 중...  ████░░  [⋯] │  ← 큐 상태 바 (Active)
 └──────────────────────────────────────────┘
+
+⌘+click으로 feature/login, fix/bug-123 선택 후 우클릭:
+┌──────────────────────────┐
+│ Open in iTerm    (비활성) │
+│ Open in VSCode   (비활성) │
+│ Rename           (비활성) │
+│ ─────────────────────── │
+│ Git Pull         (비활성) │
+│ ─────────────────────── │
+│ Remove Worktree       ✓  │  ← 선택된 2개 모두 enqueue
+│ Force Remove          ✓  │
+└──────────────────────────┘
+
+큐 상세 서브 팝오버 (큐 상태 바 클릭 시):
+┌──────────────────────┐
+│ 진행 중인 작업        │
+├──────────────────────┤
+│ ⟳ fix/bug-123 삭제  │
+│ ⏳ hotfix/patch 삭제 [×] │
+├──────────────────────┤
+│       [모두 취소]    │
+└──────────────────────┘
 ```
 
 ---
@@ -1269,6 +1394,7 @@ graph TB
         D[Worktree Manager]
         E[External Tool Launcher]
         K[Window Observer]
+        L[BackgroundTaskQueue]
     end
 
     subgraph "Data Layer"
@@ -1301,6 +1427,7 @@ graph TB
     style D fill:#fff9c4
     style E fill:#fff9c4
     style K fill:#fff9c4
+    style L fill:#fff9c4
     style F fill:#c8e6c9
     style G fill:#c8e6c9
     style H fill:#ffccbc
@@ -1596,11 +1723,19 @@ class WorktreeListViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
 
+    // 큐 상태 (FR-031)
+    @Published var activeJobs: [BackgroundJob] = []      // 큐 상태 바 표시용
+    @Published var busyWorktreeIDs: Set<UUID> = []       // per-row 상태 아이콘용
+
+    // 다중 선택 (FR-032) — 네이티브 ⌘+click/⇧+click, 별도 선택 모드 없음
+    @Published var selectedWorktreeIDs: Set<Worktree.ID> = []
+
     var repository: Repository?
 
     func loadWorktrees() async
     func addWorktree(branch: String, path: String, isNew: Bool) async
-    func removeWorktree(_ worktree: Worktree, force: Bool) async
+    func removeWorktree(_ worktree: Worktree, force: Bool) async          // 단일 삭제 → 큐 enqueue
+    func removeWorktrees(_ worktrees: [Worktree], force: Bool) async      // 일괄 삭제 → 배치 enqueue (FR-032)
     func openInITerm(_ worktree: Worktree) async
     func openInGhostty(_ worktree: Worktree) async
     func openInVSCode(_ worktree: Worktree) async

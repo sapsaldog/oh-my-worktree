@@ -160,8 +160,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func addWorktreeSection(to menu: NSMenu) {
         let worktrees = worktreeViewModel?.worktrees ?? []
         let pullRequests = worktreeViewModel?.pullRequests ?? [:]
+        let deletingIDs = Set((worktreeViewModel?.jobQueue.jobs ?? [])
+            .filter { job in
+                job.state.isActive && {
+                    if case .removeWorktree = job.kind { return true }
+                    return false
+                }()
+            }
+            .map { $0.worktreeID })
+
         for worktree in worktrees {
             guard !worktree.isBare else { continue }
+            if deletingIDs.contains(worktree.id) { continue }
             let isSelected = worktreeViewModel?.selectedWorktree?.id == worktree.id
             let bullet = isSelected ? "\u{25CF} " : "   "
             let pr = worktree.branch.flatMap { pullRequests[$0] }
@@ -230,7 +240,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         if submenu.numberOfItems > 0 { submenu.addItem(.separator()) }
 
-        if let repository = repoViewModel?.selectedRepository, worktree.isRoot(of: repository) {
+        if !worktree.isBare {
             let pullItem = NSMenuItem(title: "Git Pull", action: #selector(gitPullClicked(_:)), keyEquivalent: "")
             pullItem.target = self
             pullItem.representedObject = ref

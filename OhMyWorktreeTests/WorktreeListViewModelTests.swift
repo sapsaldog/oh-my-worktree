@@ -203,6 +203,161 @@ final class WorktreeListViewModelTests: XCTestCase {
     }
 }
 
+// MARK: - contextMenuActions
+
+extension WorktreeListViewModelTests {
+
+    // MARK: Fixtures
+
+    /// Root worktree — same path as testRepo, cannot be removed
+    private var rootWorktree: Worktree {
+        Worktree(path: testRepo.path, folderName: "test-repo", branch: "main")
+    }
+
+    /// Normal non-root worktree
+    private var featureWorktree: Worktree {
+        Worktree(path: "/tmp/worktrees/feature-a", folderName: "feature-a", branch: "feature/a")
+    }
+
+    /// Another normal non-root worktree
+    private var fixWorktree: Worktree {
+        Worktree(path: "/tmp/worktrees/fix-b", folderName: "fix-b", branch: "fix/b")
+    }
+
+    /// Bare worktree — cannot be removed or pulled
+    private var bareWorktree: Worktree {
+        Worktree(path: "/tmp/worktrees/bare", folderName: "bare", isBare: true)
+    }
+
+    // MARK: Single-item behavior (0 or 1 selected)
+
+    func test_contextMenuActions_nothingSelected_nonRoot_allEnabled() {
+        sut.worktrees = [rootWorktree, featureWorktree]
+        sut.selectedWorktreeIDs = []
+
+        let actions = sut.contextMenuActions(for: featureWorktree)
+
+        XCTAssertTrue(actions.canOpen)
+        XCTAssertTrue(actions.canRename)
+        XCTAssertTrue(actions.canGitPull)
+        XCTAssertTrue(actions.canRemove)
+        XCTAssertTrue(actions.canForceRemove)
+        XCTAssertTrue(actions.canShowInFinder)
+        XCTAssertTrue(actions.canCopyPath)
+    }
+
+    func test_contextMenuActions_singleSelected_nonRoot_allEnabled() {
+        sut.worktrees = [rootWorktree, featureWorktree]
+        sut.selectedWorktreeIDs = [featureWorktree.id]
+
+        let actions = sut.contextMenuActions(for: featureWorktree)
+
+        XCTAssertTrue(actions.canOpen)
+        XCTAssertTrue(actions.canRename)
+        XCTAssertTrue(actions.canGitPull)
+        XCTAssertTrue(actions.canRemove)
+        XCTAssertTrue(actions.canForceRemove)
+        XCTAssertTrue(actions.canShowInFinder)
+        XCTAssertTrue(actions.canCopyPath)
+    }
+
+    func test_contextMenuActions_singleSelected_root_removeDisabled() {
+        sut.worktrees = [rootWorktree, featureWorktree]
+        sut.selectedWorktreeIDs = [rootWorktree.id]
+
+        let actions = sut.contextMenuActions(for: rootWorktree)
+
+        XCTAssertTrue(actions.canOpen)
+        XCTAssertTrue(actions.canRename)
+        XCTAssertTrue(actions.canGitPull)
+        XCTAssertFalse(actions.canRemove)
+        XCTAssertFalse(actions.canForceRemove)
+        XCTAssertTrue(actions.canShowInFinder)
+        XCTAssertTrue(actions.canCopyPath)
+    }
+
+    func test_contextMenuActions_singleSelected_bare_removeAndPullDisabled() {
+        sut.worktrees = [rootWorktree, bareWorktree]
+        sut.selectedWorktreeIDs = [bareWorktree.id]
+
+        let actions = sut.contextMenuActions(for: bareWorktree)
+
+        XCTAssertTrue(actions.canOpen)
+        XCTAssertTrue(actions.canRename)
+        XCTAssertFalse(actions.canGitPull)
+        XCTAssertFalse(actions.canRemove)
+        XCTAssertFalse(actions.canForceRemove)
+        XCTAssertTrue(actions.canShowInFinder)
+        XCTAssertTrue(actions.canCopyPath)
+    }
+
+    // MARK: Multi-select behavior (2+ selected AND right-clicked item is in selection)
+
+    func test_contextMenuActions_multiSelected_noRoot_onlyRemoveEnabled() {
+        sut.worktrees = [rootWorktree, featureWorktree, fixWorktree]
+        sut.selectedWorktreeIDs = [featureWorktree.id, fixWorktree.id]
+
+        let actions = sut.contextMenuActions(for: featureWorktree)
+
+        XCTAssertFalse(actions.canOpen)
+        XCTAssertFalse(actions.canRename)
+        XCTAssertFalse(actions.canGitPull)
+        XCTAssertTrue(actions.canRemove)
+        XCTAssertTrue(actions.canForceRemove)
+        XCTAssertFalse(actions.canShowInFinder)
+        XCTAssertFalse(actions.canCopyPath)
+    }
+
+    func test_contextMenuActions_multiSelected_withRootIncluded_removeStillEnabled() {
+        // Root is in selection but featureWorktree is removable → canRemove = true
+        sut.worktrees = [rootWorktree, featureWorktree]
+        sut.selectedWorktreeIDs = [rootWorktree.id, featureWorktree.id]
+
+        let actions = sut.contextMenuActions(for: featureWorktree)
+
+        XCTAssertFalse(actions.canOpen)
+        XCTAssertFalse(actions.canRename)
+        XCTAssertFalse(actions.canGitPull)
+        XCTAssertTrue(actions.canRemove)
+        XCTAssertTrue(actions.canForceRemove)
+        XCTAssertFalse(actions.canShowInFinder)
+        XCTAssertFalse(actions.canCopyPath)
+    }
+
+    func test_contextMenuActions_multiSelected_allNonRemovable_removeDisabled() {
+        // Root + bare: neither can be removed
+        sut.worktrees = [rootWorktree, bareWorktree]
+        sut.selectedWorktreeIDs = [rootWorktree.id, bareWorktree.id]
+
+        let actions = sut.contextMenuActions(for: bareWorktree)
+
+        XCTAssertFalse(actions.canOpen)
+        XCTAssertFalse(actions.canRename)
+        XCTAssertFalse(actions.canGitPull)
+        XCTAssertFalse(actions.canRemove)
+        XCTAssertFalse(actions.canForceRemove)
+        XCTAssertFalse(actions.canShowInFinder)
+        XCTAssertFalse(actions.canCopyPath)
+    }
+
+    func test_contextMenuActions_multiSelected_rightClickedNotInSelection_singleBehavior() {
+        // feature + fix are selected, but we right-click on root (not in selection)
+        // → treated as single-item → root rules apply
+        sut.worktrees = [rootWorktree, featureWorktree, fixWorktree]
+        sut.selectedWorktreeIDs = [featureWorktree.id, fixWorktree.id]
+
+        let actions = sut.contextMenuActions(for: rootWorktree)
+
+        XCTAssertTrue(actions.canOpen)
+        XCTAssertTrue(actions.canRename)
+        XCTAssertTrue(actions.canGitPull)
+        XCTAssertFalse(actions.canRemove)       // root cannot be removed
+        XCTAssertFalse(actions.canForceRemove)
+        XCTAssertTrue(actions.canShowInFinder)
+        XCTAssertTrue(actions.canCopyPath)
+    }
+}
+
 // MARK: - No-op PR Service
 
 private final class MockNoPRService: PullRequestFetching {

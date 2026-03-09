@@ -6,18 +6,18 @@ excluded:
   - OhMyWorktree.xcodeproj
 
 disabled_rules:
-  - trailing_whitespace               # Xcode 자동 저장과 충돌
-  - multiple_closures_with_trailing_closure  # SwiftUI 관용 패턴
-  - large_tuple                       # 테스트에서 허용
-  - force_try                         # 테스트 코드에서 일반적
+  - trailing_whitespace               # conflicts with Xcode auto-save
+  - multiple_closures_with_trailing_closure  # common SwiftUI pattern
+  - large_tuple                       # allowed in tests
+  - force_try                         # common in test code
 
 opt_in_rules:
   - empty_count             # .count == 0 → .isEmpty
-  - sorted_imports          # import 정렬
+  - sorted_imports          # enforce sorted imports
   - closure_end_indentation
   - first_where             # filter().first → first(where:)
 
-# 짧은 변수명: Swift 관용 패턴 허용 (i, a, b, pr, fd, fm 등)
+# Short variable names: allowed for common Swift idioms (i, a, b, pr, fd, fm, etc.)
 identifier_name:
   min_length:
     warning: 1
