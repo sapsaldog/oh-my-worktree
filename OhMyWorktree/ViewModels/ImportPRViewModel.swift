@@ -16,8 +16,12 @@ final class ImportPRViewModel: ObservableObject {
     @Published var selectedPR: PullRequestInfo?
     @Published var searchText = "" {
         didSet {
-            if searchText != oldValue {
-                selectedPR = nil
+            guard searchText != oldValue else { return }
+            // Defer to avoid "publishing during view update" warning:
+            // @Published willChange fires synchronously inside the SwiftUI binding
+            // setter; posting a second change there is undefined behaviour.
+            Task { @MainActor [weak self] in
+                self?.selectedPR = nil
             }
         }
     }

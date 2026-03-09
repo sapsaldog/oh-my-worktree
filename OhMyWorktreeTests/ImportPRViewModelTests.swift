@@ -202,40 +202,45 @@ final class ImportPRViewModelTests: XCTestCase {
 
     // MARK: - Search clears selectedPR (RED: drives didSet on searchText)
 
-    func testSearchTextChange_clearsSelectedPR() {
+    func testSearchTextChange_clearsSelectedPR() async {
         let sut = ImportPRViewModel()
         sut.allPRs = [makePR(number: 1, title: "Fix bug")]
         sut.selectedPR = makePR(number: 1, title: "Fix bug")
 
         sut.searchText = "something else"
+        await Task.yield() // let the deferred Task in didSet run
 
         XCTAssertNil(sut.selectedPR)
     }
 
-    func testSearchTextChange_toSameValue_doesNotClearSelectedPR() {
+    func testSearchTextChange_toSameValue_doesNotClearSelectedPR() async {
         let sut = ImportPRViewModel()
         let pr = makePR(number: 1)
         sut.allPRs = [pr]
         sut.searchText = "hello"    // initial set
+        await Task.yield()
         sut.selectedPR = pr         // select after initial search
 
         sut.searchText = "hello"    // same value — must NOT clear
+        await Task.yield()
 
         XCTAssertNotNil(sut.selectedPR)
     }
 
-    func testSearchTextClear_resetsSelectedPR() {
+    func testSearchTextClear_resetsSelectedPR() async {
         let sut = ImportPRViewModel()
         let pr = makePR(number: 1)
         sut.allPRs = [pr]
         sut.selectedPR = pr
 
         sut.searchText = "xyz"
+        await Task.yield()
         XCTAssertNil(sut.selectedPR) // cleared by search change
 
-        // Now check that new selection after search clear works normally
+        // New selection after search works normally
         sut.selectedPR = pr
         sut.searchText = "" // clear search
+        await Task.yield()
         XCTAssertNil(sut.selectedPR) // cleared again
     }
 
