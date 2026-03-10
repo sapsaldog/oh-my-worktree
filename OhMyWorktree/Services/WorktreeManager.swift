@@ -135,13 +135,13 @@ final class WorktreeManager: Sendable {
     // MARK: - Add Worktree (new local branch from remote)
 
     /// Creates a worktree with a brand-new local branch (`localBranch`) starting at
-    /// `origin/<remoteBranch>`. Used when the remote PR branch is already checked out
-    /// in another worktree and a second worktree is needed on the same remote ref.
+    /// the given `startPoint` (defaults to `origin/<remoteBranch>`).
     func addWorktreeFromRemoteBranch(
         repositoryPath: String,
         folderName: String,
         localBranch: String,
-        remoteBranch: String
+        remoteBranch: String,
+        startPoint: String? = nil
     ) async throws -> Worktree {
         let worktreePath = Self.worktreePath(repositoryPath: repositoryPath, folderName: folderName)
 
@@ -150,7 +150,8 @@ final class WorktreeManager: Sendable {
             withIntermediateDirectories: true
         )
 
-        let arguments = ["worktree", "add", "-B", localBranch, worktreePath, "origin/\(remoteBranch)"]
+        let resolvedStartPoint = startPoint ?? "origin/\(remoteBranch)"
+        let arguments = ["worktree", "add", "-B", localBranch, worktreePath, resolvedStartPoint]
 
         let result = try await executor.execute(
             arguments: arguments,
@@ -184,6 +185,24 @@ final class WorktreeManager: Sendable {
             let message = isNotFound
                 ? "Branch '\(branch)' was not found on the remote."
                 : stderr.isEmpty ? "Failed to fetch branch '\(branch)' from origin." : stderr
+            throw OhMyWorktreeError.commandExecutionFailed(command: "git fetch", stderr: message)
+        }
+    }
+
+    // MARK: - Fetch Pull Request Ref
+
+    /// Fetches the head commit of a pull request by number using `pull/<number>/head`.
+    /// Works for both same-repo and fork PRs.
+    func fetchPullRequestRef(number: Int, repositoryPath: String) async throws {
+        let result = try await executor.execute(
+            arguments: ["fetch", "origin", "pull/\(number)/head"],
+            workingDirectory: repositoryPath
+        )
+        guard result.exitCode == 0 else {
+            let stderr = result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+            let message = stderr.isEmpty
+                ? "Failed to fetch PR #\(number) from origin."
+                : stderr
             throw OhMyWorktreeError.commandExecutionFailed(command: "git fetch", stderr: message)
         }
     }

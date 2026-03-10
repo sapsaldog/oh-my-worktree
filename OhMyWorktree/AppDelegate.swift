@@ -197,7 +197,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         addItem.isEnabled = repoViewModel?.selectedRepository != nil
         menu.addItem(addItem)
 
-        if repoViewModel?.selectedRepository != nil {
+        if repoViewModel?.selectedRepository != nil && worktreeViewModel?.isGitHubRepo == true {
             let importItem = NSMenuItem(
                 title: "Import from GitHub PR…",
                 action: #selector(importFromGitHubPRClicked(_:)),

@@ -71,21 +71,23 @@ struct QueueStatusBarView: View {
             .help("New Worktree")
             .accessibilityLabel("New Worktree")
 
-            Menu {
-                Button("Import from GitHub PR…") {
-                    viewModel.isShowingImportPR = true
+            if viewModel.isGitHubRepo {
+                Menu {
+                    Button("Import from GitHub PR…") {
+                        viewModel.isShowingImportPR = true
+                    }
+                } label: {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 9, weight: .semibold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 4)
                 }
-            } label: {
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 9, weight: .semibold))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 4)
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help("More options")
+                .accessibilityLabel("More options")
             }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .fixedSize()
-            .help("More options")
-            .accessibilityLabel("More options")
         }
         .background(
             RoundedRectangle(cornerRadius: 5)

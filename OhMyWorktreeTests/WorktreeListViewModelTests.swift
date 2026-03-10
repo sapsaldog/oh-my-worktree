@@ -376,7 +376,7 @@ extension WorktreeListViewModelTests {
 
         XCTAssertNil(error)
         XCTAssertEqual(sut.jobQueue.jobs.count, 1)
-        guard case .addWorktreeFromPR(let remote, let local) = sut.jobQueue.jobs[0].kind else {
+        guard case .addWorktreeFromPR(let remote, let local, _) = sut.jobQueue.jobs[0].kind else {
             XCTFail("Expected addWorktreeFromPR job kind")
             return
         }
@@ -401,7 +401,7 @@ extension WorktreeListViewModelTests {
 
         XCTAssertNil(error)
         XCTAssertEqual(sut.jobQueue.jobs.count, 1)
-        guard case .addWorktreeFromPR(let remote, let local) = sut.jobQueue.jobs[0].kind else {
+        guard case .addWorktreeFromPR(let remote, let local, _) = sut.jobQueue.jobs[0].kind else {
             XCTFail("Expected addWorktreeFromPR job kind")
             return
         }

@@ -5,7 +5,7 @@ import Foundation
 enum BackgroundJobKind: Equatable, Sendable {
     case removeWorktree(force: Bool)
     case pull
-    case addWorktreeFromPR(remoteBranch: String, localBranch: String)
+    case addWorktreeFromPR(remoteBranch: String, localBranch: String, prNumber: Int)
 
     var displayLabel: String {
         switch self {

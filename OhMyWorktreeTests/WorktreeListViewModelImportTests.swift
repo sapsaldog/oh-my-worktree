@@ -32,7 +32,7 @@ extension WorktreeListViewModelTests {
         // Folder names are random; verify they are non-empty and distinct.
         XCTAssertFalse(job1.folderName.isEmpty)
         XCTAssertFalse(job2.folderName.isEmpty)
-        guard case .addWorktreeFromPR(_, let local2) = job2.kind else {
+        guard case .addWorktreeFromPR(_, let local2, _) = job2.kind else {
             XCTFail("Expected addWorktreeFromPR kind"); return
         }
         XCTAssertEqual(local2, "feature/new-v2")

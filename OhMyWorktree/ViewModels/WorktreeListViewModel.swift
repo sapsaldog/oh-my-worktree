@@ -18,6 +18,7 @@ final class WorktreeListViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var pullRequests: [String: PullRequestInfo] = [:]
+    @Published var isGitHubRepo = false
 
     // FR-032: Multi-select (native ⌘+click / ⇧+click via SwiftUI List)
     @Published var selectedWorktreeIDs: Set<UUID> = []
@@ -46,6 +47,7 @@ final class WorktreeListViewModel: ObservableObject {
                 loadTask?.cancel()
                 prFetchTask?.cancel()
                 pullRequests = [:]
+                isGitHubRepo = false
             }
         }
     }
@@ -232,6 +234,11 @@ final class WorktreeListViewModel: ObservableObject {
         let prService = pullRequestService
         prFetchTask?.cancel()
         prFetchTask = Task { @MainActor [weak self] in
+            let available = await prService.isGitHubAvailable(repositoryPath: repositoryPath)
+            guard !Task.isCancelled else { return }
+            self?.isGitHubRepo = available
+
+            guard available else { return }
             let prs = await prService.fetchPullRequests(repositoryPath: repositoryPath)
             guard !Task.isCancelled else { return }
             self?.pullRequests = prs
@@ -298,7 +305,7 @@ final class WorktreeListViewModel: ObservableObject {
         let activeJobs = jobQueue.jobs.filter { $0.state.isActive && $0.repositoryID == repository.id }
         let queuedFolderNames = Set(activeJobs.map { $0.folderName })
         let queuedBranches = Set(activeJobs.compactMap { job -> String? in
-            if case .addWorktreeFromPR(_, let local) = job.kind { return local }
+            if case .addWorktreeFromPR(_, let local, _) = job.kind { return local }
             return nil
         })
         let existingFolderNames = Set(worktrees.map { $0.folderName }).union(queuedFolderNames)
@@ -329,7 +336,7 @@ final class WorktreeListViewModel: ObservableObject {
             displayName: pr.branch,
             repositoryPath: repository.path,
             repositoryID: repository.id,
-            kind: .addWorktreeFromPR(remoteBranch: pr.branch, localBranch: localBranch)
+            kind: .addWorktreeFromPR(remoteBranch: pr.branch, localBranch: localBranch, prNumber: pr.number)
         )
         jobQueue.enqueue(job)
         return nil

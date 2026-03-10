@@ -147,16 +147,16 @@ final class BackgroundTaskQueue: ObservableObject {
                     )
                 case .pull:
                     _ = try await wm.gitPull(worktreePath: job.worktreePath)
-                case .addWorktreeFromPR(let remoteBranch, let localBranch):
-                    try await wm.fetchBranch(remoteBranch, repositoryPath: job.repositoryPath)
-                    // Always create from origin/<remoteBranch> using -B so that:
-                    // 1. Stale local branches are reset to the remote HEAD
-                    // 2. Leftover local branches (e.g. feature/foo-v2) don't cause "already exists" errors
+                case .addWorktreeFromPR(let remoteBranch, let localBranch, let prNumber):
+                    // Fetch via pull/<number>/head so fork PRs are handled correctly.
+                    // This writes FETCH_HEAD which is used as the start point below.
+                    try await wm.fetchPullRequestRef(number: prNumber, repositoryPath: job.repositoryPath)
                     _ = try await wm.addWorktreeFromRemoteBranch(
                         repositoryPath: job.repositoryPath,
                         folderName: job.folderName,
                         localBranch: localBranch,
-                        remoteBranch: remoteBranch
+                        remoteBranch: remoteBranch,
+                        startPoint: "FETCH_HEAD"
                     )
                     let metadata = WorktreeMetadata(folderName: job.folderName, prRemoteBranch: remoteBranch)
                     await st.addWorktreeMetadata(metadata, repositoryID: job.repositoryID)
