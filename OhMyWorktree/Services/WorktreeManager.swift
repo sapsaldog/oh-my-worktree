@@ -176,7 +176,7 @@ final class WorktreeManager: Sendable {
         }
     }
 
-    // MARK: - Remove Worktree
+    // MARK: - Remove / Prune Worktrees
 
     func removeWorktree(repositoryPath: String, worktreePath: String, force: Bool = false) async throws {
         var arguments = ["worktree", "remove", worktreePath]
@@ -192,6 +192,21 @@ final class WorktreeManager: Sendable {
         guard result.exitCode == 0 else {
             throw OhMyWorktreeError.commandExecutionFailed(
                 command: "git worktree remove",
+                stderr: result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+            )
+        }
+    }
+
+    /// Runs `git worktree prune` to remove administrative files for worktrees
+    /// whose directories no longer exist on disk (e.g. manually deleted).
+    func pruneWorktrees(repositoryPath: String) async throws {
+        let result = try await executor.execute(
+            arguments: ["worktree", "prune"],
+            workingDirectory: repositoryPath
+        )
+        guard result.exitCode == 0 else {
+            throw OhMyWorktreeError.commandExecutionFailed(
+                command: "git worktree prune",
                 stderr: result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
             )
         }
@@ -329,6 +344,9 @@ final class WorktreeManager: Sendable {
         let lines = trimmedBlock.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
         let parsed = parseWorktreeLines(lines)
 
+        // Prunable entries have no directory on disk; exclude them so stale
+        // worktrees don't reappear in the list after manual deletion.
+        guard !parsed.isPrunable else { return nil }
         guard let worktreePath = parsed.path else { return nil }
         return Worktree(
             path: worktreePath,
@@ -348,6 +366,7 @@ final class WorktreeManager: Sendable {
         var isDetached = false
         var isBare = false
         var isLocked = false
+        var isPrunable = false
 
         for lineStr in lines {
             if lineStr.hasPrefix("worktree ") {
@@ -365,12 +384,15 @@ final class WorktreeManager: Sendable {
                 isBare = true
             } else if lineStr.hasPrefix("locked") {
                 isLocked = true
+            } else if lineStr.hasPrefix("prunable") {
+                isPrunable = true
             }
         }
 
         return WorktreeLineTokens(
             path: path, commitHash: commitHash, branch: branch,
-            isDetached: isDetached, isBare: isBare, isLocked: isLocked
+            isDetached: isDetached, isBare: isBare, isLocked: isLocked,
+            isPrunable: isPrunable
         )
     }
 }
@@ -382,4 +404,5 @@ private struct WorktreeLineTokens {
     let isDetached: Bool
     let isBare: Bool
     let isLocked: Bool
+    let isPrunable: Bool
 }

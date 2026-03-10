@@ -99,15 +99,19 @@ final class WorktreeListViewModel: ObservableObject {
 
         // React to job state changes
         jobQueue.onJobStateChange = { [weak self] job in
-            guard let self else { return }
             switch (job.state, job.kind) {
             case (.completed, .removeWorktree):
-                // Immediately remove from the in-memory list
-                self.worktrees.removeAll { $0.id == job.worktreeID }
-                if self.selectedWorktree?.id == job.worktreeID {
-                    self.selectedWorktree = nil
+                // Defer @Published writes to avoid "Publishing during view update" warnings.
+                // The callback fires synchronously inside executeJob's Task continuation;
+                // wrapping in a new Task guarantees the writes land between render passes.
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    self.worktrees.removeAll { $0.id == job.worktreeID }
+                    if self.selectedWorktree?.id == job.worktreeID {
+                        self.selectedWorktree = nil
+                    }
+                    self.selectedWorktreeIDs.remove(job.worktreeID)
                 }
-                self.selectedWorktreeIDs.remove(job.worktreeID)
                 NotificationManager.shared.notifyCompleted(job: job)
             case (.completed, .pull):
                 Task { @MainActor [weak self] in await self?.loadWorktrees() }
@@ -128,7 +132,9 @@ final class WorktreeListViewModel: ObservableObject {
                 }
                 NotificationManager.shared.notifyCompleted(job: job)
             case (.failed(let msg), _):
-                self.errorMessage = msg
+                Task { @MainActor [weak self] in
+                    self?.errorMessage = msg
+                }
                 NotificationManager.shared.notifyFailed(message: msg, jobID: job.id)
             default:
                 break
@@ -276,8 +282,17 @@ final class WorktreeListViewModel: ObservableObject {
         }
 
         let baseName = pr.branch.replacingOccurrences(of: "/", with: "-")
-        let existingFolderNames = Set(worktrees.map { $0.folderName })
-        let existingBranches = Set(worktrees.compactMap { $0.branch })
+
+        // Include pending/in-progress import jobs so rapid double-enqueue of the
+        // same PR doesn't collide on the same path/branch before the list refreshes.
+        let activeJobs = jobQueue.jobs.filter { $0.state.isActive }
+        let queuedFolderNames = Set(activeJobs.map { $0.folderName })
+        let queuedBranches = Set(activeJobs.compactMap { job -> String? in
+            if case .addWorktreeFromPR(_, let local) = job.kind { return local }
+            return nil
+        })
+        let existingFolderNames = Set(worktrees.map { $0.folderName }).union(queuedFolderNames)
+        let existingBranches = Set(worktrees.compactMap { $0.branch }).union(queuedBranches)
         let isAlreadyCheckedOut = existingBranches.contains(pr.branch)
 
         let folderName: String
@@ -342,6 +357,7 @@ final class WorktreeListViewModel: ObservableObject {
             selectedWorktreeIDs.contains(worktree.id)
                 && !worktree.isRoot(of: repository)
                 && !worktree.isBare
+                && !jobQueue.busyWorktreeIDs.contains(worktree.id)
         }
         let jobs = targets.map { worktree in
             BackgroundJob(
@@ -403,6 +419,9 @@ final class WorktreeListViewModel: ObservableObject {
         }
         if selectedWorktree?.id == worktree.id {
             selectedWorktree?.customName = customName
+            // didSet only emits when the ID changes; bypass it so AppDelegate
+            // updates the menu bar title immediately after a rename.
+            selectedWorktreeSubject.send(selectedWorktree)
         }
     }
 

@@ -124,14 +124,17 @@ final class BackgroundTaskQueue: ObservableObject {
             try await withJobTimeout(seconds: timeout) {
                 switch job.kind {
                 case .removeWorktree(let force):
-                    // Silently succeed if the worktree was already manually deleted;
-                    // still clean up metadata so the app stays consistent.
                     if FileManager.default.fileExists(atPath: job.worktreePath) {
                         try await wm.removeWorktree(
                             repositoryPath: job.repositoryPath,
                             worktreePath: job.worktreePath,
                             force: force
                         )
+                    } else {
+                        // Directory was manually deleted; prune the dangling git
+                        // registration so it doesn't reappear on next reload.
+                        // Ignore prune errors — metadata cleanup below is sufficient.
+                        try? await wm.pruneWorktrees(repositoryPath: job.repositoryPath)
                     }
                     await st.removeWorktreeMetadata(
                         folderName: job.folderName,
