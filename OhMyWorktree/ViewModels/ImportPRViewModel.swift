@@ -54,7 +54,6 @@ final class ImportPRViewModel: ObservableObject {
         isLoading = true
         loadFailed = false
         errorMessage = nil
-        defer { isLoading = false }
         if let prs = await pullRequestService.fetchPullRequestList(repositoryPath: repositoryPath) {
             guard loadGeneration == myGeneration else { return }
             allPRs = prs
@@ -63,6 +62,10 @@ final class ImportPRViewModel: ObservableObject {
             loadFailed = true
             allPRs = []
         }
+        // Only reset isLoading when this call's generation is still current.
+        // A stale call (generation mismatch) must not clear isLoading — the
+        // newer call owns the loading state.
+        isLoading = false
     }
 
     func retry() {

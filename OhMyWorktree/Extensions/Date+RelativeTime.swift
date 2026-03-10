@@ -13,6 +13,6 @@ extension Date {
         if days < 30 { return "\(days)d ago" }
         let months = days / 30
         if months < 12 { return "\(months)mo ago" }
-        return "\(days / 365)y ago"
+        return "\(months / 12)y ago"
     }
 }

@@ -1,7 +1,13 @@
 import Foundation
+import os
 
 actor RepositoryStore {
     static let shared = RepositoryStore()
+
+    private static let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "com.ohmyworktree",
+        category: "RepositoryStore"
+    )
 
     // No default values: init body performs definite initialization, which is
     // allowed in a nonisolated actor init (Swift 6). Default values would make
@@ -276,7 +282,7 @@ actor RepositoryStore {
             }
             return true
         } catch {
-            print("[RepositoryStore] Failed to write \(destinationURL.lastPathComponent): \(error.localizedDescription)")
+            Self.logger.error("Failed to write \(destinationURL.lastPathComponent): \(error.localizedDescription)")
             try? fm.removeItem(at: tempURL)
             return false
         }

@@ -134,9 +134,7 @@ final class WorktreeListViewModel: ObservableObject {
         case (.completed, .addWorktreeFromPR):
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                let fileCopyOverride = await self.store.getEnvCopyOverride(for: job.repositoryID)
-                let globalDefault = UserDefaults.standard.object(forKey: "copyEnvFilesEnabled") as? Bool ?? true
-                if fileCopyOverride ?? globalDefault {
+                if await self.shouldCopyFiles(for: job.repositoryID) {
                     let copyResult = self.fileCopier.copyFiles(
                         from: job.repositoryPath, to: job.worktreePath
                     )
@@ -273,10 +271,7 @@ final class WorktreeListViewModel: ObservableObject {
             let metadata = WorktreeMetadata(folderName: folderName)
             await store.addWorktreeMetadata(metadata, repositoryID: repository.id)
 
-            let fileCopyOverride = await store.getEnvCopyOverride(for: repository.id)
-            let globalDefault = UserDefaults.standard.object(forKey: "copyEnvFilesEnabled") as? Bool ?? true
-            let shouldCopyFiles = fileCopyOverride ?? globalDefault
-            if shouldCopyFiles {
+            if await shouldCopyFiles(for: repository.id) {
                 let copyResult = fileCopier.copyFiles(from: repository.path, to: newWorktree.path)
                 if !copyResult.errors.isEmpty {
                     errorMessage = "Some files could not be copied: \(copyResult.errors.joined(separator: ", "))"
@@ -445,5 +440,15 @@ final class WorktreeListViewModel: ObservableObject {
 
     func clearError() {
         errorMessage = nil
+    }
+
+    // MARK: - Private Helpers
+
+    /// Returns whether env/file copying is enabled for the given repository,
+    /// resolving the per-repo override against the global UserDefaults toggle.
+    func shouldCopyFiles(for repositoryID: UUID) async -> Bool {
+        let override = await store.getEnvCopyOverride(for: repositoryID)
+        let globalDefault = UserDefaults.standard.object(forKey: "copyEnvFilesEnabled") as? Bool ?? true
+        return override ?? globalDefault
     }
 }
