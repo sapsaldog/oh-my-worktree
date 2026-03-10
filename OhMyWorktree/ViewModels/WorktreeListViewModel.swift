@@ -289,9 +289,10 @@ final class WorktreeListViewModel: ObservableObject {
             return OhMyWorktreeError.repositoryNotFound.errorDescription
         }
 
-        // Include pending/in-progress import jobs so rapid double-enqueue of the
-        // same PR doesn't collide on the same path/branch before the list refreshes.
-        let activeJobs = jobQueue.jobs.filter { $0.state.isActive }
+        // Include pending/in-progress import jobs for THIS repository so rapid
+        // double-enqueue of the same PR doesn't collide on the same path/branch
+        // before the list refreshes. Scoped by repositoryID to avoid cross-repo interference.
+        let activeJobs = jobQueue.jobs.filter { $0.state.isActive && $0.repositoryID == repository.id }
         let queuedFolderNames = Set(activeJobs.map { $0.folderName })
         let queuedBranches = Set(activeJobs.compactMap { job -> String? in
             if case .addWorktreeFromPR(_, let local) = job.kind { return local }

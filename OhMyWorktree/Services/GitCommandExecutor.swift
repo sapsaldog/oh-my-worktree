@@ -47,22 +47,26 @@ final class GitCommandExecutor: GitCommandExecuting, @unchecked Sendable {
         // withTaskCancellationHandler ensures that when the enclosing Task is cancelled
         // (e.g. by BackgroundTaskQueue's timeout), the spawned process receives SIGTERM
         // instead of becoming a zombie that blocks waitUntilExit() indefinitely.
+        // The blocking work (run + waitUntilExit) is dispatched to a global queue so it
+        // never blocks the calling actor (e.g. MainActor).
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
-                do {
-                    try process.run()
-                    process.waitUntilExit()
+                DispatchQueue.global(qos: .userInitiated).async {
+                    do {
+                        try process.run()
+                        process.waitUntilExit()
 
-                    let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
-                    let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+                        let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+                        let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
 
-                    continuation.resume(returning: CommandResult(
-                        stdout: String(data: stdoutData, encoding: .utf8) ?? "",
-                        stderr: String(data: stderrData, encoding: .utf8) ?? "",
-                        exitCode: process.terminationStatus
-                    ))
-                } catch {
-                    continuation.resume(throwing: error)
+                        continuation.resume(returning: CommandResult(
+                            stdout: String(data: stdoutData, encoding: .utf8) ?? "",
+                            stderr: String(data: stderrData, encoding: .utf8) ?? "",
+                            exitCode: process.terminationStatus
+                        ))
+                    } catch {
+                        continuation.resume(throwing: error)
+                    }
                 }
             }
         } onCancel: {

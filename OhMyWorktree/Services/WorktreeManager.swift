@@ -138,7 +138,7 @@ final class WorktreeManager: Sendable {
             withIntermediateDirectories: true
         )
 
-        let arguments = ["worktree", "add", "-b", localBranch, worktreePath, "origin/\(remoteBranch)"]
+        let arguments = ["worktree", "add", "-B", localBranch, worktreePath, "origin/\(remoteBranch)"]
 
         let result = try await executor.execute(
             arguments: arguments,
