@@ -79,6 +79,7 @@ xcodebuild -project OhMyWorktree.xcodeproj -scheme OhMyWorktreeTests -destinatio
 ## Git Workflow
 
 - When creating a PR, use a descriptive branch name (e.g., `fix/repository-store-data-loss`) — never use the raw worktree folder name as the branch name.
+- **Before every git commit**, you MUST run `swiftlint lint` and `xcodebuild -project OhMyWorktree.xcodeproj -scheme OhMyWorktreeTests -destination 'platform=macOS' test`. Fix any failures before committing.
 
 ## Release
 
