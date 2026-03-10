@@ -5,7 +5,7 @@ final class BackgroundTaskQueue: ObservableObject {
     @Published private(set) var jobs: [BackgroundJob] = []
 
     /// Called whenever a job transitions to completed/failed/cancelled.
-    var onJobStateChange: ((BackgroundJob) -> Void)?
+    var onJobStateChange: (@MainActor (BackgroundJob) -> Void)?
 
     private let worktreeManager: WorktreeManager
     private let store: RepositoryStore
@@ -46,7 +46,9 @@ final class BackgroundTaskQueue: ObservableObject {
         onJobStateChange?(snapshot)
     }
 
-    func cancelAll() {
+    /// Cancels all pending jobs. In-progress jobs continue to completion.
+    /// Use `cancel(_:)` to cancel individual jobs by ID.
+    func cancelPending() {
         for i in jobs.indices where jobs[i].state == .pending {
             jobs[i].state = .cancelled
             let snapshot = jobs[i]
@@ -187,6 +189,7 @@ final class BackgroundTaskQueue: ObservableObject {
         seconds: TimeInterval,
         _ operation: @escaping @Sendable () async throws -> Void
     ) async throws {
+        precondition(seconds > 0, "Job timeout must be positive")
         try await withThrowingTaskGroup(of: Void.self) { group in
             group.addTask { try await operation() }
             group.addTask {
@@ -207,6 +210,8 @@ final class BackgroundTaskQueue: ObservableObject {
     // MARK: - Private: Idle Cleanup
 
     private static let maxFailedJobs = 50
+    /// Discard failed jobs older than this interval during idle cleanup.
+    private static let failedJobMaxAge: TimeInterval = 3600 // 1 hour
 
     private func clearJobsIfIdle() {
         guard activeJobs.isEmpty else { return }
@@ -218,8 +223,11 @@ final class BackgroundTaskQueue: ObservableObject {
             }
             return
         }
-        // Keep only the most recent failed jobs for display.
-        let failed = jobs.filter { if case .failed = $0.state { return true }; return false }
+        // Keep only the most recent failed jobs for display, evicting stale entries.
+        let cutoff = Date().addingTimeInterval(-Self.failedJobMaxAge)
+        let failed = jobs
+            .filter { if case .failed = $0.state { return true }; return false }
+            .filter { $0.enqueuedAt > cutoff }
         jobs = Array(failed.suffix(Self.maxFailedJobs))
         refreshBusyWorktreeIDs()
     }

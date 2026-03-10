@@ -101,12 +101,27 @@ struct WorktreeListView: View {
 
     // MARK: - Worktree Row
 
+    /// Pre-computed job state lookup to avoid O(N*M) per-row linear scans.
+    private var jobStateByWorktreeID: [UUID: BackgroundJobState] {
+        var result: [UUID: BackgroundJobState] = [:]
+        for job in viewModel.jobQueue.jobs where job.state.isActive {
+            result[job.worktreeID] = job.state
+        }
+        return result
+    }
+
+    /// Resolves the PR for a worktree, checking local branch then remote branch fallback.
+    private func pullRequest(for worktree: Worktree) -> PullRequestInfo? {
+        worktree.branch.flatMap { viewModel.pullRequests[$0] }
+            ?? worktree.prRemoteBranch.flatMap { viewModel.pullRequests[$0] }
+    }
+
     private func worktreeRow(for worktree: Worktree) -> some View {
-        let jobState = viewModel.jobQueue.jobs.first { $0.worktreeID == worktree.id }?.state
+        let jobStates = jobStateByWorktreeID
+        let jobState = jobStates[worktree.id]
         return WorktreeRowView(
             worktree: worktree,
-            pullRequest: worktree.branch.flatMap { viewModel.pullRequests[$0] }
-                ?? worktree.prRemoteBranch.flatMap { viewModel.pullRequests[$0] },
+            pullRequest: pullRequest(for: worktree),
             jobState: jobState,
             isRenaming: renamingWorktreeID == worktree.id,
             onOpenPullRequest: { viewModel.openPullRequest(for: worktree) },
@@ -116,8 +131,6 @@ struct WorktreeListView: View {
             },
             onCancelRename: { renamingWorktreeID = nil }
         )
-        // Fix 10: Tooltip improves discoverability for users who may not know
-        // that context menu actions (open, rename, pull, remove) are on right-click.
         .help("Right-click for actions")
     }
 
@@ -162,9 +175,7 @@ struct WorktreeListView: View {
         Button("Open in cmux") { Task { await viewModel.openInCmux(worktree) } }
             .disabled(!viewModel.isCmuxAvailable || !actions.canOpen)
 
-        let contextPR = worktree.branch.flatMap { viewModel.pullRequests[$0] }
-            ?? worktree.prRemoteBranch.flatMap { viewModel.pullRequests[$0] }
-        if !isMultiSelected, let pr = contextPR {
+        if !isMultiSelected, let pr = pullRequest(for: worktree) {
             Divider()
             Button("Open Pull Request #\(pr.number)") { viewModel.openPullRequest(for: worktree) }
         }

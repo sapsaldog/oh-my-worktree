@@ -122,6 +122,9 @@ final class PullRequestService: PullRequestFetching, Sendable {
         }
     }
 
+    /// Shared formatter — `ISO8601DateFormatter` is expensive to initialize.
+    private static let isoFormatter = ISO8601DateFormatter()
+
     /// Parses the rich JSON output from `gh pr list` (with title, author, updatedAt, isDraft) into an array.
     /// Returns `nil` on parse error; returns an empty array when the JSON array is empty.
     private func parsePullRequestList(from jsonString: String) -> [PullRequestInfo]? {
@@ -142,7 +145,7 @@ final class PullRequestService: PullRequestFetching, Sendable {
 
         do {
             let prs = try JSONDecoder().decode([GhPR].self, from: data)
-            let isoFormatter = ISO8601DateFormatter()
+            let isoFormatter = Self.isoFormatter
             return prs.compactMap { pr in
                 guard let url = URL(string: pr.url) else { return nil }
                 let state = pr.state.flatMap { PullRequestState(rawValue: $0) } ?? .open

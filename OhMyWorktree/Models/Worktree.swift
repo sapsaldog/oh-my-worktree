@@ -1,6 +1,7 @@
+import CryptoKit
 import Foundation
 
-struct Worktree: Identifiable, Hashable {
+struct Worktree: Identifiable, Hashable, Sendable {
     let id: UUID
     let path: String
     let folderName: String
@@ -25,7 +26,7 @@ struct Worktree: Identifiable, Hashable {
     /// Check if this worktree is the root/main worktree of the given repository.
     ///
     /// Uses path normalization to handle:
-    /// - Symlink resolution
+    /// - Symlink resolution (via `resolvingSymlinksInPath()`)
     /// - Relative path expansion (. and ..)
     /// - Trailing slash removal
     /// - Tilde expansion (~)
@@ -34,8 +35,8 @@ struct Worktree: Identifiable, Hashable {
     /// which Git guarantees. Case-sensitivity follows the file system (APFS is case-insensitive by default).
     func isRoot(of repository: Repository) -> Bool {
         // Normalize paths for comparison (resolve symlinks, standardize format)
-        let worktreePath = URL(fileURLWithPath: self.path).standardizedFileURL.path
-        let repoPath = URL(fileURLWithPath: repository.path).standardizedFileURL.path
+        let worktreePath = URL(fileURLWithPath: self.path).resolvingSymlinksInPath().path
+        let repoPath = URL(fileURLWithPath: repository.path).resolvingSymlinksInPath().path
         return worktreePath == repoPath
     }
 
@@ -45,14 +46,11 @@ struct Worktree: Identifiable, Hashable {
 
     /// Generate a deterministic UUID from the worktree path so that
     /// the same worktree always produces the same id across reloads.
+    /// Uses SHA-256 for collision resistance (the previous XOR-fold had
+    /// poor entropy for paths sharing long common prefixes).
     static func stableID(for path: String) -> UUID {
-        let data = Data(path.utf8)
-        var hash = [UInt8](repeating: 0, count: 16)
-        data.withUnsafeBytes { buffer in
-            for (i, byte) in buffer.enumerated() {
-                hash[i % 16] ^= byte
-            }
-        }
+        let digest = SHA256.hash(data: Data(path.utf8))
+        var hash = Array(digest.prefix(16))
         // Set UUID version 5 bits
         hash[6] = (hash[6] & 0x0F) | 0x50
         hash[8] = (hash[8] & 0x3F) | 0x80
@@ -83,7 +81,8 @@ struct Worktree: Identifiable, Hashable {
         self.lastActivityAt = lastActivityAt
     }
 
-    // Compare semantic fields only (excludes id and lastActivityAt for change detection)
+    // Compare semantic fields only (excludes id and lastActivityAt for change detection).
+    // Includes prRemoteBranch so SwiftUI detects PR badge changes.
     static func == (lhs: Worktree, rhs: Worktree) -> Bool {
         lhs.path == rhs.path &&
         lhs.folderName == rhs.folderName &&
@@ -92,7 +91,8 @@ struct Worktree: Identifiable, Hashable {
         lhs.isDetached == rhs.isDetached &&
         lhs.isBare == rhs.isBare &&
         lhs.isLocked == rhs.isLocked &&
-        lhs.customName == rhs.customName
+        lhs.customName == rhs.customName &&
+        lhs.prRemoteBranch == rhs.prRemoteBranch
     }
 
     func hash(into hasher: inout Hasher) {
@@ -104,5 +104,6 @@ struct Worktree: Identifiable, Hashable {
         hasher.combine(isBare)
         hasher.combine(isLocked)
         hasher.combine(customName)
+        hasher.combine(prRemoteBranch)
     }
 }

@@ -31,6 +31,7 @@ final class ImportPRViewModel: ObservableObject {
     var repositoryName: String = ""
 
     private let pullRequestService: any PullRequestFetching
+    private var loadTask: Task<Void, Never>?
 
     init(pullRequestService: any PullRequestFetching = PullRequestService()) {
         self.pullRequestService = pullRequestService
@@ -55,20 +56,24 @@ final class ImportPRViewModel: ObservableObject {
 
     func loadPRs() async {
         guard !repositoryPath.isEmpty else { return }
+        loadTask?.cancel()
         isLoading = true
         loadFailed = false
         errorMessage = nil
         defer { isLoading = false }
         if let prs = await pullRequestService.fetchPullRequestList(repositoryPath: repositoryPath) {
+            guard !Task.isCancelled else { return }
             allPRs = prs
         } else {
+            guard !Task.isCancelled else { return }
             loadFailed = true
             allPRs = []
         }
     }
 
     func retry() {
-        Task { await loadPRs() }
+        loadTask?.cancel()
+        loadTask = Task { await loadPRs() }
     }
 }
 

@@ -1,6 +1,6 @@
 import Foundation
 
-struct WorktreeMetadata: Codable, Hashable {
+struct WorktreeMetadata: Codable, Hashable, Sendable {
     let folderName: String
     let createdAt: Date
     var lastActivityAt: Date

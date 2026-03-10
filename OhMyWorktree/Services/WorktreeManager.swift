@@ -16,10 +16,15 @@ final class WorktreeManager: Sendable {
 
     /// Canonical worktree directory path for a given repository and folder name.
     /// Used by both WorktreeManager and WorktreeListViewModel to avoid path divergence.
+    /// Uses a hash suffix when the repo name alone would collide (e.g. two repos named "myapp").
     static func worktreePath(repositoryPath: String, folderName: String) -> String {
         let repoName = (repositoryPath as NSString).lastPathComponent
+        // Include a short hash of the full path to prevent collisions when
+        // two repositories share the same directory name (e.g. /work/myapp and /personal/myapp).
+        let pathHash = String(repositoryPath.hashValue.magnitude, radix: 36).prefix(6)
+        let workspaceName = "\(repoName)-\(pathHash)"
         return (NSHomeDirectory() as NSString)
-            .appendingPathComponent("oh-my-worktree/workspaces/\(repoName)/\(folderName)")
+            .appendingPathComponent("oh-my-worktree/workspaces/\(workspaceName)/\(folderName)")
     }
 
     // MARK: - List Worktrees
@@ -224,9 +229,11 @@ final class WorktreeManager: Sendable {
             workingDirectory: worktreePath
         )
 
+        let stdout = result.stdout
         guard result.exitCode == 0 else {
             let stderr = result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
-            if stderr.contains("CONFLICT") {
+            // Git outputs "CONFLICT" markers to stdout, not stderr.
+            if stdout.contains("CONFLICT") || stderr.contains("CONFLICT") {
                 throw OhMyWorktreeError.commandExecutionFailed(
                     command: "git pull",
                     stderr: "Merge conflict detected. Please resolve conflicts manually."

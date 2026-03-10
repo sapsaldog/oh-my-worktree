@@ -34,7 +34,7 @@ struct QueueStatusBarView: View {
                         Image(systemName: "exclamationmark.circle.fill")
                             .font(.system(size: 11))
                             .foregroundStyle(.red)
-                        Text("\(queue.failedJobCount) failed (tap to review)")
+                        Text("\(queue.failedJobCount) failed (click to review)")
                             .font(.system(size: 11))
                             .foregroundStyle(.red)
                     } else {
@@ -69,6 +69,7 @@ struct QueueStatusBarView: View {
             }
             .buttonStyle(.plain)
             .help("New Worktree")
+            .accessibilityLabel("New Worktree")
 
             Menu {
                 Button("Import from GitHub PR…") {
@@ -84,6 +85,7 @@ struct QueueStatusBarView: View {
             .menuIndicator(.hidden)
             .fixedSize()
             .help("More options")
+            .accessibilityLabel("More options")
         }
         .background(
             RoundedRectangle(cornerRadius: 5)
@@ -127,8 +129,8 @@ struct QueueDetailPopoverView: View {
 
                 if queue.hasActiveJobs {
                     Divider()
-                    Button("Cancel All", role: .destructive) {
-                        queue.cancelAll()
+                    Button("Cancel Pending", role: .destructive) {
+                        queue.cancelPending()
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)

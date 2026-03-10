@@ -1,6 +1,6 @@
 import Foundation
 
-struct CommandResult {
+struct CommandResult: Sendable {
     let stdout: String
     let stderr: String
     let exitCode: Int32
@@ -54,10 +54,15 @@ final class GitCommandExecutor: GitCommandExecuting, @unchecked Sendable {
                 DispatchQueue.global(qos: .userInitiated).async {
                     do {
                         try process.run()
-                        process.waitUntilExit()
 
+                        // Read pipe data BEFORE waitUntilExit to prevent deadlock.
+                        // If the subprocess fills the pipe buffer (~64KB on macOS),
+                        // it blocks waiting for the pipe to be drained. Reading first
+                        // ensures the buffer is consumed while the process is still running.
                         let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
                         let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+
+                        process.waitUntilExit()
 
                         continuation.resume(returning: CommandResult(
                             stdout: String(data: stdoutData, encoding: .utf8) ?? "",
@@ -70,7 +75,11 @@ final class GitCommandExecutor: GitCommandExecuting, @unchecked Sendable {
                 }
             }
         } onCancel: {
-            process.terminate()
+            // Guard against terminating a process that hasn't started yet,
+            // which would raise an Objective-C exception.
+            if process.isRunning {
+                process.terminate()
+            }
         }
     }
 }

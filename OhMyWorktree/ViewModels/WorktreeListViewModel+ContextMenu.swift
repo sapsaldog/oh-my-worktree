@@ -18,11 +18,11 @@ extension WorktreeListViewModel {
             && selectedWorktreeIDs.contains(worktree.id)
 
         if isMultiSelected {
-            let anyNonRemovable = worktrees.contains { w in
+            let allRemovable = !worktrees.contains { w in
                 selectedWorktreeIDs.contains(w.id)
                     && ((repository.map { w.isRoot(of: $0) } ?? false) || w.isBare)
             }
-            let hasRemovableTarget = !anyNonRemovable && worktrees.contains { w in
+            let hasRemovableTarget = allRemovable && worktrees.contains { w in
                 selectedWorktreeIDs.contains(w.id)
                     && !jobQueue.busyWorktreeIDs.contains(w.id)
             }

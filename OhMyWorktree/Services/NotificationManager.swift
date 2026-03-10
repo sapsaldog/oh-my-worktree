@@ -20,7 +20,13 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     }
 
     func requestAuthorization() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
+            if let error {
+                print("[NotificationManager] Authorization error: \(error.localizedDescription)")
+            } else if !granted {
+                print("[NotificationManager] Notification permission denied by user")
+            }
+        }
     }
 
     func notifyCompleted(job: BackgroundJob) {

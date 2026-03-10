@@ -64,12 +64,12 @@ final class BackgroundTaskQueueTests: XCTestCase {
         XCTAssertTrue(sut.jobs.isEmpty)
     }
 
-    // MARK: - cancelAll
+    // MARK: - cancelPending
 
     func testCancelAll_setsPendingJobsToCancelled() {
         let jobs = (0..<3).map { _ in makeJob(kind: .pull) }
         sut.enqueue(jobs)
-        sut.cancelAll()
+        sut.cancelPending()
 
         let pendingCount = sut.jobs.filter { $0.state == .pending }.count
         XCTAssertEqual(pendingCount, 0)
@@ -277,11 +277,11 @@ final class BackgroundTaskQueueTests: XCTestCase {
     func testRapidEnqueueAndCancelAll_allReachTerminalState() async {
         let jobs = (0..<20).map { _ in makeJob(kind: .pull) }
         sut.enqueue(jobs)
-        sut.cancelAll()
+        sut.cancelPending()
         await waitForIdle(timeout: 5)
 
         let pendingCount = sut.jobs.filter { $0.state == .pending }.count
-        XCTAssertEqual(pendingCount, 0, "No jobs should remain pending after cancelAll")
+        XCTAssertEqual(pendingCount, 0, "No jobs should remain pending after cancelPending")
         XCTAssertFalse(sut.hasActiveJobs)
     }
 
@@ -348,11 +348,11 @@ final class BackgroundTaskQueueTests: XCTestCase {
         XCTAssertFalse(sut.hasFailedJobs, "No jobs should fail with a succeeding mock")
     }
 
-    /// Enqueue → cancelAll → re-enqueue: verifies processingTasks are cleaned up
+    /// Enqueue → cancelPending → re-enqueue: verifies processingTasks are cleaned up
     /// and restarted correctly after cancellation (no leak from Fix 1).
     func testCancelAll_thenReenqueue_processesNewJobs() async {
         sut.enqueue((0..<5).map { _ in makeJob(kind: .pull) })
-        sut.cancelAll()
+        sut.cancelPending()
         await waitForIdle()
         XCTAssertFalse(sut.hasActiveJobs)
 

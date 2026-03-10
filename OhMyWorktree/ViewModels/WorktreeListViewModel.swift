@@ -43,6 +43,7 @@ final class WorktreeListViewModel: ObservableObject {
     var repository: Repository? {
         didSet {
             if repository?.id != oldValue?.id {
+                loadTask?.cancel()
                 prFetchTask?.cancel()
                 pullRequests = [:]
             }

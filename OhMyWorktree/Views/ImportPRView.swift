@@ -57,6 +57,7 @@ struct ImportPRView: View {
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Clear search")
                 }
             }
             .padding(.horizontal, 10)

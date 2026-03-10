@@ -28,23 +28,24 @@ struct ContentView: View {
         .alert(
             "Error",
             isPresented: .init(
-                get: { repoViewModel.errorMessage != nil || worktreeViewModel.errorMessage != nil },
-                set: { newValue in
-                    if !newValue {
-                        Task { @MainActor in
-                            repoViewModel.clearError()
-                            worktreeViewModel.clearError()
-                        }
-                    }
-                }
+                get: { repoViewModel.errorMessage != nil },
+                set: { if !$0 { Task { @MainActor in repoViewModel.clearError() } } }
             )
         ) {
-            Button("OK") {
-                repoViewModel.clearError()
-                worktreeViewModel.clearError()
-            }
+            Button("OK") { repoViewModel.clearError() }
         } message: {
-            Text(repoViewModel.errorMessage ?? worktreeViewModel.errorMessage ?? "")
+            Text(repoViewModel.errorMessage ?? "")
+        }
+        .alert(
+            "Error",
+            isPresented: .init(
+                get: { worktreeViewModel.errorMessage != nil },
+                set: { if !$0 { Task { @MainActor in worktreeViewModel.clearError() } } }
+            )
+        ) {
+            Button("OK") { worktreeViewModel.clearError() }
+        } message: {
+            Text(worktreeViewModel.errorMessage ?? "")
         }
         .task {
             await repoViewModel.loadRepositories()

@@ -645,7 +645,7 @@ branch refs/heads/feature/new-feature
 - 실패 시 해당 작업 건너뛰고 다음 작업 계속 진행
 - 단일 작업 enqueue 및 배치 enqueue(`[BackgroundJob]`) 모두 지원
 - pending 상태의 작업은 개별 취소 가능
-- 전체 취소(`cancelAll`) 지원
+- 대기중 전체 취소(`cancelPending`) 지원
 - 작업 타임아웃 메커니즘: `jobTimeoutSeconds` (기본 60초), 초과 시 `BackgroundJobTimeoutError` 발생
   - `withThrowingTaskGroup`으로 작업과 타임아웃 sleep을 레이싱
 - 실패 작업 최대 보유 수: `maxFailedJobs = 50`
