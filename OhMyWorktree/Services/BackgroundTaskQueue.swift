@@ -200,6 +200,11 @@ final class BackgroundTaskQueue: ObservableObject {
             do {
                 _ = try await group.next()
                 group.cancelAll()
+                // Drain the cancelled task so its CancellationError is not
+                // implicitly rethrown when the task group scope exits.
+                while !group.isEmpty {
+                    _ = try? await group.next()
+                }
             } catch {
                 group.cancelAll()
                 throw error

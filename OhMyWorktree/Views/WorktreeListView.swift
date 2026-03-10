@@ -5,6 +5,7 @@ struct WorktreeListView: View {
     @State private var selectedIDs: Set<UUID> = []
     @State private var renamingWorktreeID: UUID?
     @State private var forceRemoveTarget: ForceRemoveTarget?
+    @State private var confirmBulkRemove = false
 
     private enum ForceRemoveTarget {
         case single(Worktree)
@@ -85,6 +86,18 @@ struct WorktreeListView: View {
             Button("Cancel", role: .cancel) { forceRemoveTarget = nil }
         } message: {
             Text("Uncommitted changes will be lost. This cannot be undone.")
+        }
+        .confirmationDialog(
+            "Remove \(viewModel.selectedWorktreeIDs.count) Worktrees?",
+            isPresented: $confirmBulkRemove,
+            titleVisibility: .visible
+        ) {
+            Button("Remove", role: .destructive) {
+                viewModel.removeSelectedWorktrees(force: false)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Worktrees with uncommitted changes will not be removed.")
         }
     }
 
@@ -203,7 +216,7 @@ struct WorktreeListView: View {
             if actions.canRemove {
                 Divider()
                 Button("Remove Selected Worktrees", role: .destructive) {
-                    viewModel.removeSelectedWorktrees(force: false)
+                    confirmBulkRemove = true
                 }
                 Button("Force Remove Selected Worktrees", role: .destructive) {
                     forceRemoveTarget = .selectedWorktrees(count: viewModel.selectedWorktreeIDs.count)

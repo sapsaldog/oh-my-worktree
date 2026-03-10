@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 struct GitPullResult: Sendable {
@@ -16,12 +17,14 @@ final class WorktreeManager: Sendable {
 
     /// Canonical worktree directory path for a given repository and folder name.
     /// Used by both WorktreeManager and WorktreeListViewModel to avoid path divergence.
-    /// Uses a hash suffix when the repo name alone would collide (e.g. two repos named "myapp").
+    /// Uses a SHA-256 hash suffix when the repo name alone would collide (e.g. two repos named "myapp").
     static func worktreePath(repositoryPath: String, folderName: String) -> String {
         let repoName = (repositoryPath as NSString).lastPathComponent
-        // Include a short hash of the full path to prevent collisions when
+        // Include a deterministic hash of the full path to prevent collisions when
         // two repositories share the same directory name (e.g. /work/myapp and /personal/myapp).
-        let pathHash = String(repositoryPath.hashValue.magnitude, radix: 36).prefix(6)
+        // Uses SHA-256 (not String.hashValue) because hashValue is randomized per process.
+        let digest = SHA256.hash(data: Data(repositoryPath.utf8))
+        let pathHash = digest.prefix(3).map { String(format: "%02x", $0) }.joined()
         let workspaceName = "\(repoName)-\(pathHash)"
         return (NSHomeDirectory() as NSString)
             .appendingPathComponent("oh-my-worktree/workspaces/\(workspaceName)/\(folderName)")

@@ -47,7 +47,11 @@ private struct OpenWindowModifier: ViewModifier {
                 }
                 appDelegate.openImportPRWindow = { [openWindow, worktreeViewModel] in
                     openWindow(id: "main")
-                    Task { @MainActor in worktreeViewModel.isShowingImportPR = true }
+                    // Delay ensures the window's view hierarchy (including the
+                    // .sheet modifier) is fully set up before presenting the sheet.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        worktreeViewModel.isShowingImportPR = true
+                    }
                 }
                 appDelegate.openSettings = { [openSettings] in
                     openSettings()

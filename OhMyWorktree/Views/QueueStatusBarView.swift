@@ -99,6 +99,17 @@ struct QueueStatusBarView: View {
 struct QueueDetailPopoverView: View {
     @ObservedObject var queue: BackgroundTaskQueue
 
+    /// Only show actionable jobs: pending, in-progress, and failed.
+    /// Completed and cancelled jobs are noise in the popover.
+    private var visibleJobs: [BackgroundJob] {
+        queue.jobs.filter { job in
+            switch job.state {
+            case .pending, .inProgress, .failed: return true
+            case .completed, .cancelled: return false
+            }
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(queue.hasFailedJobs && !queue.hasActiveJobs ? "Failed Tasks" : "Active Tasks")
@@ -108,7 +119,7 @@ struct QueueDetailPopoverView: View {
 
             Divider()
 
-            if queue.jobs.isEmpty {
+            if visibleJobs.isEmpty {
                 Text("No active tasks")
                     .font(.body)
                     .foregroundStyle(.secondary)
@@ -117,7 +128,7 @@ struct QueueDetailPopoverView: View {
             } else {
                 ScrollView {
                     VStack(spacing: 0) {
-                        ForEach(queue.jobs) { job in
+                        ForEach(visibleJobs) { job in
                             QueueJobRowView(job: job) {
                                 queue.cancel(job.id)
                             }
