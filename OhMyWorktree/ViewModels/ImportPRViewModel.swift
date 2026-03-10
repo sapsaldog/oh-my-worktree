@@ -26,7 +26,6 @@ final class ImportPRViewModel: ObservableObject {
         }
     }
     @Published var selectedTab: PRTab = .open
-    @Published var isCreating = false
 
     var repositoryPath: String = ""
     var repositoryName: String = ""
@@ -70,22 +69,6 @@ final class ImportPRViewModel: ObservableObject {
 
     func retry() {
         Task { await loadPRs() }
-    }
-
-    /// Executes worktree creation, managing isCreating and errorMessage state.
-    /// Returns true on success so the caller (view) can dismiss.
-    func createWorktree(using creator: (PullRequestInfo) async throws -> Void) async -> Bool {
-        guard let pr = selectedPR else { return false }
-        isCreating = true
-        errorMessage = nil
-        defer { isCreating = false }
-        do {
-            try await creator(pr)
-            return true
-        } catch {
-            errorMessage = error.localizedDescription
-            return false
-        }
     }
 }
 

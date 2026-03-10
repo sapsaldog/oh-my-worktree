@@ -40,6 +40,7 @@ struct WorktreeListView: View {
                 }
                 .listStyle(.inset)
                 .onChange(of: selectedIDs) { _, newIDs in
+                    guard newIDs != viewModel.selectedWorktreeIDs else { return }
                     let vm = viewModel
                     Task { @MainActor in vm.selectedWorktreeIDs = newIDs }
                 }

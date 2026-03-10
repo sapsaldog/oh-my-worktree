@@ -37,11 +37,14 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         post(content: content, identifier: job.id.uuidString)
     }
 
+    /// Maximum body length for failure banners — prevents oversized banners
+    /// from malformed or excessively long git error output.
+    private static let maxBodyLength = 200
+
     func notifyFailed(message: String, jobID: UUID) {
         let content = UNMutableNotificationContent()
         content.title = "Oh My Worktree — Task Failed"
-        // Truncate to 200 chars to prevent oversized banners from malformed git error output.
-        content.body = String(message.prefix(200))
+        content.body = String(message.prefix(Self.maxBodyLength))
         content.sound = .defaultCritical
         post(content: content, identifier: "fail-\(jobID.uuidString)")
     }

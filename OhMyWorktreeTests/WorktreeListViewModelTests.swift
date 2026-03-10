@@ -358,6 +358,59 @@ extension WorktreeListViewModelTests {
     }
 }
 
+// MARK: - addWorktreeFromPR
+
+extension WorktreeListViewModelTests {
+
+    func test_addWorktreeFromPR_branchNotCheckedOut_enquesWithSameLocalBranch() {
+        sut.worktrees = [rootWorktree]
+
+        let pr = PullRequestInfo(
+            number: 1,
+            url: URL(string: "https://github.com/user/repo/pull/1")!,
+            branch: "feature/new",
+            state: .open
+        )
+
+        let error = sut.addWorktreeFromPR(pr)
+
+        XCTAssertNil(error)
+        XCTAssertEqual(sut.jobQueue.jobs.count, 1)
+        guard case .addWorktreeFromPR(let remote, let local) = sut.jobQueue.jobs[0].kind else {
+            XCTFail("Expected addWorktreeFromPR job kind")
+            return
+        }
+        XCTAssertEqual(remote, "feature/new")
+        XCTAssertEqual(local, "feature/new")
+    }
+
+    func test_addWorktreeFromPR_branchAlreadyCheckedOut_enquesWithVersionedLocalBranch() {
+        sut.worktrees = [
+            rootWorktree,
+            Worktree(path: "/tmp/worktrees/feature-a", folderName: "feature-a", branch: "feature/a")
+        ]
+
+        let pr = PullRequestInfo(
+            number: 2,
+            url: URL(string: "https://github.com/user/repo/pull/2")!,
+            branch: "feature/a",
+            state: .open
+        )
+
+        let error = sut.addWorktreeFromPR(pr)
+
+        XCTAssertNil(error)
+        XCTAssertEqual(sut.jobQueue.jobs.count, 1)
+        guard case .addWorktreeFromPR(let remote, let local) = sut.jobQueue.jobs[0].kind else {
+            XCTFail("Expected addWorktreeFromPR job kind")
+            return
+        }
+        XCTAssertEqual(remote, "feature/a")
+        XCTAssertEqual(local, "feature/a-v2")
+        XCTAssertEqual(sut.jobQueue.jobs[0].folderName, "feature-a-v2")
+    }
+}
+
 // MARK: - No-op PR Service
 
 private final class MockNoPRService: PullRequestFetching {

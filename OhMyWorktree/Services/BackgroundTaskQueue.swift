@@ -13,11 +13,13 @@ final class BackgroundTaskQueue: ObservableObject {
     private var processingTasks: [String: Task<Void, Never>] = [:]
 
     /// Maximum duration (in seconds) for any single job before it times out.
-    static let jobTimeoutSeconds: TimeInterval = 60
+    /// Injectable for testing — defaults to 60 seconds in production.
+    let jobTimeoutSeconds: TimeInterval
 
-    init(worktreeManager: WorktreeManager, store: RepositoryStore) {
+    init(worktreeManager: WorktreeManager, store: RepositoryStore, jobTimeoutSeconds: TimeInterval = 60) {
         self.worktreeManager = worktreeManager
         self.store = store
+        self.jobTimeoutSeconds = jobTimeoutSeconds
     }
 
     // MARK: - Public Interface
@@ -114,14 +116,15 @@ final class BackgroundTaskQueue: ObservableObject {
         // below doesn't need to re-cross the MainActor boundary.
         let wm = worktreeManager
         let st = store
+        let timeout = jobTimeoutSeconds
 
         do {
-            // Fix 3: Wrap the git operation in a timeout to prevent indefinite blocking
+            // Wrap the git operation in a timeout to prevent indefinite blocking
             // if a git process hangs (e.g. waiting for SSH passphrase or network).
-            try await withJobTimeout {
+            try await withJobTimeout(seconds: timeout) {
                 switch job.kind {
                 case .removeWorktree(let force):
-                    // Fix 4: Silently succeed if the worktree was already manually deleted;
+                    // Silently succeed if the worktree was already manually deleted;
                     // still clean up metadata so the app stays consistent.
                     if FileManager.default.fileExists(atPath: job.worktreePath) {
                         try await wm.removeWorktree(
@@ -136,13 +139,22 @@ final class BackgroundTaskQueue: ObservableObject {
                     )
                 case .pull:
                     _ = try await wm.gitPull(worktreePath: job.worktreePath)
-                case .addWorktreeFromPR(let branch):
-                    try await wm.fetchBranch(branch, repositoryPath: job.repositoryPath)
-                    _ = try await wm.addWorktreeFromExistingBranch(
-                        repositoryPath: job.repositoryPath,
-                        folderName: job.folderName,
-                        branch: branch
-                    )
+                case .addWorktreeFromPR(let remoteBranch, let localBranch):
+                    try await wm.fetchBranch(remoteBranch, repositoryPath: job.repositoryPath)
+                    if localBranch == remoteBranch {
+                        _ = try await wm.addWorktreeFromExistingBranch(
+                            repositoryPath: job.repositoryPath,
+                            folderName: job.folderName,
+                            branch: remoteBranch
+                        )
+                    } else {
+                        _ = try await wm.addWorktreeFromRemoteBranch(
+                            repositoryPath: job.repositoryPath,
+                            folderName: job.folderName,
+                            localBranch: localBranch,
+                            remoteBranch: remoteBranch
+                        )
+                    }
                     let metadata = WorktreeMetadata(folderName: job.folderName)
                     await st.addWorktreeMetadata(metadata, repositoryID: job.repositoryID)
                 }
@@ -168,16 +180,17 @@ final class BackgroundTaskQueue: ObservableObject {
 
     // MARK: - Private: Timeout
 
-    /// Executes `operation` with a fixed timeout. Throws `BackgroundJobTimeoutError` if exceeded.
+    /// Executes `operation` with the given timeout. Throws `BackgroundJobTimeoutError` if exceeded.
     /// The method is nonisolated so git work runs off the MainActor without blocking the UI.
     private nonisolated func withJobTimeout(
+        seconds: TimeInterval,
         _ operation: @escaping @Sendable () async throws -> Void
     ) async throws {
         try await withThrowingTaskGroup(of: Void.self) { group in
             group.addTask { try await operation() }
             group.addTask {
-                try await Task.sleep(nanoseconds: UInt64(BackgroundTaskQueue.jobTimeoutSeconds * 1_000_000_000))
-                throw BackgroundJobTimeoutError()
+                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                throw BackgroundJobTimeoutError(seconds: Int(seconds))
             }
             // Take the first result (success or the first thrown error) then cancel the other task.
             do {
@@ -225,9 +238,10 @@ final class BackgroundTaskQueue: ObservableObject {
 
 // MARK: - BackgroundJobTimeoutError
 
-/// Thrown when a background job exceeds `BackgroundTaskQueue.jobTimeoutSeconds`.
+/// Thrown when a background job exceeds the configured timeout.
 struct BackgroundJobTimeoutError: LocalizedError {
+    let seconds: Int
     var errorDescription: String? {
-        "Operation timed out after \(Int(BackgroundTaskQueue.jobTimeoutSeconds)) seconds"
+        "Operation timed out after \(seconds) seconds"
     }
 }

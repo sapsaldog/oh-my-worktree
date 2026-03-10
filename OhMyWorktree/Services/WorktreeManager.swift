@@ -118,6 +118,46 @@ final class WorktreeManager: Sendable {
         return newWorktree
     }
 
+    // MARK: - Add Worktree (new local branch from remote)
+
+    /// Creates a worktree with a brand-new local branch (`localBranch`) starting at
+    /// `origin/<remoteBranch>`. Used when the remote PR branch is already checked out
+    /// in another worktree and a second worktree is needed on the same remote ref.
+    func addWorktreeFromRemoteBranch(
+        repositoryPath: String,
+        folderName: String,
+        localBranch: String,
+        remoteBranch: String
+    ) async throws -> Worktree {
+        let repoName = (repositoryPath as NSString).lastPathComponent
+        let worktreePath = (NSHomeDirectory() as NSString)
+            .appendingPathComponent("oh-my-worktree/workspaces/\(repoName)/\(folderName)")
+
+        try FileManager.default.createDirectory(
+            atPath: (worktreePath as NSString).deletingLastPathComponent,
+            withIntermediateDirectories: true
+        )
+
+        let arguments = ["worktree", "add", "-b", localBranch, worktreePath, "origin/\(remoteBranch)"]
+
+        let result = try await executor.execute(
+            arguments: arguments,
+            workingDirectory: repositoryPath
+        )
+
+        guard result.exitCode == 0 else {
+            let stderr = result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+            throw OhMyWorktreeError.commandExecutionFailed(command: "git worktree add", stderr: stderr)
+        }
+
+        let worktrees = try await listWorktrees(repositoryPath: repositoryPath)
+        guard let newWorktree = worktrees.first(where: { $0.path == worktreePath }) else {
+            throw OhMyWorktreeError.worktreeNotFound(path: worktreePath)
+        }
+
+        return newWorktree
+    }
+
     // MARK: - Fetch Remote Branch
 
     func fetchBranch(_ branch: String, repositoryPath: String) async throws {

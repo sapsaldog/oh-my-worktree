@@ -18,7 +18,10 @@ extension PullRequestFetching {
 /// Gracefully degrades when `gh` is not installed, not authenticated, or the repository is not on GitHub.
 final class PullRequestService: PullRequestFetching, Sendable {
 
-    private static let logger = Logger(subsystem: "com.ohmyworktree", category: "PullRequestService")
+    private static let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "com.ohmyworktree",
+        category: "PullRequestService"
+    )
 
     private let gitExecutor: GitCommandExecuting
     private let ghCliPath: String?

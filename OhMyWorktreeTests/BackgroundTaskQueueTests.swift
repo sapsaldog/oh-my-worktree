@@ -365,7 +365,7 @@ final class BackgroundTaskQueueTests: XCTestCase {
     // MARK: - BackgroundJobTimeoutError
 
     func testTimeoutError_hasDescriptiveMessage() {
-        let error = BackgroundJobTimeoutError()
+        let error = BackgroundJobTimeoutError(seconds: 60)
         XCTAssertNotNil(error.errorDescription)
         XCTAssertTrue(
             error.errorDescription?.contains("60") == true,

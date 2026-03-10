@@ -72,7 +72,7 @@ final class WorktreeListViewModel: ObservableObject {
         // so no explicit debounce is needed.
         queueCancellable = jobQueue.objectWillChange
             .sink { [weak self] _ in
-                Task { @MainActor [weak self] in
+                Task { @MainActor in
                     self?.objectWillChange.send()
                 }
             }
@@ -110,10 +110,10 @@ final class WorktreeListViewModel: ObservableObject {
                 self.selectedWorktreeIDs.remove(job.worktreeID)
                 NotificationManager.shared.notifyCompleted(job: job)
             case (.completed, .pull):
-                Task { [weak self] in await self?.loadWorktrees() }
+                Task { @MainActor [weak self] in await self?.loadWorktrees() }
                 NotificationManager.shared.notifyCompleted(job: job)
             case (.completed, .addWorktreeFromPR):
-                Task { [weak self] in
+                Task { @MainActor [weak self] in
                     guard let self else { return }
                     let fileCopyOverride = await self.store.getEnvCopyOverride(for: job.repositoryID)
                     let globalDefault = UserDefaults.standard.object(forKey: "copyEnvFilesEnabled") as? Bool ?? true
@@ -208,7 +208,7 @@ final class WorktreeListViewModel: ObservableObject {
 
     private func updateSelectedWorktree(from worktrees: [Worktree]) {
         guard let selected = selectedWorktree else { return }
-        selectedWorktree = worktrees.first(where: { $0.path == selected.path })
+        selectedWorktree = worktrees.first(where: { $0.id == selected.id })
     }
 
     private func schedulePRFetch(repositoryPath: String) {
@@ -264,24 +264,46 @@ final class WorktreeListViewModel: ObservableObject {
 
     // MARK: - Add Worktree from PR (via queue)
 
-    /// Validates and enqueues a worktree-creation job for the given PR branch.
-    /// Returns an error string if the PR cannot be queued (e.g. already exists),
-    /// nil on success.
+    /// Enqueues a worktree-creation job for the given PR branch.
+    /// If the branch is already checked out in another worktree, a versioned local
+    /// branch name (e.g. `feature/foo-v2`) is generated so git can create a second
+    /// worktree on the same remote ref. Returns an error string only when no
+    /// repository is selected; otherwise always enqueues and returns nil.
     @discardableResult
     func addWorktreeFromPR(_ pr: PullRequestInfo) -> String? {
         guard let repository else {
             return OhMyWorktreeError.repositoryNotFound.errorDescription
         }
-        if worktrees.contains(where: { $0.branch == pr.branch }) {
-            return OhMyWorktreeError.worktreeAlreadyExists(branch: pr.branch).errorDescription
-        }
-        var folderName = pr.branch.replacingOccurrences(of: "/", with: "-")
-        let existingNames = Set(worktrees.map { $0.folderName })
-        if existingNames.contains(folderName) {
+
+        let baseName = pr.branch.replacingOccurrences(of: "/", with: "-")
+        let existingFolderNames = Set(worktrees.map { $0.folderName })
+        let existingBranches = Set(worktrees.compactMap { $0.branch })
+        let isAlreadyCheckedOut = existingBranches.contains(pr.branch)
+
+        let folderName: String
+        let localBranch: String
+
+        if isAlreadyCheckedOut {
+            // The PR branch is already checked out: create a versioned local branch
+            // (e.g. "feature/foo-v2") starting at origin/feature/foo.
             var version = 2
-            while existingNames.contains("\(folderName)-v\(version)") { version += 1 }
-            folderName = "\(folderName)-v\(version)"
+            while existingFolderNames.contains("\(baseName)-v\(version)")
+                    || existingBranches.contains("\(pr.branch)-v\(version)") {
+                version += 1
+            }
+            folderName = "\(baseName)-v\(version)"
+            localBranch = "\(pr.branch)-v\(version)"
+        } else {
+            localBranch = pr.branch
+            if existingFolderNames.contains(baseName) {
+                var version = 2
+                while existingFolderNames.contains("\(baseName)-v\(version)") { version += 1 }
+                folderName = "\(baseName)-v\(version)"
+            } else {
+                folderName = baseName
+            }
         }
+
         let repoName = (repository.path as NSString).lastPathComponent
         let worktreePath = (NSHomeDirectory() as NSString)
             .appendingPathComponent("oh-my-worktree/workspaces/\(repoName)/\(folderName)")
@@ -292,7 +314,7 @@ final class WorktreeListViewModel: ObservableObject {
             displayName: pr.branch,
             repositoryPath: repository.path,
             repositoryID: repository.id,
-            kind: .addWorktreeFromPR(branch: pr.branch)
+            kind: .addWorktreeFromPR(remoteBranch: pr.branch, localBranch: localBranch)
         )
         jobQueue.enqueue(job)
         return nil
