@@ -338,4 +338,77 @@ final class ImportPRViewModelTests: XCTestCase {
         let date = Date().addingTimeInterval(-86400 * 800) // ~2.2 years ago
         XCTAssertEqual(date.relativeTimeString, "2y ago")
     }
+
+    /// Edge case: 360 days → months=12, but days/365=0 would produce "0y ago".
+    /// Must use months/12 to correctly show "1y ago".
+    func testRelativeTimeString_360days_showsOneYear() {
+        let date = Date().addingTimeInterval(-86400 * 360) // 360 days → 12 months
+        XCTAssertEqual(date.relativeTimeString, "1y ago")
+    }
+
+    // MARK: - loadPRs generation guard (isLoading race)
+
+    /// When a second loadPRs() call invalidates the first call's generation,
+    /// the stale call must NOT set isLoading = false (it belongs to the newer call).
+    func testLoadPRs_staleCall_doesNotResetIsLoading() async {
+        // Use a slow mock that lets us interleave two loadPRs calls.
+        let slowMock = SlowPRFetching()
+        let sut = ImportPRViewModel(pullRequestService: slowMock)
+        sut.repositoryPath = "/tmp/repo"
+
+        // Start first load — it will suspend at the await.
+        let firstLoad = Task { @MainActor in await sut.loadPRs() }
+
+        // Wait for the first load to reach the suspension point.
+        while !slowMock.isSuspended { await Task.yield() }
+
+        // Start second load — invalidates first load's generation.
+        let secondLoad = Task { @MainActor in await sut.loadPRs() }
+
+        // Wait for second load to reach the suspension point.
+        while slowMock.suspendCount < 2 { await Task.yield() }
+
+        // Resume first call — it should see generation mismatch.
+        slowMock.resume()
+
+        await firstLoad.value
+
+        // After first call returns, isLoading should still be true
+        // because the second call (the valid one) is still in progress.
+        XCTAssertTrue(sut.isLoading,
+                      "Stale loadPRs call must not reset isLoading when generation mismatches")
+
+        // Resume second call to clean up.
+        slowMock.resume()
+        await secondLoad.value
+        XCTAssertFalse(sut.isLoading)
+    }
+}
+
+// MARK: - Slow mock for interleaving test
+
+private final class SlowPRFetching: PullRequestFetching, @unchecked Sendable {
+    private var continuations: [CheckedContinuation<Void, Never>] = []
+    private let lock = NSLock()
+    private(set) var suspendCount = 0
+    var isSuspended: Bool { suspendCount > 0 }
+
+    func fetchPullRequests(repositoryPath: String) async -> [String: PullRequestInfo] { [:] }
+
+    func fetchPullRequestList(repositoryPath: String) async -> [PullRequestInfo]? {
+        await withCheckedContinuation { continuation in
+            lock.lock()
+            continuations.append(continuation)
+            suspendCount += 1
+            lock.unlock()
+        }
+        return []
+    }
+
+    func resume() {
+        lock.lock()
+        let cont = continuations.isEmpty ? nil : continuations.removeFirst()
+        lock.unlock()
+        cont?.resume()
+    }
 }
