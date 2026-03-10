@@ -412,8 +412,4 @@ extension WorktreeListViewModelTests {
     }
 }
 
-// MARK: - No-op PR Service
-
-private final class MockNoPRService: PullRequestFetching {
-    func fetchPullRequests(repositoryPath: String) async -> [String: PullRequestInfo] { [:] }
-}
+// MockNoPRService is defined in MockGitExecutor.swift

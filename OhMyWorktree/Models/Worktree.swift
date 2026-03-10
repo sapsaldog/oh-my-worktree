@@ -40,22 +40,12 @@ struct Worktree: Identifiable, Hashable {
     }
 
     var relativeLastActivity: String? {
-        guard let date = lastActivityAt else { return nil }
-        let seconds = Int(-date.timeIntervalSinceNow)
-        if seconds < 60 { return "just now" }
-        let minutes = seconds / 60
-        if minutes < 60 { return "\(minutes)m ago" }
-        let hours = minutes / 60
-        if hours < 24 { return "\(hours)h ago" }
-        let days = hours / 24
-        if days < 30 { return "\(days)d ago" }
-        let months = days / 30
-        return "\(months)M ago"
+        lastActivityAt?.relativeTimeString
     }
 
     /// Generate a deterministic UUID from the worktree path so that
     /// the same worktree always produces the same id across reloads.
-    private static func stableID(for path: String) -> UUID {
+    static func stableID(for path: String) -> UUID {
         let data = Data(path.utf8)
         var hash = [UInt8](repeating: 0, count: 16)
         data.withUnsafeBytes { buffer in

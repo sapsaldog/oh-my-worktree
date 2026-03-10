@@ -12,44 +12,47 @@ struct QueueStatusBarView: View {
 
     private var queueBar: some View {
         let queue = viewModel.jobQueue
-        return Button(action: {
-            guard queue.hasActiveJobs || queue.hasFailedJobs else { return }
-            showingQueueDetail.toggle()
-        }) {
-            HStack(spacing: 8) {
-                if queue.hasActiveJobs {
-                    ProgressView(value: queue.progressFraction)
-                        .progressViewStyle(.linear)
-                        .frame(width: 72)
-                        .tint(.blue)
+        return HStack(spacing: 8) {
+            Button(action: {
+                guard queue.hasActiveJobs || queue.hasFailedJobs else { return }
+                showingQueueDetail.toggle()
+            }) {
+                HStack(spacing: 8) {
+                    if queue.hasActiveJobs {
+                        ProgressView(value: queue.progressFraction)
+                            .progressViewStyle(.linear)
+                            .frame(width: 72)
+                            .tint(.blue)
 
-                    if let desc = queue.currentJobDescription {
-                        Text(desc)
+                        if let desc = queue.currentJobDescription {
+                            Text(desc)
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                    } else if queue.hasFailedJobs {
+                        Image(systemName: "exclamationmark.circle.fill")
                             .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
+                            .foregroundStyle(.red)
+                        Text("\(queue.failedJobCount) failed (tap to review)")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.red)
+                    } else {
+                        Text("No active tasks")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.tertiary)
                     }
-                } else if queue.hasFailedJobs {
-                    let failCount = queue.jobs.filter { if case .failed = $0.state { return true }; return false }.count
-                    Image(systemName: "exclamationmark.circle.fill")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.red)
-                    Text("\(failCount) failed (tap to review)")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.red)
-                } else {
-                    Text("No active tasks")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.tertiary)
-                }
-                Spacer()
-
-                if viewModel.repository != nil {
-                    addSplitButton
                 }
             }
+            .buttonStyle(.plain)
+            .disabled(!queue.hasActiveJobs && !queue.hasFailedJobs)
+
+            Spacer()
+
+            if viewModel.repository != nil {
+                addSplitButton
+            }
         }
-        .buttonStyle(.plain)
         .popover(isPresented: $showingQueueDetail, arrowEdge: .bottom) {
             QueueDetailPopoverView(queue: queue)
         }

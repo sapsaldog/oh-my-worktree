@@ -6,6 +6,15 @@ import Foundation
 // Used by BackgroundTaskQueueTests and WorktreeListViewModelSelectionTests.
 // WorktreeManagerTests uses its own local mock with a different stubbing API.
 
+// MARK: - No-op PR Service Mock
+// Shared by WorktreeListViewModelTests and WorktreeListViewModelSelectionTests.
+
+final class MockNoPRService: PullRequestFetching {
+    func fetchPullRequests(repositoryPath: String) async -> [String: PullRequestInfo] { [:] }
+}
+
+// MARK: - Simple Git Executor Mock
+
 final class MockSimpleGitExecutor: GitCommandExecuting, @unchecked Sendable {
     var worktreeListOutput: String = ""
     var shouldFail = false

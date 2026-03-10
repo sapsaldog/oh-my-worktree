@@ -136,8 +136,4 @@ final class WorktreeListViewModelSelectionTests: XCTestCase {
     }
 }
 
-// MARK: - Test-local Mock
-
-private final class MockNoPRService: PullRequestFetching {
-    func fetchPullRequests(repositoryPath: String) async -> [String: PullRequestInfo] { [:] }
-}
+// MockNoPRService is defined in MockGitExecutor.swift

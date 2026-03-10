@@ -85,6 +85,7 @@ final class WorktreeListViewModel: ObservableObject {
         // coalesces both notifications into one render with no "Publishing changes
         // from within view updates" warning.
         selectionSyncCancellable = $selectedWorktreeIDs
+            .dropFirst()
             .sink { [weak self] ids in
                 guard let self else { return }
                 if ids.count == 1, let id = ids.first {
@@ -116,11 +117,13 @@ final class WorktreeListViewModel: ObservableObject {
                     self.selectedWorktree = nil
                 }
                 self.selectedWorktreeIDs.remove(job.worktreeID)
+                NotificationManager.shared.notifyCompleted(job: job)
             }
-            NotificationManager.shared.notifyCompleted(job: job)
         case (.completed, .pull):
-            Task { @MainActor [weak self] in await self?.loadWorktrees() }
-            NotificationManager.shared.notifyCompleted(job: job)
+            Task { @MainActor [weak self] in
+                await self?.loadWorktrees()
+                NotificationManager.shared.notifyCompleted(job: job)
+            }
         case (.completed, .addWorktreeFromPR):
             Task { @MainActor [weak self] in
                 guard let self else { return }
@@ -136,14 +139,13 @@ final class WorktreeListViewModel: ObservableObject {
                     }
                 }
                 await self.loadWorktrees()
-                self.isShowingImportPR = false
+                NotificationManager.shared.notifyCompleted(job: job)
             }
-            NotificationManager.shared.notifyCompleted(job: job)
         case (.failed(let msg), _):
             Task { @MainActor [weak self] in
                 self?.errorMessage = msg
+                NotificationManager.shared.notifyFailed(message: msg, jobID: job.id)
             }
-            NotificationManager.shared.notifyFailed(message: msg, jobID: job.id)
         default:
             break
         }
@@ -316,11 +318,11 @@ final class WorktreeListViewModel: ObservableObject {
             localBranch = pr.branch
         }
 
-        let repoName = (repository.path as NSString).lastPathComponent
-        let worktreePath = (NSHomeDirectory() as NSString)
-            .appendingPathComponent("oh-my-worktree/workspaces/\(repoName)/\(folderName)")
+        let worktreePath = WorktreeManager.worktreePath(
+            repositoryPath: repository.path, folderName: folderName
+        )
         let job = BackgroundJob(
-            worktreeID: UUID(),
+            worktreeID: Worktree.stableID(for: worktreePath),
             worktreePath: worktreePath,
             folderName: folderName,
             displayName: pr.branch,

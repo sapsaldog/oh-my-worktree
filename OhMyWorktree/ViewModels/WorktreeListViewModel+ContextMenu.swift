@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - ContextMenuActions
 
-struct ContextMenuActions: Equatable {
+struct ContextMenuActions {
     let canOpen: Bool
     let canRename: Bool
     let canGitPull: Bool

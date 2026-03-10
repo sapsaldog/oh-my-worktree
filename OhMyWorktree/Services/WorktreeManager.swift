@@ -12,6 +12,16 @@ final class WorktreeManager: Sendable {
         self.executor = executor
     }
 
+    // MARK: - Path Construction
+
+    /// Canonical worktree directory path for a given repository and folder name.
+    /// Used by both WorktreeManager and WorktreeListViewModel to avoid path divergence.
+    static func worktreePath(repositoryPath: String, folderName: String) -> String {
+        let repoName = (repositoryPath as NSString).lastPathComponent
+        return (NSHomeDirectory() as NSString)
+            .appendingPathComponent("oh-my-worktree/workspaces/\(repoName)/\(folderName)")
+    }
+
     // MARK: - List Worktrees
 
     func listWorktrees(repositoryPath: String) async throws -> [Worktree] {
@@ -37,9 +47,7 @@ final class WorktreeManager: Sendable {
         folderName: String,
         baseBranch: String? = nil
     ) async throws -> Worktree {
-        let repoName = (repositoryPath as NSString).lastPathComponent
-        let worktreePath = (NSHomeDirectory() as NSString)
-            .appendingPathComponent("oh-my-worktree/workspaces/\(repoName)/\(folderName)")
+        let worktreePath = Self.worktreePath(repositoryPath: repositoryPath, folderName: folderName)
 
         try FileManager.default.createDirectory(
             atPath: (worktreePath as NSString).deletingLastPathComponent,
@@ -83,9 +91,7 @@ final class WorktreeManager: Sendable {
         folderName: String,
         branch: String
     ) async throws -> Worktree {
-        let repoName = (repositoryPath as NSString).lastPathComponent
-        let worktreePath = (NSHomeDirectory() as NSString)
-            .appendingPathComponent("oh-my-worktree/workspaces/\(repoName)/\(folderName)")
+        let worktreePath = Self.worktreePath(repositoryPath: repositoryPath, folderName: folderName)
 
         try FileManager.default.createDirectory(
             atPath: (worktreePath as NSString).deletingLastPathComponent,
@@ -129,9 +135,7 @@ final class WorktreeManager: Sendable {
         localBranch: String,
         remoteBranch: String
     ) async throws -> Worktree {
-        let repoName = (repositoryPath as NSString).lastPathComponent
-        let worktreePath = (NSHomeDirectory() as NSString)
-            .appendingPathComponent("oh-my-worktree/workspaces/\(repoName)/\(folderName)")
+        let worktreePath = Self.worktreePath(repositoryPath: repositoryPath, folderName: folderName)
 
         try FileManager.default.createDirectory(
             atPath: (worktreePath as NSString).deletingLastPathComponent,

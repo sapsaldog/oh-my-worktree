@@ -98,7 +98,7 @@ final class ImportPRViewModelTests: XCTestCase {
 
     // MARK: - Search Filtering
 
-    func testFilteredPRs_searchByTitle_casInsensitive() {
+    func testFilteredPRs_searchByTitle_caseInsensitive() {
         let sut = ImportPRViewModel()
         sut.allPRs = [
             makePR(number: 1, title: "Add Dark Mode"),

@@ -60,7 +60,8 @@ final class BackgroundTaskQueue: ObservableObject {
     var activeJobs: [BackgroundJob] { jobs.filter { $0.state.isActive } }
     var hasActiveJobs: Bool { !activeJobs.isEmpty }
     @Published private(set) var busyWorktreeIDs: Set<UUID> = []
-    var hasFailedJobs: Bool { jobs.contains { if case .failed = $0.state { return true }; return false } }
+    var hasFailedJobs: Bool { failedJobCount > 0 }
+    var failedJobCount: Int { jobs.filter { if case .failed = $0.state { return true }; return false }.count }
 
     func clearFailed() {
         jobs = jobs.filter { if case .failed = $0.state { return false }; return true }
@@ -99,6 +100,8 @@ final class BackgroundTaskQueue: ObservableObject {
             processingTasks[repoPath] = nil
             clearJobsIfIdle()
         }
+        // Note: O(n²) — each iteration scans the full array. Consider an indexed
+        // lookup if bulk enqueue (>100 jobs) becomes a real use case.
         while let index = jobs.firstIndex(where: { $0.repositoryPath == repoPath && $0.state == .pending }) {
             await executeJob(at: index)
         }
@@ -207,9 +210,8 @@ final class BackgroundTaskQueue: ObservableObject {
 
     private func clearJobsIfIdle() {
         guard activeJobs.isEmpty else { return }
-        let failedJobs = jobs.filter { if case .failed = $0.state { return true }; return false }
         // Fast-path: nothing failed, clear everything.
-        if failedJobs.isEmpty {
+        if failedJobCount == 0 {
             if !jobs.isEmpty {
                 jobs = []
                 refreshBusyWorktreeIDs()
@@ -217,7 +219,8 @@ final class BackgroundTaskQueue: ObservableObject {
             return
         }
         // Keep only the most recent failed jobs for display.
-        jobs = Array(failedJobs.suffix(Self.maxFailedJobs))
+        let failed = jobs.filter { if case .failed = $0.state { return true }; return false }
+        jobs = Array(failed.suffix(Self.maxFailedJobs))
         refreshBusyWorktreeIDs()
     }
 
