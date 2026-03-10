@@ -175,6 +175,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let isSelected = worktreeViewModel?.selectedWorktree?.id == worktree.id
             let bullet = isSelected ? "\u{25CF} " : "   "
             let pr = worktree.branch.flatMap { pullRequests[$0] }
+                ?? worktree.prRemoteBranch.flatMap { pullRequests[$0] }
             let prLabel = pr.map { " #\($0.number)" } ?? ""
             let activity = worktree.relativeLastActivity.map { "  \($0)" } ?? ""
             let item = NSMenuItem(
