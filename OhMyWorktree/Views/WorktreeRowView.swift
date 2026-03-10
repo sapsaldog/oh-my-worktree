@@ -3,6 +3,7 @@ import SwiftUI
 struct WorktreeRowView: View {
     let worktree: Worktree
     var pullRequest: PullRequestInfo?
+    var jobState: BackgroundJobState?
     var isRenaming: Bool = false
     var onOpenPullRequest: (() -> Void)?
     var onRename: ((String) -> Void)?
@@ -19,40 +20,29 @@ struct WorktreeRowView: View {
                 HStack(spacing: 6) {
                     if isRenaming {
                         TextField("", text: $editingName)
-                        .font(.system(.body, design: .default, weight: .medium))
-                        .textFieldStyle(.plain)
-                        .focused($isTextFieldFocused)
-                        .onSubmit {
-                            onRename?(editingName)
-                        }
-                        .onExitCommand {
-                            onCancelRename?()
-                        }
-                        .onAppear {
-                            editingName = worktree.customName ?? worktree.displayName
-                            isTextFieldFocused = true
-                        }
+                            .font(.system(.body, design: .default, weight: .medium))
+                            .textFieldStyle(.plain)
+                            .focused($isTextFieldFocused)
+                            .onSubmit { onRename?(editingName) }
+                            .onExitCommand { onCancelRename?() }
+                            .onAppear {
+                                editingName = worktree.customName ?? worktree.displayName
+                                isTextFieldFocused = true
+                            }
                     } else {
                         Text(worktree.displayName)
                             .font(.system(.body, design: .default, weight: .medium))
                             .lineLimit(1)
                     }
 
-                    if let pr = pullRequest {
-                        prBadge(pr)
-                    }
-
-                    if worktree.isBare {
-                        badge("bare", color: .gray)
-                    }
+                    if let pr = pullRequest { prBadge(pr) }
+                    if worktree.isBare { badge("bare", color: .gray) }
                     if worktree.isLocked {
                         Image(systemName: "lock.fill")
                             .font(.caption2)
                             .foregroundStyle(.orange)
                     }
-                    if worktree.isDetached {
-                        badge("detached", color: .yellow)
-                    }
+                    if worktree.isDetached { badge("detached", color: .yellow) }
                 }
 
                 HStack(spacing: 4) {
@@ -76,13 +66,46 @@ struct WorktreeRowView: View {
 
             Spacer()
 
-            if let relative = worktree.relativeLastActivity {
+            // Job state indicator (FR-031)
+            if let jobState {
+                jobStateIndicator(jobState)
+            } else if let relative = worktree.relativeLastActivity {
                 Text(relative)
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
         }
         .padding(.vertical, 2)
+        .opacity(jobState?.isActive == true ? 0.7 : 1.0)
+    }
+
+    // MARK: - Job State Indicator
+
+    @ViewBuilder
+    private func jobStateIndicator(_ state: BackgroundJobState) -> some View {
+        switch state {
+        case .pending:
+            Image(systemName: "clock")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        case .inProgress:
+            ProgressView()
+                .scaleEffect(0.65)
+                .frame(width: 14, height: 14)
+        case .completed:
+            Image(systemName: "checkmark.circle.fill")
+                .font(.caption)
+                .foregroundStyle(.green)
+        case .failed(let msg):
+            Image(systemName: "exclamationmark.circle.fill")
+                .font(.caption)
+                .foregroundStyle(.red)
+                .help(msg)
+        case .cancelled:
+            Image(systemName: "minus.circle")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
     }
 
     // MARK: - Status Indicator
@@ -94,15 +117,10 @@ struct WorktreeRowView: View {
     }
 
     private var statusColor: Color {
-        if worktree.isBare {
-            return .gray
-        } else if worktree.isLocked {
-            return .orange
-        } else if worktree.isDetached {
-            return .yellow
-        } else {
-            return .green
-        }
+        if worktree.isBare { return .gray }
+        if worktree.isLocked { return .orange }
+        if worktree.isDetached { return .yellow }
+        return .green
     }
 
     // MARK: - Badge
@@ -120,9 +138,7 @@ struct WorktreeRowView: View {
     // MARK: - PR Badge
 
     private func prBadge(_ pr: PullRequestInfo) -> some View {
-        Button(action: {
-            onOpenPullRequest?()
-        }) {
+        Button(action: { onOpenPullRequest?() }) {
             HStack(spacing: 3) {
                 PullRequestStateIcon(state: pr.state, size: 12)
                 Text("#\(pr.number)")

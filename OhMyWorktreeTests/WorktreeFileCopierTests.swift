@@ -45,7 +45,7 @@ final class WorktreeFileCopierTests: XCTestCase {
         return fm.fileExists(atPath: (root as NSString).appendingPathComponent(relativePath))
     }
 
-    // MARK: - Legacy Fallback (.worktreeinclude 없음)
+    // MARK: - Legacy Fallback (no .worktreeinclude)
 
     func testLegacyFallback_copiesEnvFiles() {
         createFile(".env")

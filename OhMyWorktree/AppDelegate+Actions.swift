@@ -106,14 +106,10 @@ extension AppDelegate {
     }
 
     @objc func gitPullClicked(_ sender: NSMenuItem) {
-        guard let ref = sender.representedObject as? WorktreeRef else { return }
-        showOrCreateMainWindow()
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            if let worktree = self.worktreeViewModel?.worktrees.first(where: { $0.id == ref.id }) {
-                await self.worktreeViewModel?.gitPull(worktree)
-            }
-        }
+        guard let ref = sender.representedObject as? WorktreeRef,
+              let worktree = worktreeViewModel?.worktrees.first(where: { $0.id == ref.id })
+        else { return }
+        worktreeViewModel?.gitPull(worktree)
     }
 
     @objc func openPullRequestClicked(_ sender: NSMenuItem) {

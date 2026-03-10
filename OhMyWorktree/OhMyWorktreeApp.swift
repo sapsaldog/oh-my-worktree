@@ -11,7 +11,10 @@ struct OhMyWorktreeApp: App {
         WindowGroup(id: "main") {
             ContentView(repoViewModel: repoViewModel, worktreeViewModel: worktreeViewModel)
                 .frame(minWidth: 400, minHeight: 300)
-                .modifier(OpenWindowModifier(appDelegate: appDelegate))
+                .sheet(isPresented: $worktreeViewModel.isShowingImportPR) {
+                    ImportPRView(worktreeViewModel: worktreeViewModel)
+                }
+                .modifier(OpenWindowModifier(appDelegate: appDelegate, worktreeViewModel: worktreeViewModel))
                 .onAppear {
                     appDelegate.repoViewModel = repoViewModel
                     appDelegate.worktreeViewModel = worktreeViewModel
@@ -19,12 +22,6 @@ struct OhMyWorktreeApp: App {
                 }
         }
         .defaultSize(width: 500, height: 400)
-        .windowResizability(.contentSize)
-
-        Window("Import from GitHub PR", id: "import-pr") {
-            ImportPRView(worktreeViewModel: worktreeViewModel)
-        }
-        .defaultSize(width: 480, height: 560)
         .windowResizability(.contentSize)
 
         Settings {
@@ -38,6 +35,7 @@ struct OhMyWorktreeApp: App {
 /// so they can be triggered from the menu bar even after the window is closed.
 private struct OpenWindowModifier: ViewModifier {
     let appDelegate: AppDelegate
+    let worktreeViewModel: WorktreeListViewModel
     @Environment(\.openWindow) private var openWindow
     @Environment(\.openSettings) private var openSettings
 
@@ -47,8 +45,9 @@ private struct OpenWindowModifier: ViewModifier {
                 appDelegate.openMainWindow = { [openWindow] in
                     openWindow(id: "main")
                 }
-                appDelegate.openImportPRWindow = { [openWindow] in
-                    openWindow(id: "import-pr")
+                appDelegate.openImportPRWindow = { [openWindow, worktreeViewModel] in
+                    openWindow(id: "main")
+                    Task { @MainActor in worktreeViewModel.isShowingImportPR = true }
                 }
                 appDelegate.openSettings = { [openSettings] in
                     openSettings()

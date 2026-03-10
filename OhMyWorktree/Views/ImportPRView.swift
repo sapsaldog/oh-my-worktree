@@ -117,16 +117,16 @@ struct ImportPRView: View {
             Button("Cancel") { dismiss() }
                 .keyboardShortcut(.cancelAction)
 
-            Button("Create Worktree") {
-                Task {
-                    let success = await viewModel.createWorktree { pr in
-                        try await worktreeViewModel.addWorktreeFromPR(pr)
-                    }
-                    if success { dismiss() }
+            Button("Import Worktree") {
+                guard let pr = viewModel.selectedPR else { return }
+                if let error = worktreeViewModel.addWorktreeFromPR(pr) {
+                    viewModel.errorMessage = error
+                } else {
+                    dismiss()
                 }
             }
             .keyboardShortcut(.defaultAction)
-            .disabled(viewModel.selectedPR == nil || viewModel.isCreating)
+            .disabled(viewModel.selectedPR == nil)
         }
         .padding(16)
     }
