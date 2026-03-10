@@ -14,6 +14,7 @@ struct ImportPRView: View {
             Divider()
             footerArea
         }
+        .frame(minWidth: 420, minHeight: 320)
         .onAppear {
             viewModel.repositoryPath = worktreeViewModel.repository?.path ?? ""
             viewModel.repositoryName = worktreeViewModel.repository?.name ?? ""
@@ -113,7 +114,8 @@ struct ImportPRView: View {
                 ImportPRRowView(pr: pr)
                     .tag(pr.number)
             }
-            .listStyle(.inset(alternatesRowBackgrounds: true))
+            .listStyle(.inset)
+            .frame(maxHeight: .infinity)
             .onChange(of: selectedID) { _, id in
                 let vm = viewModel
                 Task { @MainActor in
