@@ -311,6 +311,32 @@ final class ImportPRViewModelTests: XCTestCase {
         XCTAssertFalse(sut.isLoading)
     }
 
+    // MARK: - retry (RED: verifies retry() actually updates state)
+
+    func testRetry_afterFailure_updatesState() async {
+        let mock = MockPRFetching()
+        mock.listResult = nil
+        let sut = ImportPRViewModel(pullRequestService: mock)
+        sut.repositoryPath = "/tmp/repo"
+
+        await sut.loadPRs()
+        XCTAssertTrue(sut.loadFailed)
+
+        // Use retry() (not direct loadPRs call) to verify it doesn't self-cancel
+        mock.listResult = [makePR(number: 1)]
+        sut.retry()
+
+        // Wait for the retry Task to be scheduled and complete on @MainActor.
+        // Task.sleep suspends the current task, giving the retry task a chance to run.
+        let deadline = Date().addingTimeInterval(2)
+        while (sut.loadFailed || sut.allPRs.isEmpty) && Date() < deadline {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        XCTAssertFalse(sut.loadFailed, "retry() should clear loadFailed on success")
+        XCTAssertEqual(sut.allPRs.count, 1, "retry() should populate allPRs")
+    }
+
     // MARK: - relativeTimeString (RED: drives guard for future dates)
 
     func testRelativeTimeString_justNow_lessThan60Seconds() {

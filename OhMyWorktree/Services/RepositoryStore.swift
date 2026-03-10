@@ -224,10 +224,12 @@ actor RepositoryStore {
         encoder.outputFormatting = .prettyPrinted
 
         // Only encode and write data that was actually modified.
+        // Clear dirty flag only on successful write so failures are retried.
         if dirtyRepos {
             if let data = try? encoder.encode(repositories) {
-                atomicWrite(data: data, to: repositoriesFileURL)
-                dirtyRepos = false
+                if atomicWrite(data: data, to: repositoriesFileURL) {
+                    dirtyRepos = false
+                }
             }
         }
         if dirtyMetadata {
@@ -235,8 +237,9 @@ actor RepositoryStore {
                 uniqueKeysWithValues: worktreeMetadata.map { ($0.key.uuidString, $0.value) }
             )
             if let data = try? encoder.encode(stringKeyed) {
-                atomicWrite(data: data, to: metadataFileURL)
-                dirtyMetadata = false
+                if atomicWrite(data: data, to: metadataFileURL) {
+                    dirtyMetadata = false
+                }
             }
         }
         if dirtyOverrides {
@@ -244,13 +247,15 @@ actor RepositoryStore {
                 uniqueKeysWithValues: envCopyOverrides.map { ($0.key.uuidString, $0.value) }
             )
             if let data = try? encoder.encode(stringKeyed) {
-                atomicWrite(data: data, to: envCopyOverridesFileURL)
-                dirtyOverrides = false
+                if atomicWrite(data: data, to: envCopyOverridesFileURL) {
+                    dirtyOverrides = false
+                }
             }
         }
     }
 
-    private func atomicWrite(data: Data, to destinationURL: URL) {
+    @discardableResult
+    private func atomicWrite(data: Data, to destinationURL: URL) -> Bool {
         let fm = FileManager.default
         let directory = destinationURL.deletingLastPathComponent()
         let tempURL = directory.appendingPathComponent(UUID().uuidString + ".tmp")
@@ -269,9 +274,11 @@ actor RepositoryStore {
                 // First write — just move the temp file into place
                 try fm.moveItem(at: tempURL, to: destinationURL)
             }
+            return true
         } catch {
             print("[RepositoryStore] Failed to write \(destinationURL.lastPathComponent): \(error.localizedDescription)")
             try? fm.removeItem(at: tempURL)
+            return false
         }
     }
 }

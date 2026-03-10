@@ -10,6 +10,7 @@ struct WorktreeRowView: View {
     var onCancelRename: (() -> Void)?
 
     @State private var editingName: String = ""
+    @State private var didCancelRename = false
     @FocusState private var isTextFieldFocused: Bool
 
     var body: some View {
@@ -24,13 +25,18 @@ struct WorktreeRowView: View {
                             .textFieldStyle(.plain)
                             .focused($isTextFieldFocused)
                             .onSubmit { onRename?(editingName) }
-                            .onExitCommand { onCancelRename?() }
+                            .onExitCommand {
+                                didCancelRename = true
+                                onCancelRename?()
+                            }
                             .onChange(of: isTextFieldFocused) { _, focused in
-                                // Commit rename when focus is lost (e.g. clicking away)
-                                if !focused { onRename?(editingName) }
+                                // Commit rename when focus is lost (e.g. clicking away),
+                                // but not if the user pressed Esc to cancel.
+                                if !focused && !didCancelRename { onRename?(editingName) }
                             }
                             .onAppear {
                                 editingName = worktree.customName ?? worktree.displayName
+                                didCancelRename = false
                                 isTextFieldFocused = true
                             }
                     } else {

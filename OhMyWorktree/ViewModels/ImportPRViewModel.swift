@@ -59,7 +59,6 @@ final class ImportPRViewModel: ObservableObject {
 
     func loadPRs() async {
         guard !repositoryPath.isEmpty else { return }
-        loadTask?.cancel()
         let myGeneration = UUID()
         loadGeneration = myGeneration
         isLoading = true
@@ -67,10 +66,10 @@ final class ImportPRViewModel: ObservableObject {
         errorMessage = nil
         defer { isLoading = false }
         if let prs = await pullRequestService.fetchPullRequestList(repositoryPath: repositoryPath) {
-            guard !Task.isCancelled, loadGeneration == myGeneration else { return }
+            guard loadGeneration == myGeneration else { return }
             allPRs = prs
         } else {
-            guard !Task.isCancelled, loadGeneration == myGeneration else { return }
+            guard loadGeneration == myGeneration else { return }
             loadFailed = true
             allPRs = []
         }

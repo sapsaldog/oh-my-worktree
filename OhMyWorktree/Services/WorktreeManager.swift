@@ -151,7 +151,10 @@ final class WorktreeManager: Sendable {
         )
 
         let resolvedStartPoint = startPoint ?? "origin/\(remoteBranch)"
-        let arguments = ["worktree", "add", "-B", localBranch, worktreePath, resolvedStartPoint]
+        // Use -b (not -B) to prevent silently resetting an existing local branch
+        // that has unpushed commits. If the branch already exists, git will fail
+        // with a clear error rather than force-moving the branch pointer.
+        let arguments = ["worktree", "add", "-b", localBranch, worktreePath, resolvedStartPoint]
 
         let result = try await executor.execute(
             arguments: arguments,

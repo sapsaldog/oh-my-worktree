@@ -54,12 +54,24 @@ final class GitCommandExecutor: GitCommandExecuting, Sendable {
                     do {
                         try process.run()
 
-                        // Read pipe data BEFORE waitUntilExit to prevent deadlock.
-                        // If the subprocess fills the pipe buffer (~64KB on macOS),
-                        // it blocks waiting for the pipe to be drained. Reading first
-                        // ensures the buffer is consumed while the process is still running.
-                        let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
-                        let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+                        // Read both pipes concurrently to prevent deadlock.
+                        // If either pipe's buffer fills (~64KB on macOS), the child
+                        // blocks until it's drained. Sequential reads can deadlock
+                        // when one pipe fills while we're blocked reading the other.
+                        var stdoutData = Data()
+                        var stderrData = Data()
+                        let group = DispatchGroup()
+                        group.enter()
+                        DispatchQueue.global(qos: .userInitiated).async {
+                            stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+                            group.leave()
+                        }
+                        group.enter()
+                        DispatchQueue.global(qos: .userInitiated).async {
+                            stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+                            group.leave()
+                        }
+                        group.wait()
 
                         process.waitUntilExit()
 
