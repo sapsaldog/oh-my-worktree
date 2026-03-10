@@ -407,7 +407,8 @@ extension WorktreeListViewModelTests {
         }
         XCTAssertEqual(remote, "feature/a")
         XCTAssertEqual(local, "feature/a-v2")
-        XCTAssertEqual(sut.jobQueue.jobs[0].folderName, "feature-a-v2")
+        // Folder name is now a random name, not branch-derived.
+        XCTAssertFalse(sut.jobQueue.jobs[0].folderName.isEmpty)
     }
 }
 
@@ -437,8 +438,10 @@ extension WorktreeListViewModelTests {
         let job1 = sut.jobQueue.jobs[0]
         let job2 = sut.jobQueue.jobs[1]
         XCTAssertNotEqual(job1.folderName, job2.folderName,
-                          "Second import must use a versioned folder name")
-        XCTAssertEqual(job2.folderName, "feature-new-v2")
+                          "Second import must use a different random folder name")
+        // Folder names are random; verify they are non-empty and distinct.
+        XCTAssertFalse(job1.folderName.isEmpty)
+        XCTAssertFalse(job2.folderName.isEmpty)
         guard case .addWorktreeFromPR(_, let local2) = job2.kind else {
             XCTFail("Expected addWorktreeFromPR kind"); return
         }

@@ -105,7 +105,8 @@ struct WorktreeListView: View {
         let jobState = viewModel.jobQueue.jobs.first { $0.worktreeID == worktree.id }?.state
         return WorktreeRowView(
             worktree: worktree,
-            pullRequest: worktree.branch.flatMap { viewModel.pullRequests[$0] },
+            pullRequest: worktree.branch.flatMap { viewModel.pullRequests[$0] }
+                ?? worktree.prRemoteBranch.flatMap { viewModel.pullRequests[$0] },
             jobState: jobState,
             isRenaming: renamingWorktreeID == worktree.id,
             onOpenPullRequest: { viewModel.openPullRequest(for: worktree) },
@@ -161,7 +162,9 @@ struct WorktreeListView: View {
         Button("Open in cmux") { Task { await viewModel.openInCmux(worktree) } }
             .disabled(!viewModel.isCmuxAvailable || !actions.canOpen)
 
-        if !isMultiSelected, let branch = worktree.branch, let pr = viewModel.pullRequests[branch] {
+        let contextPR = worktree.branch.flatMap { viewModel.pullRequests[$0] }
+            ?? worktree.prRemoteBranch.flatMap { viewModel.pullRequests[$0] }
+        if !isMultiSelected, let pr = contextPR {
             Divider()
             Button("Open Pull Request #\(pr.number)") { viewModel.openPullRequest(for: worktree) }
         }

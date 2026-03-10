@@ -11,6 +11,9 @@ struct Worktree: Identifiable, Hashable {
     let isLocked: Bool
     var lastActivityAt: Date?
     var customName: String?
+    /// Remote PR branch this worktree was imported from (populated from metadata).
+    /// Used as fallback for PR badge lookup when local branch name differs.
+    var prRemoteBranch: String?
 
     var displayName: String {
         if let customName, !customName.isEmpty {

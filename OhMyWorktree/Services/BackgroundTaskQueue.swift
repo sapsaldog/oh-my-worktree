@@ -158,7 +158,7 @@ final class BackgroundTaskQueue: ObservableObject {
                             remoteBranch: remoteBranch
                         )
                     }
-                    let metadata = WorktreeMetadata(folderName: job.folderName)
+                    let metadata = WorktreeMetadata(folderName: job.folderName, prRemoteBranch: remoteBranch)
                     await st.addWorktreeMetadata(metadata, repositoryID: job.repositoryID)
                 }
             }

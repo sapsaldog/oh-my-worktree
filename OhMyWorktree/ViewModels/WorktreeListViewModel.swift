@@ -200,6 +200,7 @@ final class WorktreeListViewModel: ObservableObject {
             let wt = result[i]
             let meta = metadata.first(where: { $0.folderName == wt.folderName })
             result[i].customName = meta?.customName
+            result[i].prRemoteBranch = meta?.prRemoteBranch
             let metaActivity = meta?.lastActivityAt
             let commitDate = await worktreeManager.lastCommitDate(worktreePath: wt.path)
             switch (metaActivity, commitDate) {
@@ -281,8 +282,6 @@ final class WorktreeListViewModel: ObservableObject {
             return OhMyWorktreeError.repositoryNotFound.errorDescription
         }
 
-        let baseName = pr.branch.replacingOccurrences(of: "/", with: "-")
-
         // Include pending/in-progress import jobs so rapid double-enqueue of the
         // same PR doesn't collide on the same path/branch before the list refreshes.
         let activeJobs = jobQueue.jobs.filter { $0.state.isActive }
@@ -295,28 +294,18 @@ final class WorktreeListViewModel: ObservableObject {
         let existingBranches = Set(worktrees.compactMap { $0.branch }).union(queuedBranches)
         let isAlreadyCheckedOut = existingBranches.contains(pr.branch)
 
-        let folderName: String
-        let localBranch: String
+        // Always use a random folder name (same as regular addWorktree).
+        let folderName = RandomNameGenerator.generate(existingFolderNames: existingFolderNames)
 
+        let localBranch: String
         if isAlreadyCheckedOut {
             // The PR branch is already checked out: create a versioned local branch
             // (e.g. "feature/foo-v2") starting at origin/feature/foo.
             var version = 2
-            while existingFolderNames.contains("\(baseName)-v\(version)")
-                    || existingBranches.contains("\(pr.branch)-v\(version)") {
-                version += 1
-            }
-            folderName = "\(baseName)-v\(version)"
+            while existingBranches.contains("\(pr.branch)-v\(version)") { version += 1 }
             localBranch = "\(pr.branch)-v\(version)"
         } else {
             localBranch = pr.branch
-            if existingFolderNames.contains(baseName) {
-                var version = 2
-                while existingFolderNames.contains("\(baseName)-v\(version)") { version += 1 }
-                folderName = "\(baseName)-v\(version)"
-            } else {
-                folderName = baseName
-            }
         }
 
         let repoName = (repository.path as NSString).lastPathComponent
@@ -394,9 +383,9 @@ final class WorktreeListViewModel: ObservableObject {
     // MARK: - Open Pull Request
 
     func openPullRequest(for worktree: Worktree) {
-        guard let branch = worktree.branch,
-              let pr = pullRequests[branch]
-        else { return }
+        let pr = worktree.branch.flatMap { pullRequests[$0] }
+            ?? worktree.prRemoteBranch.flatMap { pullRequests[$0] }
+        guard let pr else { return }
         NSWorkspace.shared.open(pr.url)
     }
 
