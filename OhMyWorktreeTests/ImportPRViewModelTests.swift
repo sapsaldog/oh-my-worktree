@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import OhMyWorktree
 
 // MARK: - Mock
@@ -42,7 +43,7 @@ final class ImportPRViewModelTests: XCTestCase {
             makePR(number: 1, state: .open, isDraft: false),
             makePR(number: 2, state: .open, isDraft: true),
             makePR(number: 3, state: .merged),
-            makePR(number: 4, state: .closed),
+            makePR(number: 4, state: .closed)
         ]
         sut.selectedTab = .open
 
@@ -55,7 +56,7 @@ final class ImportPRViewModelTests: XCTestCase {
             makePR(number: 1, state: .open, isDraft: false),
             makePR(number: 2, state: .open, isDraft: true),
             makePR(number: 3, state: .open, isDraft: true),
-            makePR(number: 4, state: .merged),
+            makePR(number: 4, state: .merged)
         ]
         sut.selectedTab = .draft
 
@@ -68,7 +69,7 @@ final class ImportPRViewModelTests: XCTestCase {
         sut.allPRs = [
             makePR(number: 1, state: .open),
             makePR(number: 2, state: .merged),
-            makePR(number: 3, state: .closed),
+            makePR(number: 3, state: .closed)
         ]
         sut.selectedTab = .closed
 
@@ -80,7 +81,7 @@ final class ImportPRViewModelTests: XCTestCase {
         let sut = ImportPRViewModel()
         sut.allPRs = [
             makePR(number: 1, state: .open),
-            makePR(number: 2, state: .open, isDraft: true),
+            makePR(number: 2, state: .open, isDraft: true)
         ]
         sut.selectedTab = .closed
 
@@ -101,7 +102,7 @@ final class ImportPRViewModelTests: XCTestCase {
         let sut = ImportPRViewModel()
         sut.allPRs = [
             makePR(number: 1, title: "Add Dark Mode"),
-            makePR(number: 2, title: "Fix memory leak"),
+            makePR(number: 2, title: "Fix memory leak")
         ]
         sut.selectedTab = .open
         sut.searchText = "dark mode"
@@ -113,7 +114,7 @@ final class ImportPRViewModelTests: XCTestCase {
         let sut = ImportPRViewModel()
         sut.allPRs = [
             makePR(number: 42, title: "Something"),
-            makePR(number: 142, title: "Other"),
+            makePR(number: 142, title: "Other")
         ]
         sut.selectedTab = .open
         sut.searchText = "42"
@@ -127,7 +128,7 @@ final class ImportPRViewModelTests: XCTestCase {
         let sut = ImportPRViewModel()
         sut.allPRs = [
             makePR(number: 1, branch: "feature/dark-mode", title: "PR 1"),
-            makePR(number: 2, branch: "fix/crash", title: "PR 2"),
+            makePR(number: 2, branch: "fix/crash", title: "PR 2")
         ]
         sut.selectedTab = .open
         sut.searchText = "dark"
@@ -140,7 +141,7 @@ final class ImportPRViewModelTests: XCTestCase {
         sut.allPRs = [
             makePR(number: 1),
             makePR(number: 2),
-            makePR(number: 3),
+            makePR(number: 3)
         ]
         sut.selectedTab = .open
         sut.searchText = ""
@@ -164,7 +165,7 @@ final class ImportPRViewModelTests: XCTestCase {
         sut.allPRs = [
             makePR(number: 1, branch: "feature/login", state: .open, isDraft: false),
             makePR(number: 2, branch: "feature/logout", state: .open, isDraft: true),
-            makePR(number: 3, branch: "fix/crash", state: .open, isDraft: false),
+            makePR(number: 3, branch: "fix/crash", state: .open, isDraft: false)
         ]
         sut.selectedTab = .open
         sut.searchText = "feature"

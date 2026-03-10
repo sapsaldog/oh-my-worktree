@@ -10,7 +10,13 @@ struct WorktreeMetadata: Codable, Hashable {
     /// name differs (e.g. versioned imports like "feature/foo-v2").
     var prRemoteBranch: String?
 
-    init(folderName: String, createdAt: Date = Date(), lastActivityAt: Date? = nil, customName: String? = nil, prRemoteBranch: String? = nil) {
+    init(
+        folderName: String,
+        createdAt: Date = Date(),
+        lastActivityAt: Date? = nil,
+        customName: String? = nil,
+        prRemoteBranch: String? = nil
+    ) {
         self.folderName = folderName
         self.createdAt = createdAt
         self.lastActivityAt = lastActivityAt ?? createdAt

@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import OhMyWorktree
 
 // MARK: - WorktreeListViewModel Bulk Remove Tests

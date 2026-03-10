@@ -11,6 +11,7 @@
 		0349E56A97431ED05B90B995 /* BackgroundTaskQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 688E52A50119AE1D61EBC870 /* BackgroundTaskQueue.swift */; };
 		069FE3565BC42960E0CFBDEA /* BackgroundJob.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E235697287DAAC0D8A697C /* BackgroundJob.swift */; };
 		0DCEB362F2A309D8F5E5360D /* BackgroundJobStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA1521E4788D6CDF1C92F4C9 /* BackgroundJobStateTests.swift */; };
+		14C88029029914C81941578E /* WorktreeListViewModel+ContextMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF013CC10C926B764410FBEF /* WorktreeListViewModel+ContextMenu.swift */; };
 		14E42FFD99B49D00630EA203 /* WorktreeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BD25714038218BA848A16DA /* WorktreeTests.swift */; };
 		150BA7D5A0121054A1307FF1 /* WorktreeMetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E37907BD97EF1278CAD9A1B /* WorktreeMetadataTests.swift */; };
 		156C6EB8ECDE30DC56C50A6B /* Repository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C1B43B188C597C61F1DC2EA /* Repository.swift */; };
@@ -24,6 +25,7 @@
 		40504C9B5C87311686050C85 /* RandomNameGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200952D514CDC6E761D7D31 /* RandomNameGenerator.swift */; };
 		41DAD45FEC5310D0E461CE31 /* Worktree.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFE7A83D915B984C5F6EEEAC /* Worktree.swift */; };
 		59C9E6B4357FF5942927E09E /* ImportPRView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12A03AD181020CC2A2003500 /* ImportPRView.swift */; };
+		5FF69FC201062F843B4C9297 /* WorktreeListViewModel+ExternalTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E110EB7715E49CA580231B2 /* WorktreeListViewModel+ExternalTools.swift */; };
 		638E6CA1194A56DF7C449566 /* WindowObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = C843B3047D22F1A56EAE0AFB /* WindowObserver.swift */; };
 		653587B67AD671EEE36C6C93 /* OhMyWorktreeError.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFCCF64227A4F11AF7BA80B6 /* OhMyWorktreeError.swift */; };
 		671DEF7953036D7C339F1C16 /* WorktreeFileCopierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45E90BF743990ABDF5F54752 /* WorktreeFileCopierTests.swift */; };
@@ -35,6 +37,7 @@
 		83813D0890D4D7B8E1705EE3 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7C98BC9064213F12D218E3 /* SettingsView.swift */; };
 		83D7231E6DC8D4F148FC9F67 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 811A9D3615B46E7D12735276 /* NotificationManager.swift */; };
 		87214B7F1DF98D6DDC0902D3 /* ImportPRViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41217BF38EB2E221F3B98D28 /* ImportPRViewModel.swift */; };
+		8C7C7074832657257E597751 /* WorktreeListViewModelImportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6949AB98960591D37ABCC59 /* WorktreeListViewModelImportTests.swift */; };
 		904051CD4BAE23C83E6F05EA /* RepositorySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0590D938B57D29A509B839A9 /* RepositorySettingsView.swift */; };
 		90573263CD7CCB51F38F1F2C /* RepositorySelectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64B3B3B1F44A78CB74EE99F8 /* RepositorySelectorView.swift */; };
 		90B73335B9C85BA0C70843D0 /* WorktreeFileCopier.swift in Sources */ = {isa = PBXBuildFile; fileRef = B344DBF698890D1B13BB69D6 /* WorktreeFileCopier.swift */; };
@@ -87,6 +90,7 @@
 		31E4C67AC16118B79418121C /* OhMyWorktreeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OhMyWorktreeApp.swift; sourceTree = "<group>"; };
 		38E89BED48AC12D1BE0AA667 /* WorktreeListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeListViewModel.swift; sourceTree = "<group>"; };
 		3C1B43B188C597C61F1DC2EA /* Repository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Repository.swift; sourceTree = "<group>"; };
+		3E110EB7715E49CA580231B2 /* WorktreeListViewModel+ExternalTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WorktreeListViewModel+ExternalTools.swift"; sourceTree = "<group>"; };
 		41217BF38EB2E221F3B98D28 /* ImportPRViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportPRViewModel.swift; sourceTree = "<group>"; };
 		45E90BF743990ABDF5F54752 /* WorktreeFileCopierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeFileCopierTests.swift; sourceTree = "<group>"; };
 		55F7FDE98A327CB12943BBD9 /* AppDelegate+Actions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDelegate+Actions.swift"; sourceTree = "<group>"; };
@@ -123,6 +127,8 @@
 		E12BD14A8E992E6A9B4668B7 /* GitCommandExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitCommandExecutor.swift; sourceTree = "<group>"; };
 		E6AE572EAF819FF7917FB985 /* WorktreeListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeListView.swift; sourceTree = "<group>"; };
 		F5F0F523CFE13B485CFE49BC /* WorktreeMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeMetadata.swift; sourceTree = "<group>"; };
+		F6949AB98960591D37ABCC59 /* WorktreeListViewModelImportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeListViewModelImportTests.swift; sourceTree = "<group>"; };
+		FF013CC10C926B764410FBEF /* WorktreeListViewModel+ContextMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WorktreeListViewModel+ContextMenu.swift"; sourceTree = "<group>"; };
 		FFB32A5891B624A9E58CAA49 /* UpdaterManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdaterManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -144,6 +150,8 @@
 				41217BF38EB2E221F3B98D28 /* ImportPRViewModel.swift */,
 				A34554C16FE6EC54FBB5C200 /* RepositoryListViewModel.swift */,
 				38E89BED48AC12D1BE0AA667 /* WorktreeListViewModel.swift */,
+				FF013CC10C926B764410FBEF /* WorktreeListViewModel+ContextMenu.swift */,
+				3E110EB7715E49CA580231B2 /* WorktreeListViewModel+ExternalTools.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -178,6 +186,7 @@
 				038E188FA5528808D1BCFCC7 /* PullRequestServiceTests.swift */,
 				13A81FF314A143B73B1AB7C8 /* RepositoryStoreRenameTests.swift */,
 				45E90BF743990ABDF5F54752 /* WorktreeFileCopierTests.swift */,
+				F6949AB98960591D37ABCC59 /* WorktreeListViewModelImportTests.swift */,
 				6460930465C1945BB9E708A7 /* WorktreeListViewModelSelectionTests.swift */,
 				ABF450885A0658CB279EE089 /* WorktreeListViewModelTests.swift */,
 				A2A39FCA55BDC5AFC0131335 /* WorktreeManagerTests.swift */,
@@ -383,6 +392,7 @@
 				38723E3C67DD58A9D57EAD4B /* PullRequestServiceTests.swift in Sources */,
 				A00DF8B5591361457887300F /* RepositoryStoreRenameTests.swift in Sources */,
 				671DEF7953036D7C339F1C16 /* WorktreeFileCopierTests.swift in Sources */,
+				8C7C7074832657257E597751 /* WorktreeListViewModelImportTests.swift in Sources */,
 				3E3BC079BCB09601CF331D43 /* WorktreeListViewModelSelectionTests.swift in Sources */,
 				80092B38847E833C625A2FC9 /* WorktreeListViewModelTests.swift in Sources */,
 				7DC6228DB15054EE52B4F8CB /* WorktreeManagerTests.swift in Sources */,
@@ -425,6 +435,8 @@
 				41DAD45FEC5310D0E461CE31 /* Worktree.swift in Sources */,
 				90B73335B9C85BA0C70843D0 /* WorktreeFileCopier.swift in Sources */,
 				9CA230CEB954B49CE4036FB9 /* WorktreeListView.swift in Sources */,
+				14C88029029914C81941578E /* WorktreeListViewModel+ContextMenu.swift in Sources */,
+				5FF69FC201062F843B4C9297 /* WorktreeListViewModel+ExternalTools.swift in Sources */,
 				C81634CFFA3B0D0B1D6DC1E4 /* WorktreeListViewModel.swift in Sources */,
 				F086186299A64C5B427A5474 /* WorktreeManager.swift in Sources */,
 				A7622C78F2ECEA8730DB9443 /* WorktreeMetadata.swift in Sources */,

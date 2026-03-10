@@ -60,7 +60,11 @@ private final class MockGitCommandExecutor: GitCommandExecuting, @unchecked Send
     func stubGhPrListFull(json: String, ghPath: String = "/usr/local/bin/gh") {
         results.append((
             command: ghPath,
-            arguments: ["pr", "list", "--json", "number,url,headRefName,state,title,author,updatedAt,isDraft", "--state", "all", "--limit", "100"],
+            arguments: [
+                "pr", "list", "--json",
+                "number,url,headRefName,state,title,author,updatedAt,isDraft",
+                "--state", "all", "--limit", "100"
+            ],
             result: .success(CommandResult(stdout: json, stderr: "", exitCode: 0))
         ))
     }
@@ -68,7 +72,11 @@ private final class MockGitCommandExecutor: GitCommandExecuting, @unchecked Send
     func stubGhPrListFullFailure(ghPath: String = "/usr/local/bin/gh") {
         results.append((
             command: ghPath,
-            arguments: ["pr", "list", "--json", "number,url,headRefName,state,title,author,updatedAt,isDraft", "--state", "all", "--limit", "100"],
+            arguments: [
+                "pr", "list", "--json",
+                "number,url,headRefName,state,title,author,updatedAt,isDraft",
+                "--state", "all", "--limit", "100"
+            ],
             result: .success(CommandResult(stdout: "", stderr: "error", exitCode: 1))
         ))
     }
@@ -427,8 +435,12 @@ final class PullRequestServiceTests: XCTestCase {
         mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
         mock.stubGhPrListFull(json: """
         [
-            {"number": 10, "url": "https://github.com/user/repo/pull/10", "headRefName": "a", "state": "OPEN", "title": "A", "author": {"login": "a"}, "updatedAt": null, "isDraft": false},
-            {"number": 5,  "url": "https://github.com/user/repo/pull/5",  "headRefName": "b", "state": "OPEN", "title": "B", "author": {"login": "b"}, "updatedAt": null, "isDraft": false}
+            {"number": 10, "url": "https://github.com/user/repo/pull/10",
+             "headRefName": "a", "state": "OPEN", "title": "A",
+             "author": {"login": "a"}, "updatedAt": null, "isDraft": false},
+            {"number": 5, "url": "https://github.com/user/repo/pull/5",
+             "headRefName": "b", "state": "OPEN", "title": "B",
+             "author": {"login": "b"}, "updatedAt": null, "isDraft": false}
         ]
         """)
         let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)

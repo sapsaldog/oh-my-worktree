@@ -95,10 +95,11 @@ struct ImportPRView: View {
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if viewModel.searchText.isEmpty {
+                let tabName = viewModel.selectedTab.rawValue.lowercased()
                 ContentUnavailableView(
                     "No \(viewModel.selectedTab.rawValue) Pull Requests",
                     systemImage: "arrow.triangle.pull",
-                    description: Text("There are no \(viewModel.selectedTab.rawValue.lowercased()) pull requests in this repository.")
+                    description: Text("There are no \(tabName) pull requests in this repository.")
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {

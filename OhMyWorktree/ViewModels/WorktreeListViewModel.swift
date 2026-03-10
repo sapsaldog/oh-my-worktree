@@ -29,8 +29,8 @@ final class WorktreeListViewModel: ObservableObject {
     @Published var isShowingImportPR = false
 
     private let worktreeManager: WorktreeManager
-    private let toolLauncher: ExternalToolLauncher
-    private let store: RepositoryStore
+    let toolLauncher: ExternalToolLauncher
+    let store: RepositoryStore
     private let fileCopier: WorktreeFileCopier
     private let pullRequestService: PullRequestFetching
     private var loadTask: Task<Void, Never>?
@@ -99,46 +99,53 @@ final class WorktreeListViewModel: ObservableObject {
 
         // React to job state changes
         jobQueue.onJobStateChange = { [weak self] job in
-            switch (job.state, job.kind) {
-            case (.completed, .removeWorktree):
-                // Defer @Published writes to avoid "Publishing during view update" warnings.
-                // The callback fires synchronously inside executeJob's Task continuation;
-                // wrapping in a new Task guarantees the writes land between render passes.
-                Task { @MainActor [weak self] in
-                    guard let self else { return }
-                    self.worktrees.removeAll { $0.id == job.worktreeID }
-                    if self.selectedWorktree?.id == job.worktreeID {
-                        self.selectedWorktree = nil
-                    }
-                    self.selectedWorktreeIDs.remove(job.worktreeID)
+            self?.handleJobStateChange(job)
+        }
+    }
+
+    private func handleJobStateChange(_ job: BackgroundJob) {
+        switch (job.state, job.kind) {
+        case (.completed, .removeWorktree):
+            // Defer @Published writes to avoid "Publishing during view update" warnings.
+            // The callback fires synchronously inside executeJob's Task continuation;
+            // wrapping in a new Task guarantees the writes land between render passes.
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.worktrees.removeAll { $0.id == job.worktreeID }
+                if self.selectedWorktree?.id == job.worktreeID {
+                    self.selectedWorktree = nil
                 }
-                NotificationManager.shared.notifyCompleted(job: job)
-            case (.completed, .pull):
-                Task { @MainActor [weak self] in await self?.loadWorktrees() }
-                NotificationManager.shared.notifyCompleted(job: job)
-            case (.completed, .addWorktreeFromPR):
-                Task { @MainActor [weak self] in
-                    guard let self else { return }
-                    let fileCopyOverride = await self.store.getEnvCopyOverride(for: job.repositoryID)
-                    let globalDefault = UserDefaults.standard.object(forKey: "copyEnvFilesEnabled") as? Bool ?? true
-                    if fileCopyOverride ?? globalDefault {
-                        let copyResult = self.fileCopier.copyFiles(from: job.repositoryPath, to: job.worktreePath)
-                        if !copyResult.errors.isEmpty {
-                            self.errorMessage = "Some files could not be copied: \(copyResult.errors.joined(separator: ", "))"
-                        }
-                    }
-                    await self.loadWorktrees()
-                    self.isShowingImportPR = false
-                }
-                NotificationManager.shared.notifyCompleted(job: job)
-            case (.failed(let msg), _):
-                Task { @MainActor [weak self] in
-                    self?.errorMessage = msg
-                }
-                NotificationManager.shared.notifyFailed(message: msg, jobID: job.id)
-            default:
-                break
+                self.selectedWorktreeIDs.remove(job.worktreeID)
             }
+            NotificationManager.shared.notifyCompleted(job: job)
+        case (.completed, .pull):
+            Task { @MainActor [weak self] in await self?.loadWorktrees() }
+            NotificationManager.shared.notifyCompleted(job: job)
+        case (.completed, .addWorktreeFromPR):
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                let fileCopyOverride = await self.store.getEnvCopyOverride(for: job.repositoryID)
+                let globalDefault = UserDefaults.standard.object(forKey: "copyEnvFilesEnabled") as? Bool ?? true
+                if fileCopyOverride ?? globalDefault {
+                    let copyResult = self.fileCopier.copyFiles(
+                        from: job.repositoryPath, to: job.worktreePath
+                    )
+                    if !copyResult.errors.isEmpty {
+                        self.errorMessage = "Some files could not be copied: "
+                            + copyResult.errors.joined(separator: ", ")
+                    }
+                }
+                await self.loadWorktrees()
+                self.isShowingImportPR = false
+            }
+            NotificationManager.shared.notifyCompleted(job: job)
+        case (.failed(let msg), _):
+            Task { @MainActor [weak self] in
+                self?.errorMessage = msg
+            }
+            NotificationManager.shared.notifyFailed(message: msg, jobID: job.id)
+        default:
+            break
         }
     }
 
@@ -414,134 +421,9 @@ final class WorktreeListViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Open in External Tools
-
-    func openInITerm(_ worktree: Worktree? = nil, mode: AppSettings.OpenMode = .newTab) async {
-        let target = worktree ?? selectedWorktree
-        guard let target else { return }
-        do {
-            try await toolLauncher.openInITerm(path: target.path, mode: mode)
-            await recordActivity(for: target)
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    func openInGhostty(_ worktree: Worktree? = nil) async {
-        let target = worktree ?? selectedWorktree
-        guard let target else { return }
-        do {
-            try await toolLauncher.openInGhostty(path: target.path)
-            await recordActivity(for: target)
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    func openInVSCode(_ worktree: Worktree? = nil, mode: AppSettings.OpenMode = .newWindow) async {
-        let target = worktree ?? selectedWorktree
-        guard let target else { return }
-        do {
-            try await toolLauncher.openInVSCode(path: target.path, mode: mode)
-            await recordActivity(for: target)
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    func openInCursor(_ worktree: Worktree? = nil) async {
-        let target = worktree ?? selectedWorktree
-        guard let target else { return }
-        do {
-            try await toolLauncher.openInCursor(path: target.path)
-            await recordActivity(for: target)
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    func openInCmux(_ worktree: Worktree? = nil) async {
-        let target = worktree ?? selectedWorktree
-        guard let target else { return }
-        do {
-            try await toolLauncher.openInCmux(path: target.path)
-            await recordActivity(for: target)
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    func recordActivity(for worktree: Worktree) async {
-        guard let repository else { return }
-        await store.updateLastActivity(folderName: worktree.folderName, repositoryID: repository.id)
-        if let index = worktrees.firstIndex(where: { $0.id == worktree.id }) {
-            worktrees[index].lastActivityAt = Date()
-        }
-    }
-
-    // MARK: - Tool Availability
-
-    var isITermAvailable: Bool { toolLauncher.isITermInstalled() }
-    var isGhosttyAvailable: Bool { toolLauncher.isGhosttyInstalled() }
-    var isVSCodeAvailable: Bool { toolLauncher.isVSCodeInstalled() }
-    var isCursorAvailable: Bool { toolLauncher.isCursorInstalled() }
-    var isCmuxAvailable: Bool { toolLauncher.isCmuxInstalled() }
-
-    // MARK: - Context Menu Actions
-
-    func contextMenuActions(for worktree: Worktree) -> ContextMenuActions {
-        let isMultiSelected = selectedWorktreeIDs.count >= 2 && selectedWorktreeIDs.contains(worktree.id)
-
-        if isMultiSelected {
-            let anyNonRemovable = worktrees.contains { w in
-                selectedWorktreeIDs.contains(w.id)
-                    && ((repository.map { w.isRoot(of: $0) } ?? false) || w.isBare)
-            }
-            let hasRemovableTarget = !anyNonRemovable && worktrees.contains { w in
-                selectedWorktreeIDs.contains(w.id)
-                    && !jobQueue.busyWorktreeIDs.contains(w.id)
-            }
-            return ContextMenuActions(
-                canOpen: false,
-                canRename: false,
-                canGitPull: false,
-                canRemove: hasRemovableTarget,
-                canForceRemove: hasRemovableTarget,
-                canShowInFinder: false,
-                canCopyPath: false
-            )
-        }
-
-        // Single-item behavior
-        let isBusy = jobQueue.busyWorktreeIDs.contains(worktree.id)
-        let isRoot = repository.map { worktree.isRoot(of: $0) } ?? false
-        let canRemove = !isRoot && !worktree.isBare && !isBusy
-        return ContextMenuActions(
-            canOpen: !isBusy,
-            canRename: !isBusy,
-            canGitPull: !worktree.isBare && !isBusy,
-            canRemove: canRemove,
-            canForceRemove: canRemove,
-            canShowInFinder: true,
-            canCopyPath: true
-        )
-    }
-
     // MARK: - Error Handling
 
     func clearError() {
         errorMessage = nil
     }
-}
-
-// MARK: - ContextMenuActions
-
-struct ContextMenuActions: Equatable {
-    let canOpen: Bool
-    let canRename: Bool
-    let canGitPull: Bool
-    let canRemove: Bool
-    let canForceRemove: Bool
-    let canShowInFinder: Bool
-    let canCopyPath: Bool
 }
