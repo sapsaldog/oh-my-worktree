@@ -45,21 +45,7 @@ struct QueueStatusBarView: View {
                 Spacer()
 
                 if viewModel.repository != nil {
-                    // New Worktree button
-                    Button(action: { Task { await viewModel.addWorktree() } }) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 12, weight: .medium))
-                    }
-                    .buttonStyle(.plain)
-                    .help("New Worktree")
-
-                    // Import from GitHub PR button
-                    Button(action: { viewModel.isShowingImportPR = true }) {
-                        Image(systemName: "arrow.down.to.line")
-                            .font(.system(size: 12, weight: .medium))
-                    }
-                    .buttonStyle(.plain)
-                    .help("Import from GitHub PR")
+                    addSplitButton
                 }
             }
         }
@@ -67,6 +53,39 @@ struct QueueStatusBarView: View {
         .popover(isPresented: $showingQueueDetail, arrowEdge: .bottom) {
             QueueDetailPopoverView(queue: queue)
         }
+    }
+    // MARK: - Add Split Button
+
+    private var addSplitButton: some View {
+        HStack(spacing: 0) {
+            Button(action: { Task { await viewModel.addWorktree() } }) {
+                Image(systemName: "plus")
+                    .font(.system(size: 11, weight: .medium))
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+            }
+            .buttonStyle(.plain)
+            .help("New Worktree")
+
+            Menu {
+                Button("Import from GitHub PR…") {
+                    viewModel.isShowingImportPR = true
+                }
+            } label: {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 9, weight: .semibold))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .help("More options")
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 5)
+                .stroke(Color(NSColor.separatorColor), lineWidth: 1)
+        )
     }
 }
 

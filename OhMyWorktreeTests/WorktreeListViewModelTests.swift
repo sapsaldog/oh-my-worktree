@@ -308,8 +308,8 @@ extension WorktreeListViewModelTests {
         XCTAssertFalse(actions.canCopyPath)
     }
 
-    func test_contextMenuActions_multiSelected_withRootIncluded_removeStillEnabled() {
-        // Root is in selection but featureWorktree is removable → canRemove = true
+    func test_contextMenuActions_multiSelected_withRootIncluded_removeDisabled() {
+        // Root is in selection → canRemove = false regardless of other removable items
         sut.worktrees = [rootWorktree, featureWorktree]
         sut.selectedWorktreeIDs = [rootWorktree.id, featureWorktree.id]
 
@@ -318,8 +318,8 @@ extension WorktreeListViewModelTests {
         XCTAssertFalse(actions.canOpen)
         XCTAssertFalse(actions.canRename)
         XCTAssertFalse(actions.canGitPull)
-        XCTAssertTrue(actions.canRemove)
-        XCTAssertTrue(actions.canForceRemove)
+        XCTAssertFalse(actions.canRemove)
+        XCTAssertFalse(actions.canForceRemove)
         XCTAssertFalse(actions.canShowInFinder)
         XCTAssertFalse(actions.canCopyPath)
     }

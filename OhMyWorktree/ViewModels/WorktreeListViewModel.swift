@@ -463,10 +463,12 @@ final class WorktreeListViewModel: ObservableObject {
         let isMultiSelected = selectedWorktreeIDs.count >= 2 && selectedWorktreeIDs.contains(worktree.id)
 
         if isMultiSelected {
-            let hasRemovableTarget = worktrees.contains { w in
+            let anyNonRemovable = worktrees.contains { w in
                 selectedWorktreeIDs.contains(w.id)
-                    && !(repository.map { w.isRoot(of: $0) } ?? false)
-                    && !w.isBare
+                    && ((repository.map { w.isRoot(of: $0) } ?? false) || w.isBare)
+            }
+            let hasRemovableTarget = !anyNonRemovable && worktrees.contains { w in
+                selectedWorktreeIDs.contains(w.id)
                     && !jobQueue.busyWorktreeIDs.contains(w.id)
             }
             return ContextMenuActions(

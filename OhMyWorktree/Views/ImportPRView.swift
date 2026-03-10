@@ -4,6 +4,7 @@ struct ImportPRView: View {
     @ObservedObject var worktreeViewModel: WorktreeListViewModel
     @StateObject private var viewModel = ImportPRViewModel()
     @Environment(\.dismiss) private var dismiss
+    @State private var selectedID: Int?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -38,7 +39,10 @@ struct ImportPRView: View {
                 }
             }
             .pickerStyle(.segmented)
-            .onChange(of: viewModel.selectedTab) { _, _ in viewModel.selectedPR = nil }
+            .onChange(of: viewModel.selectedTab) { _, _ in
+                let vm = viewModel
+                Task { @MainActor in vm.selectedPR = nil }
+            }
 
             HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass")
@@ -69,42 +73,56 @@ struct ImportPRView: View {
     @ViewBuilder
     private var contentArea: some View {
         if viewModel.isLoading {
-            Spacer()
             ProgressView("Loading pull requests…")
-                .frame(maxWidth: .infinity)
-            Spacer()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if viewModel.loadFailed {
-            Spacer()
-            ContentUnavailableView(
-                "Could Not Load Pull Requests",
-                systemImage: "exclamationmark.triangle",
-                description: Text("Make sure `gh` is installed, authenticated, and this repository is on GitHub.")
-            )
-            Button("Retry") { viewModel.retry() }
-                .padding(.top, 4)
-            Spacer()
+            VStack(spacing: 8) {
+                ContentUnavailableView(
+                    "Could Not Load Pull Requests",
+                    systemImage: "exclamationmark.triangle",
+                    description: Text("Make sure `gh` is installed, authenticated, and this repository is on GitHub.")
+                )
+                Button("Retry") { viewModel.retry() }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if viewModel.filteredPRs.isEmpty {
-            Spacer()
             if viewModel.allPRs.isEmpty {
                 ContentUnavailableView(
                     "No Pull Requests",
                     systemImage: "arrow.triangle.pull",
                     description: Text("There are no pull requests in this repository.")
                 )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if viewModel.searchText.isEmpty {
+                ContentUnavailableView(
+                    "No \(viewModel.selectedTab.rawValue) Pull Requests",
+                    systemImage: "arrow.triangle.pull",
+                    description: Text("There are no \(viewModel.selectedTab.rawValue.lowercased()) pull requests in this repository.")
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ContentUnavailableView(
                     "No Results",
                     systemImage: "magnifyingglass",
                     description: Text("No \(viewModel.selectedTab.rawValue.lowercased()) pull requests match your search.")
                 )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            Spacer()
         } else {
-            List(viewModel.filteredPRs, id: \.number, selection: $viewModel.selectedPR) { pr in
+            List(viewModel.filteredPRs, id: \.number, selection: $selectedID) { pr in
                 ImportPRRowView(pr: pr)
-                    .tag(pr)
+                    .tag(pr.number)
             }
             .listStyle(.inset(alternatesRowBackgrounds: true))
+            .onChange(of: selectedID) { _, id in
+                let vm = viewModel
+                Task { @MainActor in
+                    vm.selectedPR = id.flatMap { num in vm.filteredPRs.first { $0.number == num } }
+                }
+            }
+            .onChange(of: viewModel.selectedPR) { _, pr in
+                if pr?.number != selectedID { selectedID = pr?.number }
+            }
         }
     }
 
