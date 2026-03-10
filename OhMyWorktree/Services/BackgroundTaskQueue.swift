@@ -5,7 +5,7 @@ final class BackgroundTaskQueue: ObservableObject {
     @Published private(set) var jobs: [BackgroundJob] = []
 
     /// Called whenever a job transitions to completed/failed/cancelled.
-    var onJobStateChange: ((BackgroundJob) -> Void)?
+    var onJobStateChange: (@MainActor (BackgroundJob) -> Void)?
 
     private let worktreeManager: WorktreeManager
     private let store: RepositoryStore
@@ -13,11 +13,13 @@ final class BackgroundTaskQueue: ObservableObject {
     private var processingTasks: [String: Task<Void, Never>] = [:]
 
     /// Maximum duration (in seconds) for any single job before it times out.
-    static let jobTimeoutSeconds: TimeInterval = 60
+    /// Injectable for testing — defaults to 60 seconds in production.
+    let jobTimeoutSeconds: TimeInterval
 
-    init(worktreeManager: WorktreeManager, store: RepositoryStore) {
+    init(worktreeManager: WorktreeManager, store: RepositoryStore, jobTimeoutSeconds: TimeInterval = 60) {
         self.worktreeManager = worktreeManager
         self.store = store
+        self.jobTimeoutSeconds = jobTimeoutSeconds
     }
 
     // MARK: - Public Interface
@@ -44,7 +46,9 @@ final class BackgroundTaskQueue: ObservableObject {
         onJobStateChange?(snapshot)
     }
 
-    func cancelAll() {
+    /// Cancels all pending jobs. In-progress jobs continue to completion.
+    /// Use `cancel(_:)` to cancel individual jobs by ID.
+    func cancelPending() {
         for i in jobs.indices where jobs[i].state == .pending {
             jobs[i].state = .cancelled
             let snapshot = jobs[i]
@@ -58,17 +62,24 @@ final class BackgroundTaskQueue: ObservableObject {
     var activeJobs: [BackgroundJob] { jobs.filter { $0.state.isActive } }
     var hasActiveJobs: Bool { !activeJobs.isEmpty }
     @Published private(set) var busyWorktreeIDs: Set<UUID> = []
-    var hasFailedJobs: Bool { jobs.contains { if case .failed = $0.state { return true }; return false } }
+    var failedJobs: [BackgroundJob] { jobs.filter { if case .failed = $0.state { return true }; return false } }
+    var hasFailedJobs: Bool { !failedJobs.isEmpty }
+    var failedJobCount: Int { failedJobs.count }
 
     func clearFailed() {
-        jobs = jobs.filter { if case .failed = $0.state { return false }; return true }
+        jobs.removeAll { if case .failed = $0.state { return true }; return false }
         refreshBusyWorktreeIDs()
     }
 
     var progressFraction: Double {
-        guard !jobs.isEmpty else { return 0 }
-        let done = jobs.filter { $0.state.isTerminal }.count
-        return Double(done) / Double(jobs.count)
+        // Exclude stale failed/cancelled jobs — they are retained for the detail
+        // popover but should not inflate the denominator of the progress bar.
+        let tracked = jobs.filter {
+            $0.state == .pending || $0.state == .inProgress || $0.state == .completed
+        }
+        guard !tracked.isEmpty else { return 0 }
+        let done = tracked.filter { $0.state == .completed }.count
+        return Double(done) / Double(tracked.count)
     }
 
     var currentJobDescription: String? {
@@ -76,6 +87,8 @@ final class BackgroundTaskQueue: ObservableObject {
         switch job.kind {
         case .removeWorktree: return "Removing \(job.displayName)..."
         case .pull: return "Pulling \(job.displayName)..."
+        case .addWorktreeFromPR(_, _, let prNumber):
+            return "Importing PR #\(prNumber)..."
         }
     }
 
@@ -83,8 +96,6 @@ final class BackgroundTaskQueue: ObservableObject {
 
     private func startProcessingIfNeeded(for repoPath: String) {
         guard processingTasks[repoPath] == nil else { return }
-        // Fix 1: guard let self prevents processingTasks from leaking if self is deallocated
-        // before the task runs, which would leave the entry non-nil and block future jobs.
         processingTasks[repoPath] = Task { [weak self] in
             guard let self else { return }
             await self.processQueue(for: repoPath)
@@ -96,6 +107,8 @@ final class BackgroundTaskQueue: ObservableObject {
             processingTasks[repoPath] = nil
             clearJobsIfIdle()
         }
+        // Note: O(n²) — each iteration scans the full array. Consider an indexed
+        // lookup if bulk enqueue (>100 jobs) becomes a real use case.
         while let index = jobs.firstIndex(where: { $0.repositoryPath == repoPath && $0.state == .pending }) {
             await executeJob(at: index)
         }
@@ -113,21 +126,25 @@ final class BackgroundTaskQueue: ObservableObject {
         // below doesn't need to re-cross the MainActor boundary.
         let wm = worktreeManager
         let st = store
+        let timeout = jobTimeoutSeconds
 
         do {
-            // Fix 3: Wrap the git operation in a timeout to prevent indefinite blocking
+            // Wrap the git operation in a timeout to prevent indefinite blocking
             // if a git process hangs (e.g. waiting for SSH passphrase or network).
-            try await withJobTimeout {
+            try await withJobTimeout(seconds: timeout) {
                 switch job.kind {
                 case .removeWorktree(let force):
-                    // Fix 4: Silently succeed if the worktree was already manually deleted;
-                    // still clean up metadata so the app stays consistent.
                     if FileManager.default.fileExists(atPath: job.worktreePath) {
                         try await wm.removeWorktree(
                             repositoryPath: job.repositoryPath,
                             worktreePath: job.worktreePath,
                             force: force
                         )
+                    } else {
+                        // Directory was manually deleted; prune the dangling git
+                        // registration so it doesn't reappear on next reload.
+                        // Ignore prune errors — metadata cleanup below is sufficient.
+                        try? await wm.pruneWorktrees(repositoryPath: job.repositoryPath)
                     }
                     await st.removeWorktreeMetadata(
                         folderName: job.folderName,
@@ -135,11 +152,23 @@ final class BackgroundTaskQueue: ObservableObject {
                     )
                 case .pull:
                     _ = try await wm.gitPull(worktreePath: job.worktreePath)
+                case .addWorktreeFromPR(let remoteBranch, let localBranch, let prNumber):
+                    // Fetch via pull/<number>/head into a named ref so fork PRs
+                    // are handled correctly without relying on FETCH_HEAD (which
+                    // could be overwritten by an interleaving git fetch).
+                    let ref = try await wm.fetchPullRequestRef(number: prNumber, repositoryPath: job.repositoryPath)
+                    _ = try await wm.addWorktreeFromRemoteBranch(
+                        repositoryPath: job.repositoryPath,
+                        folderName: job.folderName,
+                        localBranch: localBranch,
+                        remoteBranch: remoteBranch,
+                        startPoint: ref
+                    )
+                    await wm.deleteRef(ref, repositoryPath: job.repositoryPath)
+                    let metadata = WorktreeMetadata(folderName: job.folderName, prRemoteBranch: remoteBranch)
+                    await st.addWorktreeMetadata(metadata, repositoryID: job.repositoryID)
                 }
             }
-            // Fix 2: Re-look up by ID (not original index) and capture an explicit
-            // value-copy snapshot before invoking the callback, making it clear that
-            // the callback receives stable, point-in-time state.
             if let i = jobIndex(for: jobID) {
                 jobs[i].state = .completed
                 refreshBusyWorktreeIDs()
@@ -158,21 +187,28 @@ final class BackgroundTaskQueue: ObservableObject {
 
     // MARK: - Private: Timeout
 
-    /// Executes `operation` with a fixed timeout. Throws `BackgroundJobTimeoutError` if exceeded.
+    /// Executes `operation` with the given timeout. Throws `BackgroundJobTimeoutError` if exceeded.
     /// The method is nonisolated so git work runs off the MainActor without blocking the UI.
     private nonisolated func withJobTimeout(
+        seconds: TimeInterval,
         _ operation: @escaping @Sendable () async throws -> Void
     ) async throws {
+        precondition(seconds > 0, "Job timeout must be positive")
         try await withThrowingTaskGroup(of: Void.self) { group in
             group.addTask { try await operation() }
             group.addTask {
-                try await Task.sleep(nanoseconds: UInt64(BackgroundTaskQueue.jobTimeoutSeconds * 1_000_000_000))
-                throw BackgroundJobTimeoutError()
+                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                throw BackgroundJobTimeoutError(seconds: Int(seconds))
             }
             // Take the first result (success or the first thrown error) then cancel the other task.
             do {
                 _ = try await group.next()
                 group.cancelAll()
+                // Drain the cancelled task so its CancellationError is not
+                // implicitly rethrown when the task group scope exits.
+                while !group.isEmpty {
+                    _ = try? await group.next()
+                }
             } catch {
                 group.cancelAll()
                 throw error
@@ -183,27 +219,28 @@ final class BackgroundTaskQueue: ObservableObject {
     // MARK: - Private: Idle Cleanup
 
     private static let maxFailedJobs = 50
+    /// Discard failed jobs older than this interval during idle cleanup.
+    private static let failedJobMaxAge: TimeInterval = 3600 // 1 hour
 
     private func clearJobsIfIdle() {
         guard activeJobs.isEmpty else { return }
-        let failedJobs = jobs.filter { if case .failed = $0.state { return true }; return false }
         // Fast-path: nothing failed, clear everything.
-        if failedJobs.isEmpty {
+        if failedJobCount == 0 {
             if !jobs.isEmpty {
                 jobs = []
                 refreshBusyWorktreeIDs()
             }
             return
         }
-        // Keep only the most recent failed jobs for display.
-        jobs = Array(failedJobs.suffix(Self.maxFailedJobs))
+        // Keep only the most recent failed jobs for display, evicting stale entries.
+        let cutoff = Date().addingTimeInterval(-Self.failedJobMaxAge)
+        let recentFailed = failedJobs.filter { $0.enqueuedAt > cutoff }
+        jobs = Array(recentFailed.suffix(Self.maxFailedJobs))
         refreshBusyWorktreeIDs()
     }
 
     // MARK: - Private: Helpers
 
-    /// Fix 9: Centralized job ID → index lookup. All O(n) searches go through here,
-    /// making it easy to swap in an O(1) implementation later if needed.
     private func jobIndex(for id: UUID) -> Int? {
         jobs.firstIndex(where: { $0.id == id })
     }
@@ -215,9 +252,10 @@ final class BackgroundTaskQueue: ObservableObject {
 
 // MARK: - BackgroundJobTimeoutError
 
-/// Thrown when a background job exceeds `BackgroundTaskQueue.jobTimeoutSeconds`.
+/// Thrown when a background job exceeds the configured timeout.
 struct BackgroundJobTimeoutError: LocalizedError {
+    let seconds: Int
     var errorDescription: String? {
-        "Operation timed out after \(Int(BackgroundTaskQueue.jobTimeoutSeconds)) seconds"
+        "Operation timed out after \(seconds) seconds"
     }
 }

@@ -11,7 +11,10 @@ struct OhMyWorktreeApp: App {
         WindowGroup(id: "main") {
             ContentView(repoViewModel: repoViewModel, worktreeViewModel: worktreeViewModel)
                 .frame(minWidth: 400, minHeight: 300)
-                .modifier(OpenWindowModifier(appDelegate: appDelegate))
+                .sheet(isPresented: $worktreeViewModel.isShowingImportPR) {
+                    ImportPRView(worktreeViewModel: worktreeViewModel)
+                }
+                .modifier(OpenWindowModifier(appDelegate: appDelegate, worktreeViewModel: worktreeViewModel))
                 .onAppear {
                     appDelegate.repoViewModel = repoViewModel
                     appDelegate.worktreeViewModel = worktreeViewModel
@@ -32,6 +35,7 @@ struct OhMyWorktreeApp: App {
 /// so they can be triggered from the menu bar even after the window is closed.
 private struct OpenWindowModifier: ViewModifier {
     let appDelegate: AppDelegate
+    let worktreeViewModel: WorktreeListViewModel
     @Environment(\.openWindow) private var openWindow
     @Environment(\.openSettings) private var openSettings
 
@@ -40,6 +44,15 @@ private struct OpenWindowModifier: ViewModifier {
             .onAppear {
                 appDelegate.openMainWindow = { [openWindow] in
                     openWindow(id: "main")
+                }
+                appDelegate.openImportPRWindow = { [openWindow, worktreeViewModel] in
+                    openWindow(id: "main")
+                    // Dispatch to the next run-loop tick so SwiftUI finishes setting
+                    // up the window's view hierarchy (including the .sheet modifier)
+                    // before we present the sheet.
+                    DispatchQueue.main.async {
+                        worktreeViewModel.isShowingImportPR = true
+                    }
                 }
                 appDelegate.openSettings = { [openSettings] in
                     openSettings()

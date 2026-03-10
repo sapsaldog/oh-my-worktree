@@ -16,6 +16,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
     var openMainWindow: (() -> Void)?
+    var openImportPRWindow: (() -> Void)?
     var openSettings: (() -> Void)?
     var updaterManager: UpdaterManager?
     private var menuRefreshTask: Task<Void, Never>?
@@ -174,6 +175,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let isSelected = worktreeViewModel?.selectedWorktree?.id == worktree.id
             let bullet = isSelected ? "\u{25CF} " : "   "
             let pr = worktree.branch.flatMap { pullRequests[$0] }
+                ?? worktree.prRemoteBranch.flatMap { pullRequests[$0] }
             let prLabel = pr.map { " #\($0.number)" } ?? ""
             let activity = worktree.relativeLastActivity.map { "  \($0)" } ?? ""
             let item = NSMenuItem(
@@ -194,6 +196,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         addItem.target = self
         addItem.isEnabled = repoViewModel?.selectedRepository != nil
         menu.addItem(addItem)
+
+        if repoViewModel?.selectedRepository != nil && worktreeViewModel?.isGitHubRepo == true {
+            let importItem = NSMenuItem(
+                title: "Import from GitHub PR…",
+                action: #selector(importFromGitHubPRClicked(_:)),
+                keyEquivalent: ""
+            )
+            importItem.target = self
+            menu.addItem(importItem)
+        }
+
         menu.addItem(.separator())
 
         let openWindowItem = NSMenuItem(

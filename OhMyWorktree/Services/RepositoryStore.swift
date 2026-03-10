@@ -1,7 +1,13 @@
 import Foundation
+import os
 
 actor RepositoryStore {
     static let shared = RepositoryStore()
+
+    private static let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "com.ohmyworktree",
+        category: "RepositoryStore"
+    )
 
     // No default values: init body performs definite initialization, which is
     // allowed in a nonisolated actor init (Swift 6). Default values would make
@@ -9,6 +15,12 @@ actor RepositoryStore {
     private var repositories: [Repository]
     private var worktreeMetadata: [UUID: [WorktreeMetadata]] // keyed by repository ID
     private var envCopyOverrides: [UUID: Bool]
+
+    /// Dirty flags — track which data sets were modified since the last save,
+    /// so `saveToDisk()` only re-encodes and writes the files that changed.
+    private var dirtyRepos: Bool
+    private var dirtyMetadata: Bool
+    private var dirtyOverrides: Bool
 
     private nonisolated var storageDirectory: URL {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
@@ -76,6 +88,9 @@ actor RepositoryStore {
         self.repositories = loadedRepos
         self.worktreeMetadata = loadedMetadata
         self.envCopyOverrides = loadedOverrides
+        self.dirtyRepos = false
+        self.dirtyMetadata = false
+        self.dirtyOverrides = false
     }
 
     // MARK: - Backup-Aware Loading
@@ -111,19 +126,22 @@ actor RepositoryStore {
     func addRepository(_ repository: Repository) {
         guard !repositories.contains(where: { $0.path == repository.path }) else { return }
         repositories.append(repository)
+        dirtyRepos = true
         saveToDisk()
     }
 
     func removeRepository(id: UUID) {
         repositories.removeAll { $0.id == id }
-        worktreeMetadata.removeValue(forKey: id)
-        envCopyOverrides.removeValue(forKey: id)
+        dirtyRepos = true
+        if worktreeMetadata.removeValue(forKey: id) != nil { dirtyMetadata = true }
+        if envCopyOverrides.removeValue(forKey: id) != nil { dirtyOverrides = true }
         saveToDisk()
     }
 
     func updateRepository(_ repository: Repository) {
         guard let index = repositories.firstIndex(where: { $0.id == repository.id }) else { return }
         repositories[index] = repository
+        dirtyRepos = true
         saveToDisk()
     }
 
@@ -134,6 +152,7 @@ actor RepositoryStore {
     func updateLastAccessed(id: UUID) {
         guard let index = repositories.firstIndex(where: { $0.id == id }) else { return }
         repositories[index].lastAccessedAt = Date()
+        dirtyRepos = true
         saveToDisk()
     }
 
@@ -148,11 +167,13 @@ actor RepositoryStore {
         guard !existing.contains(where: { $0.folderName == metadata.folderName }) else { return }
         existing.append(metadata)
         worktreeMetadata[repositoryID] = existing
+        dirtyMetadata = true
         saveToDisk()
     }
 
     func removeWorktreeMetadata(folderName: String, repositoryID: UUID) {
         worktreeMetadata[repositoryID]?.removeAll { $0.folderName == folderName }
+        dirtyMetadata = true
         saveToDisk()
     }
 
@@ -160,11 +181,11 @@ actor RepositoryStore {
         if let index = worktreeMetadata[repositoryID]?.firstIndex(where: { $0.folderName == folderName }) {
             worktreeMetadata[repositoryID]?[index].lastActivityAt = Date()
         } else {
-            // Create metadata entry if it doesn't exist yet
             var existing = worktreeMetadata[repositoryID] ?? []
             existing.append(WorktreeMetadata(folderName: folderName, lastActivityAt: Date()))
             worktreeMetadata[repositoryID] = existing
         }
+        dirtyMetadata = true
         saveToDisk()
     }
 
@@ -177,6 +198,7 @@ actor RepositoryStore {
             return trimmed.isEmpty ? nil : trimmed
         }
         worktreeMetadata[repositoryID]?[index].customName = sanitized
+        dirtyMetadata = true
         saveToDisk()
     }
 
@@ -188,46 +210,58 @@ actor RepositoryStore {
 
     func setEnvCopyOverride(repositoryID: UUID, enabled: Bool) {
         envCopyOverrides[repositoryID] = enabled
+        dirtyOverrides = true
         saveToDisk()
     }
 
     func removeEnvCopyOverride(repositoryID: UUID) {
         envCopyOverrides.removeValue(forKey: repositoryID)
+        dirtyOverrides = true
         saveToDisk()
     }
 
     // MARK: - Persistence
 
     private func saveToDisk() {
+        guard dirtyRepos || dirtyMetadata || dirtyOverrides else { return }
+
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = .prettyPrinted
 
-        // Encode ALL data first — if any encoding fails, write nothing
-        let stringKeyedMetadata = Dictionary(
-            uniqueKeysWithValues: worktreeMetadata.map { (key, value) in
-                (key.uuidString, value)
+        // Only encode and write data that was actually modified.
+        // Clear dirty flag only on successful write so failures are retried.
+        if dirtyRepos {
+            if let data = try? encoder.encode(repositories) {
+                if atomicWrite(data: data, to: repositoriesFileURL) {
+                    dirtyRepos = false
+                }
             }
-        )
-        let stringKeyedOverrides = Dictionary(
-            uniqueKeysWithValues: envCopyOverrides.map { (key, value) in
-                (key.uuidString, value)
-            }
-        )
-
-        guard let repoData = try? encoder.encode(repositories),
-              let metaData = try? encoder.encode(stringKeyedMetadata),
-              let overridesData = try? encoder.encode(stringKeyedOverrides) else {
-            return
         }
-
-        // All encoding succeeded — write each file atomically
-        atomicWrite(data: repoData, to: repositoriesFileURL)
-        atomicWrite(data: metaData, to: metadataFileURL)
-        atomicWrite(data: overridesData, to: envCopyOverridesFileURL)
+        if dirtyMetadata {
+            let stringKeyed = Dictionary(
+                uniqueKeysWithValues: worktreeMetadata.map { ($0.key.uuidString, $0.value) }
+            )
+            if let data = try? encoder.encode(stringKeyed) {
+                if atomicWrite(data: data, to: metadataFileURL) {
+                    dirtyMetadata = false
+                }
+            }
+        }
+        if dirtyOverrides {
+            let stringKeyed = Dictionary(
+                uniqueKeysWithValues: envCopyOverrides.map { ($0.key.uuidString, $0.value) }
+            )
+            if let data = try? encoder.encode(stringKeyed) {
+                if atomicWrite(data: data, to: envCopyOverridesFileURL) {
+                    dirtyOverrides = false
+                }
+            }
+        }
     }
 
-    private func atomicWrite(data: Data, to destinationURL: URL) {
+    @discardableResult
+    private func atomicWrite(data: Data, to destinationURL: URL) -> Bool {
         let fm = FileManager.default
         let directory = destinationURL.deletingLastPathComponent()
         let tempURL = directory.appendingPathComponent(UUID().uuidString + ".tmp")
@@ -246,9 +280,11 @@ actor RepositoryStore {
                 // First write — just move the temp file into place
                 try fm.moveItem(at: tempURL, to: destinationURL)
             }
+            return true
         } catch {
-            // Clean up temp file on failure
+            Self.logger.error("Failed to write \(destinationURL.lastPathComponent): \(error.localizedDescription)")
             try? fm.removeItem(at: tempURL)
+            return false
         }
     }
 }

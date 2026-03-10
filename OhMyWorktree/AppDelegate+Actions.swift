@@ -136,6 +136,11 @@ extension AppDelegate {
         showOrCreateMainWindow()
     }
 
+    @objc func importFromGitHubPRClicked(_ sender: NSMenuItem) {
+        NSApp.activate(ignoringOtherApps: true)
+        openImportPRWindow?()
+    }
+
     @objc func settingsClicked(_ sender: NSMenuItem) {
         NSApp.activate(ignoringOtherApps: true)
         openSettings?()

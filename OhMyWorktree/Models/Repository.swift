@@ -1,6 +1,6 @@
 import Foundation
 
-struct Repository: Identifiable, Codable, Hashable {
+struct Repository: Identifiable, Codable, Hashable, Sendable {
     let id: UUID
     var name: String
     let path: String

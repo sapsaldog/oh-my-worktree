@@ -10,6 +10,7 @@ struct WorktreeRowView: View {
     var onCancelRename: (() -> Void)?
 
     @State private var editingName: String = ""
+    @State private var didCancelRename = false
     @FocusState private var isTextFieldFocused: Bool
 
     var body: some View {
@@ -24,9 +25,18 @@ struct WorktreeRowView: View {
                             .textFieldStyle(.plain)
                             .focused($isTextFieldFocused)
                             .onSubmit { onRename?(editingName) }
-                            .onExitCommand { onCancelRename?() }
+                            .onExitCommand {
+                                didCancelRename = true
+                                onCancelRename?()
+                            }
+                            .onChange(of: isTextFieldFocused) { _, focused in
+                                // Commit rename when focus is lost (e.g. clicking away),
+                                // but not if the user pressed Esc to cancel.
+                                if !focused && !didCancelRename { onRename?(editingName) }
+                            }
                             .onAppear {
                                 editingName = worktree.customName ?? worktree.displayName
+                                didCancelRename = false
                                 isTextFieldFocused = true
                             }
                     } else {
@@ -41,6 +51,7 @@ struct WorktreeRowView: View {
                         Image(systemName: "lock.fill")
                             .font(.caption2)
                             .foregroundStyle(.orange)
+                            .accessibilityLabel("Locked")
                     }
                     if worktree.isDetached { badge("detached", color: .yellow) }
                 }
@@ -88,23 +99,28 @@ struct WorktreeRowView: View {
             Image(systemName: "clock")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .accessibilityLabel("Pending")
         case .inProgress:
             ProgressView()
                 .scaleEffect(0.65)
                 .frame(width: 14, height: 14)
+                .accessibilityLabel("In progress")
         case .completed:
             Image(systemName: "checkmark.circle.fill")
                 .font(.caption)
                 .foregroundStyle(.green)
+                .accessibilityLabel("Completed")
         case .failed(let msg):
             Image(systemName: "exclamationmark.circle.fill")
                 .font(.caption)
                 .foregroundStyle(.red)
                 .help(msg)
+                .accessibilityLabel("Failed: \(msg)")
         case .cancelled:
             Image(systemName: "minus.circle")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
+                .accessibilityLabel("Cancelled")
         }
     }
 
@@ -114,6 +130,14 @@ struct WorktreeRowView: View {
         Circle()
             .fill(statusColor)
             .frame(width: 8, height: 8)
+            .accessibilityLabel(statusAccessibilityLabel)
+    }
+
+    private var statusAccessibilityLabel: String {
+        if worktree.isBare { return "Bare worktree" }
+        if worktree.isLocked { return "Locked worktree" }
+        if worktree.isDetached { return "Detached HEAD" }
+        return "Active worktree"
     }
 
     private var statusColor: Color {
@@ -152,5 +176,6 @@ struct WorktreeRowView: View {
         }
         .buttonStyle(.plain)
         .help("Open Pull Request #\(pr.number)")
+        .accessibilityLabel("Pull Request #\(pr.number), \(pr.state.rawValue)")
     }
 }

@@ -18,7 +18,6 @@ struct ContentView: View {
 
             Divider()
 
-            // FR-033: Queue status bar (replaces ActionButtonsView)
             QueueStatusBarView(viewModel: worktreeViewModel)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)

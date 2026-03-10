@@ -4,7 +4,7 @@ import XCTest
 
 // MARK: - Mock Git Executor for ViewModel Tests
 
-private final class MockWorktreeExecutor: GitCommandExecuting, @unchecked Sendable {
+final class MockWorktreeExecutor: GitCommandExecuting, @unchecked Sendable {
     var worktreeListOutput: String = ""
     var lastCommitTimestamp: String = ""
 
@@ -28,9 +28,9 @@ private final class MockWorktreeExecutor: GitCommandExecuting, @unchecked Sendab
 @MainActor
 final class WorktreeListViewModelTests: XCTestCase {
 
-    private var mockExecutor: MockWorktreeExecutor!
-    private var sut: WorktreeListViewModel!
-    private let testRepo = Repository(
+    var mockExecutor: MockWorktreeExecutor!
+    var sut: WorktreeListViewModel!
+    let testRepo = Repository(
         name: "test-repo",
         path: "/tmp/test-repo"
     )
@@ -210,7 +210,7 @@ extension WorktreeListViewModelTests {
     // MARK: Fixtures
 
     /// Root worktree — same path as testRepo, cannot be removed
-    private var rootWorktree: Worktree {
+    var rootWorktree: Worktree {
         Worktree(path: testRepo.path, folderName: "test-repo", branch: "main")
     }
 
@@ -308,8 +308,8 @@ extension WorktreeListViewModelTests {
         XCTAssertFalse(actions.canCopyPath)
     }
 
-    func test_contextMenuActions_multiSelected_withRootIncluded_removeStillEnabled() {
-        // Root is in selection but featureWorktree is removable → canRemove = true
+    func test_contextMenuActions_multiSelected_withRootIncluded_removeDisabled() {
+        // Root is in selection → canRemove = false regardless of other removable items
         sut.worktrees = [rootWorktree, featureWorktree]
         sut.selectedWorktreeIDs = [rootWorktree.id, featureWorktree.id]
 
@@ -318,8 +318,8 @@ extension WorktreeListViewModelTests {
         XCTAssertFalse(actions.canOpen)
         XCTAssertFalse(actions.canRename)
         XCTAssertFalse(actions.canGitPull)
-        XCTAssertTrue(actions.canRemove)
-        XCTAssertTrue(actions.canForceRemove)
+        XCTAssertFalse(actions.canRemove)
+        XCTAssertFalse(actions.canForceRemove)
         XCTAssertFalse(actions.canShowInFinder)
         XCTAssertFalse(actions.canCopyPath)
     }
@@ -358,8 +358,124 @@ extension WorktreeListViewModelTests {
     }
 }
 
-// MARK: - No-op PR Service
+// MARK: - addWorktreeFromPR
 
-private final class MockNoPRService: PullRequestFetching {
-    func fetchPullRequests(repositoryPath: String) async -> [String: PullRequestInfo] { [:] }
+extension WorktreeListViewModelTests {
+
+    func test_addWorktreeFromPR_branchNotCheckedOut_enquesWithSameLocalBranch() {
+        sut.worktrees = [rootWorktree]
+
+        let pr = PullRequestInfo(
+            number: 1,
+            url: URL(string: "https://github.com/user/repo/pull/1")!,
+            branch: "feature/new",
+            state: .open
+        )
+
+        let error = sut.addWorktreeFromPR(pr)
+
+        XCTAssertNil(error)
+        XCTAssertEqual(sut.jobQueue.jobs.count, 1)
+        guard case .addWorktreeFromPR(let remote, let local, _) = sut.jobQueue.jobs[0].kind else {
+            XCTFail("Expected addWorktreeFromPR job kind")
+            return
+        }
+        XCTAssertEqual(remote, "feature/new")
+        XCTAssertEqual(local, "feature/new")
+    }
+
+    func test_addWorktreeFromPR_branchAlreadyCheckedOut_enquesWithVersionedLocalBranch() {
+        sut.worktrees = [
+            rootWorktree,
+            Worktree(path: "/tmp/worktrees/feature-a", folderName: "feature-a", branch: "feature/a")
+        ]
+
+        let pr = PullRequestInfo(
+            number: 2,
+            url: URL(string: "https://github.com/user/repo/pull/2")!,
+            branch: "feature/a",
+            state: .open
+        )
+
+        let error = sut.addWorktreeFromPR(pr)
+
+        XCTAssertNil(error)
+        XCTAssertEqual(sut.jobQueue.jobs.count, 1)
+        guard case .addWorktreeFromPR(let remote, let local, _) = sut.jobQueue.jobs[0].kind else {
+            XCTFail("Expected addWorktreeFromPR job kind")
+            return
+        }
+        XCTAssertEqual(remote, "feature/a")
+        XCTAssertEqual(local, "feature/a-v2")
+        // Folder name is now a random name, not branch-derived.
+        XCTAssertFalse(sut.jobQueue.jobs[0].folderName.isEmpty)
+    }
 }
+
+// MARK: - gitPull
+
+extension WorktreeListViewModelTests {
+
+    func test_gitPull_enqueuesJobForWorktree() {
+        sut.worktrees = [rootWorktree, featureWorktree]
+
+        sut.gitPull(featureWorktree)
+
+        XCTAssertEqual(sut.jobQueue.jobs.count, 1)
+        XCTAssertEqual(sut.jobQueue.jobs[0].kind, .pull)
+        XCTAssertEqual(sut.jobQueue.jobs[0].worktreeID, featureWorktree.id)
+    }
+
+    func test_gitPull_noRepository_doesNotEnqueue() {
+        sut.repository = nil
+        let worktree = featureWorktree
+
+        sut.gitPull(worktree)
+
+        XCTAssertTrue(sut.jobQueue.jobs.isEmpty)
+    }
+
+    func test_gitPull_busyWorktree_doesNotDuplicate() {
+        sut.worktrees = [rootWorktree, featureWorktree]
+
+        sut.gitPull(featureWorktree)
+        sut.gitPull(featureWorktree) // second pull for same worktree
+
+        // Should be 1 — second call is guarded by busyWorktreeIDs
+        XCTAssertEqual(sut.jobQueue.jobs.count, 1)
+    }
+}
+
+// MARK: - removeWorktree
+
+extension WorktreeListViewModelTests {
+
+    func test_removeWorktree_enqueuesJobForWorktree() {
+        sut.worktrees = [rootWorktree, featureWorktree]
+
+        sut.removeWorktree(featureWorktree)
+
+        XCTAssertEqual(sut.jobQueue.jobs.count, 1)
+        XCTAssertEqual(sut.jobQueue.jobs[0].kind, .removeWorktree(force: false))
+        XCTAssertEqual(sut.jobQueue.jobs[0].worktreeID, featureWorktree.id)
+    }
+
+    func test_removeWorktree_force_enqueuesForceJob() {
+        sut.worktrees = [rootWorktree, featureWorktree]
+
+        sut.removeWorktree(featureWorktree, force: true)
+
+        XCTAssertEqual(sut.jobQueue.jobs.count, 1)
+        XCTAssertEqual(sut.jobQueue.jobs[0].kind, .removeWorktree(force: true))
+    }
+
+    func test_removeWorktree_noRepository_doesNotEnqueue() {
+        sut.repository = nil
+
+        sut.removeWorktree(featureWorktree)
+
+        XCTAssertTrue(sut.jobQueue.jobs.isEmpty)
+    }
+}
+
+// MockNoPRService is defined in MockGitExecutor.swift

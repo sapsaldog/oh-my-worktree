@@ -2,8 +2,10 @@ import SwiftUI
 
 struct WorktreeListView: View {
     @ObservedObject var viewModel: WorktreeListViewModel
+    @State private var selectedIDs: Set<UUID> = []
     @State private var renamingWorktreeID: UUID?
     @State private var forceRemoveTarget: ForceRemoveTarget?
+    @State private var confirmBulkRemove = false
 
     private enum ForceRemoveTarget {
         case single(Worktree)
@@ -28,38 +30,39 @@ struct WorktreeListView: View {
                     subtitle: "Click + to create a new worktree"
                 )
             } else {
-                List(selection: $viewModel.selectedWorktreeIDs) {
+                let jobStates = jobStateByWorktreeID
+                List(selection: $selectedIDs) {
                     ForEach(viewModel.worktrees) { worktree in
-                        worktreeRow(for: worktree)
+                        worktreeRow(for: worktree, jobStates: jobStates)
                             .tag(worktree.id)
                             .contextMenu {
                                 contextMenuItems(for: worktree)
                             }
                     }
                 }
-                .listStyle(.inset(alternatesRowBackgrounds: true))
+                .listStyle(.inset)
+                .onChange(of: selectedIDs) { _, newIDs in
+                    guard newIDs != viewModel.selectedWorktreeIDs else { return }
+                    let vm = viewModel
+                    Task { @MainActor in vm.selectedWorktreeIDs = newIDs }
+                }
+                .onChange(of: viewModel.selectedWorktreeIDs) { _, newIDs in
+                    if newIDs != selectedIDs { selectedIDs = newIDs }
+                }
                 .onKeyPress(.return) {
                     guard renamingWorktreeID == nil,
-                          viewModel.selectedWorktreeIDs.count == 1,
-                          let id = viewModel.selectedWorktreeIDs.first,
+                          selectedIDs.count == 1,
+                          let id = selectedIDs.first,
                           let worktree = viewModel.worktrees.first(where: { $0.id == id })
                     else { return .ignored }
                     renamingWorktreeID = worktree.id
                     return .handled
                 }
                 .onKeyPress(.escape) {
-                    guard !viewModel.selectedWorktreeIDs.isEmpty else { return .ignored }
-                    viewModel.selectedWorktreeIDs = []
+                    guard !selectedIDs.isEmpty else { return .ignored }
+                    selectedIDs = []
                     return .handled
                 }
-                // selectedWorktree is now synced reactively inside WorktreeListViewModel
-                // via a $selectedWorktreeIDs subscription, avoiding view-update warnings.
-            }
-        }
-        .overlay(alignment: .bottomTrailing) {
-            if viewModel.repository != nil {
-                addWorktreeButton
-                    .padding(12)
             }
         }
         .confirmationDialog(
@@ -85,6 +88,18 @@ struct WorktreeListView: View {
         } message: {
             Text("Uncommitted changes will be lost. This cannot be undone.")
         }
+        .confirmationDialog(
+            "Remove \(viewModel.selectedWorktreeIDs.count) Worktrees?",
+            isPresented: $confirmBulkRemove,
+            titleVisibility: .visible
+        ) {
+            Button("Remove", role: .destructive) {
+                viewModel.removeSelectedWorktrees(force: false)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Worktrees with uncommitted changes will not be removed.")
+        }
     }
 
     private var forceRemoveConfirmationTitle: String {
@@ -100,11 +115,26 @@ struct WorktreeListView: View {
 
     // MARK: - Worktree Row
 
-    private func worktreeRow(for worktree: Worktree) -> some View {
-        let jobState = viewModel.jobQueue.jobs.first { $0.worktreeID == worktree.id }?.state
+    /// Pre-computed job state lookup to avoid O(N*M) per-row linear scans.
+    private var jobStateByWorktreeID: [UUID: BackgroundJobState] {
+        var result: [UUID: BackgroundJobState] = [:]
+        for job in viewModel.jobQueue.jobs where job.state.isActive {
+            result[job.worktreeID] = job.state
+        }
+        return result
+    }
+
+    /// Resolves the PR for a worktree, checking local branch then remote branch fallback.
+    private func pullRequest(for worktree: Worktree) -> PullRequestInfo? {
+        worktree.branch.flatMap { viewModel.pullRequests[$0] }
+            ?? worktree.prRemoteBranch.flatMap { viewModel.pullRequests[$0] }
+    }
+
+    private func worktreeRow(for worktree: Worktree, jobStates: [UUID: BackgroundJobState]) -> some View {
+        let jobState = jobStates[worktree.id]
         return WorktreeRowView(
             worktree: worktree,
-            pullRequest: worktree.branch.flatMap { viewModel.pullRequests[$0] },
+            pullRequest: pullRequest(for: worktree),
             jobState: jobState,
             isRenaming: renamingWorktreeID == worktree.id,
             onOpenPullRequest: { viewModel.openPullRequest(for: worktree) },
@@ -114,8 +144,6 @@ struct WorktreeListView: View {
             },
             onCancelRename: { renamingWorktreeID = nil }
         )
-        // Fix 10: Tooltip improves discoverability for users who may not know
-        // that context menu actions (open, rename, pull, remove) are on right-click.
         .help("Right-click for actions")
     }
 
@@ -134,21 +162,6 @@ struct WorktreeListView: View {
                 .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    // MARK: - Add Button
-
-    private var addWorktreeButton: some View {
-        Button(action: {
-            Task { await viewModel.addWorktree() }
-        }) {
-            Image(systemName: "plus.circle.fill")
-                .font(.system(size: 28))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.blue)
-        }
-        .buttonStyle(.plain)
-        .help("New Worktree")
     }
 
     // MARK: - Context Menu
@@ -175,7 +188,7 @@ struct WorktreeListView: View {
         Button("Open in cmux") { Task { await viewModel.openInCmux(worktree) } }
             .disabled(!viewModel.isCmuxAvailable || !actions.canOpen)
 
-        if !isMultiSelected, let branch = worktree.branch, let pr = viewModel.pullRequests[branch] {
+        if !isMultiSelected, let pr = pullRequest(for: worktree) {
             Divider()
             Button("Open Pull Request #\(pr.number)") { viewModel.openPullRequest(for: worktree) }
         }
@@ -199,29 +212,27 @@ struct WorktreeListView: View {
         }
         .disabled(!actions.canCopyPath)
 
-        if let repository = viewModel.repository, !worktree.isRoot(of: repository) {
-            Divider()
-            if isMultiSelected {
+        if isMultiSelected {
+            if actions.canRemove {
+                Divider()
                 Button("Remove Selected Worktrees", role: .destructive) {
-                    viewModel.removeSelectedWorktrees(force: false)
+                    confirmBulkRemove = true
                 }
-                .disabled(!actions.canRemove)
-
                 Button("Force Remove Selected Worktrees", role: .destructive) {
                     forceRemoveTarget = .selectedWorktrees(count: viewModel.selectedWorktreeIDs.count)
                 }
-                .disabled(!actions.canForceRemove)
-            } else {
-                Button("Remove Worktree", role: .destructive) {
-                    viewModel.removeWorktree(worktree)
-                }
-                .disabled(!actions.canRemove)
-
-                Button("Force Remove Worktree", role: .destructive) {
-                    forceRemoveTarget = .single(worktree)
-                }
-                .disabled(!actions.canForceRemove)
             }
+        } else if let repository = viewModel.repository, !worktree.isRoot(of: repository) {
+            Divider()
+            Button("Remove Worktree", role: .destructive) {
+                viewModel.removeWorktree(worktree)
+            }
+            .disabled(!actions.canRemove)
+
+            Button("Force Remove Worktree", role: .destructive) {
+                forceRemoveTarget = .single(worktree)
+            }
+            .disabled(!actions.canForceRemove)
         }
     }
 }

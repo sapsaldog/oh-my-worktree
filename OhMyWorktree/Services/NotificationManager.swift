@@ -1,3 +1,4 @@
+import os
 import UserNotifications
 
 // MARK: - NotificationManager
@@ -6,11 +7,17 @@ import UserNotifications
 /// Acts as its own UNUserNotificationCenterDelegate so banners appear even while
 /// the app's popover is frontmost.
 ///
-/// Fix 7: @MainActor replaces @unchecked Sendable — all notification calls originate
-/// from MainActor contexts (WorktreeListViewModel), so making the class MainActor-isolated
-/// gives the compiler proper thread-safety guarantees without bypassing checks.
+/// @MainActor because all call sites (WorktreeListViewModel callbacks) are MainActor-isolated.
+/// `static let shared` is safe because the first access always happens from a MainActor
+/// context (WorktreeListViewModel.init); if a future call site is off-MainActor, the
+/// compiler will flag it.
 @MainActor
 final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
+
+    private static let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "com.ohmyworktree",
+        category: "NotificationManager"
+    )
 
     static let shared = NotificationManager()
 
@@ -20,7 +27,13 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     }
 
     func requestAuthorization() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
+            if let error {
+                Self.logger.error("Authorization error: \(error.localizedDescription)")
+            } else if !granted {
+                Self.logger.info("Notification permission denied by user")
+            }
+        }
     }
 
     func notifyCompleted(job: BackgroundJob) {
@@ -31,15 +44,20 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
             content.body = "'\(job.displayName)' removed"
         case .pull:
             content.body = "'\(job.displayName)' pulled successfully"
+        case .addWorktreeFromPR(_, _, let prNumber):
+            content.body = "PR #\(prNumber) imported successfully"
         }
         post(content: content, identifier: job.id.uuidString)
     }
 
+    /// Maximum body length for failure banners — prevents oversized banners
+    /// from malformed or excessively long git error output.
+    private static let maxBodyLength = 200
+
     func notifyFailed(message: String, jobID: UUID) {
         let content = UNMutableNotificationContent()
         content.title = "Oh My Worktree — Task Failed"
-        // Truncate to 200 chars to prevent oversized banners from malformed git error output.
-        content.body = String(message.prefix(200))
+        content.body = String(message.prefix(Self.maxBodyLength))
         content.sound = .defaultCritical
         post(content: content, identifier: "fail-\(jobID.uuidString)")
     }

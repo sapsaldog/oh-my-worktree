@@ -1,6 +1,6 @@
 import Foundation
 
-enum OhMyWorktreeError: LocalizedError {
+enum OhMyWorktreeError: LocalizedError, Sendable {
     case gitNotInstalled
     case invalidGitRepository(path: String)
     case worktreeAlreadyExists(branch: String)

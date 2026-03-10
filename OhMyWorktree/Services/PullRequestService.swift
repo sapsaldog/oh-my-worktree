@@ -3,20 +3,33 @@ import os
 
 protocol PullRequestFetching: Sendable {
     func fetchPullRequests(repositoryPath: String) async -> [String: PullRequestInfo]
+    func isGitHubAvailable(repositoryPath: String) async -> Bool
+    /// Returns the full PR list, or `nil` on any error (gh unavailable, not GitHub, command failed, parse error).
+    /// An empty array means success with zero PRs.
+    func fetchPullRequestList(repositoryPath: String) async -> [PullRequestInfo]?
+}
+
+extension PullRequestFetching {
+    func isGitHubAvailable(repositoryPath: String) async -> Bool { false }
+    func fetchPullRequestList(repositoryPath: String) async -> [PullRequestInfo]? { nil }
 }
 
 /// Fetches GitHub pull request information using the `gh` CLI.
 /// Gracefully degrades when `gh` is not installed, not authenticated, or the repository is not on GitHub.
 final class PullRequestService: PullRequestFetching, Sendable {
 
-    private static let logger = Logger(subsystem: "com.ohmyworktree", category: "PullRequestService")
+    private static let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "com.ohmyworktree",
+        category: "PullRequestService"
+    )
 
     private let gitExecutor: GitCommandExecuting
-    private let ghCliPath: String?
+    /// Resolved once at init to avoid repeated filesystem checks and `which` subprocess spawns.
+    private let resolvedGhCliPath: String?
 
     init(gitExecutor: GitCommandExecuting = GitCommandExecutor(), ghCliPath: String? = nil) {
         self.gitExecutor = gitExecutor
-        self.ghCliPath = ghCliPath
+        self.resolvedGhCliPath = ghCliPath ?? Self.findGhCli()
     }
 
     // MARK: - Public API
@@ -25,7 +38,7 @@ final class PullRequestService: PullRequestFetching, Sendable {
     /// Returns an empty dictionary if `gh` is unavailable, the repo is not GitHub, or any error occurs.
     /// Note: Limited to the 100 most recent PRs across all states.
     func fetchPullRequests(repositoryPath: String) async -> [String: PullRequestInfo] {
-        guard let ghPath = ghCliPath ?? findGhCli() else {
+        guard let ghPath = resolvedGhCliPath else {
             Self.logger.debug("gh CLI not found, skipping PR fetch")
             return [:]
         }
@@ -49,16 +62,75 @@ final class PullRequestService: PullRequestFetching, Sendable {
         }
     }
 
+    /// Returns true when the `gh` CLI is installed and the repository is hosted on GitHub.
+    /// Validates that the resolved gh path actually exists on disk (unlike fetchPullRequests,
+    /// which defers failure to the command execution layer).
+    func isGitHubAvailable(repositoryPath: String) async -> Bool {
+        guard let path = resolvedGhCliPath,
+              FileManager.default.isExecutableFile(atPath: path) else { return false }
+        return await isGitHubRepository(repositoryPath: repositoryPath)
+    }
+
+    /// Fetches all PRs (open, draft, merged, closed) as an ordered array with full metadata.
+    /// Returns `nil` on any error; returns an empty array when there are genuinely no PRs.
+    func fetchPullRequestList(repositoryPath: String) async -> [PullRequestInfo]? {
+        guard let ghPath = resolvedGhCliPath else { return nil }
+        guard await isGitHubRepository(repositoryPath: repositoryPath) else { return nil }
+
+        do {
+            let result = try await gitExecutor.execute(
+                command: ghPath,
+                arguments: [
+                    "pr", "list",
+                    "--json", "number,url,headRefName,state,title,author,updatedAt,isDraft",
+                    "--state", "all",
+                    "--limit", "100"
+                ],
+                workingDirectory: repositoryPath
+            )
+            guard result.exitCode == 0 else { return nil }
+            return parsePullRequestList(from: result.stdout)
+        } catch {
+            Self.logger.debug("Failed to fetch PR list: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
     // MARK: - Private Helpers
 
-    /// Checks common paths for the `gh` CLI binary.
-    private func findGhCli() -> String? {
-        let paths = [
+    /// Checks common paths for the `gh` CLI binary, then falls back to `which`
+    /// so installs via nix, asdf, mise, etc. are discovered.
+    private static func findGhCli() -> String? {
+        let commonPaths = [
             "/opt/homebrew/bin/gh",
             "/usr/local/bin/gh",
             "/usr/bin/gh"
         ]
-        return paths.first { FileManager.default.isExecutableFile(atPath: $0) }
+        if let found = commonPaths.first(where: { FileManager.default.isExecutableFile(atPath: $0) }) {
+            return found
+        }
+        return resolveFromPath("gh")
+    }
+
+    /// Runs `/usr/bin/which` to resolve a command from the system PATH.
+    private static func resolveFromPath(_ command: String) -> String? {
+        let process = Process()
+        let pipe = Pipe()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
+        process.arguments = [command]
+        process.standardOutput = pipe
+        process.standardError = Pipe()
+        do {
+            try process.run()
+            process.waitUntilExit()
+            guard process.terminationStatus == 0 else { return nil }
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            let path = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let path, !path.isEmpty, FileManager.default.isExecutableFile(atPath: path) else { return nil }
+            return path
+        } catch {
+            return nil
+        }
     }
 
     /// Determines whether the repository's origin remote points to GitHub.
@@ -75,6 +147,64 @@ final class PullRequestService: PullRequestFetching, Sendable {
             return url.contains("github.com:") || url.contains("github.com/")
         } catch {
             return false
+        }
+    }
+
+    /// Shared formatters — `ISO8601DateFormatter` is expensive to initialize.
+    /// GitHub's `updatedAt` typically includes fractional seconds (e.g. "2024-01-15T10:30:00.000Z"),
+    /// but we keep a fallback for dates without them since the format isn't guaranteed.
+    private static let isoFormatterWithFractional: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private static let isoFormatterWithoutFractional: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+
+    /// Parses the rich JSON output from `gh pr list` (with title, author, updatedAt, isDraft) into an array.
+    /// Returns `nil` on parse error; returns an empty array when the JSON array is empty.
+    private func parsePullRequestList(from jsonString: String) -> [PullRequestInfo]? {
+        guard let data = jsonString.data(using: .utf8) else { return nil }
+
+        struct GhPR: Decodable {
+            let number: Int
+            let url: String
+            let headRefName: String
+            let state: String?
+            let title: String
+            let author: GhAuthor?
+            let updatedAt: String?
+            let isDraft: Bool?
+
+            struct GhAuthor: Decodable { let login: String }
+        }
+
+        do {
+            let prs = try JSONDecoder().decode([GhPR].self, from: data)
+            return prs.compactMap { pr in
+                guard let url = URL(string: pr.url) else { return nil }
+                let state = pr.state.flatMap { PullRequestState(rawValue: $0) } ?? .open
+                let updatedAt = pr.updatedAt.flatMap {
+                    Self.isoFormatterWithFractional.date(from: $0) ?? Self.isoFormatterWithoutFractional.date(from: $0)
+                }
+                return PullRequestInfo(
+                    number: pr.number,
+                    url: url,
+                    branch: pr.headRefName,
+                    state: state,
+                    title: pr.title,
+                    author: pr.author?.login ?? "",
+                    updatedAt: updatedAt,
+                    isDraft: pr.isDraft ?? false
+                )
+            }
+        } catch {
+            Self.logger.debug("Failed to parse PR list JSON: \(error.localizedDescription)")
+            return nil
         }
     }
 

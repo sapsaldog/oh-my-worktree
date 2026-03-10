@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 struct GitPullResult: Sendable {
@@ -10,6 +11,23 @@ final class WorktreeManager: Sendable {
 
     init(executor: GitCommandExecuting = GitCommandExecutor()) {
         self.executor = executor
+    }
+
+    // MARK: - Path Construction
+
+    /// Canonical worktree directory path for a given repository and folder name.
+    /// Used by both WorktreeManager and WorktreeListViewModel to avoid path divergence.
+    /// Uses a SHA-256 hash suffix when the repo name alone would collide (e.g. two repos named "myapp").
+    static func worktreePath(repositoryPath: String, folderName: String) -> String {
+        let repoName = (repositoryPath as NSString).lastPathComponent
+        // Include a deterministic hash of the full path to prevent collisions when
+        // two repositories share the same directory name (e.g. /work/myapp and /personal/myapp).
+        // Uses SHA-256 (not String.hashValue) because hashValue is randomized per process.
+        let digest = SHA256.hash(data: Data(repositoryPath.utf8))
+        let pathHash = digest.prefix(3).map { String(format: "%02x", $0) }.joined()
+        let workspaceName = "\(repoName)-\(pathHash)"
+        return (NSHomeDirectory() as NSString)
+            .appendingPathComponent("oh-my-worktree/workspaces/\(workspaceName)/\(folderName)")
     }
 
     // MARK: - List Worktrees
@@ -37,9 +55,7 @@ final class WorktreeManager: Sendable {
         folderName: String,
         baseBranch: String? = nil
     ) async throws -> Worktree {
-        let repoName = (repositoryPath as NSString).lastPathComponent
-        let worktreePath = (NSHomeDirectory() as NSString)
-            .appendingPathComponent("oh-my-worktree/workspaces/\(repoName)/\(folderName)")
+        let worktreePath = Self.worktreePath(repositoryPath: repositoryPath, folderName: folderName)
 
         try FileManager.default.createDirectory(
             atPath: (worktreePath as NSString).deletingLastPathComponent,
@@ -83,9 +99,7 @@ final class WorktreeManager: Sendable {
         folderName: String,
         branch: String
     ) async throws -> Worktree {
-        let repoName = (repositoryPath as NSString).lastPathComponent
-        let worktreePath = (NSHomeDirectory() as NSString)
-            .appendingPathComponent("oh-my-worktree/workspaces/\(repoName)/\(folderName)")
+        let worktreePath = Self.worktreePath(repositoryPath: repositoryPath, folderName: folderName)
 
         try FileManager.default.createDirectory(
             atPath: (worktreePath as NSString).deletingLastPathComponent,
@@ -118,7 +132,102 @@ final class WorktreeManager: Sendable {
         return newWorktree
     }
 
-    // MARK: - Remove Worktree
+    // MARK: - Add Worktree (new local branch from remote)
+
+    /// Creates a worktree with a brand-new local branch (`localBranch`) starting at
+    /// the given `startPoint` (defaults to `origin/<remoteBranch>`).
+    func addWorktreeFromRemoteBranch(
+        repositoryPath: String,
+        folderName: String,
+        localBranch: String,
+        remoteBranch: String,
+        startPoint: String? = nil
+    ) async throws -> Worktree {
+        let worktreePath = Self.worktreePath(repositoryPath: repositoryPath, folderName: folderName)
+
+        try FileManager.default.createDirectory(
+            atPath: (worktreePath as NSString).deletingLastPathComponent,
+            withIntermediateDirectories: true
+        )
+
+        let resolvedStartPoint = startPoint ?? "origin/\(remoteBranch)"
+        // Use -b (not -B) to prevent silently resetting an existing local branch
+        // that has unpushed commits. If the branch already exists, git will fail
+        // with a clear error rather than force-moving the branch pointer.
+        let arguments = ["worktree", "add", "-b", localBranch, worktreePath, resolvedStartPoint]
+
+        let result = try await executor.execute(
+            arguments: arguments,
+            workingDirectory: repositoryPath
+        )
+
+        guard result.exitCode == 0 else {
+            let stderr = result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+            throw OhMyWorktreeError.commandExecutionFailed(command: "git worktree add", stderr: stderr)
+        }
+
+        let worktrees = try await listWorktrees(repositoryPath: repositoryPath)
+        guard let newWorktree = worktrees.first(where: { $0.path == worktreePath }) else {
+            throw OhMyWorktreeError.worktreeNotFound(path: worktreePath)
+        }
+
+        return newWorktree
+    }
+
+    // MARK: - Fetch Remote Branch
+
+    func fetchBranch(_ branch: String, repositoryPath: String) async throws {
+        let result = try await executor.execute(
+            arguments: ["fetch", "origin", branch],
+            workingDirectory: repositoryPath
+        )
+        guard result.exitCode == 0 else {
+            let stderr = result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+            let isNotFound = stderr.contains("couldn't find remote ref") ||
+                             stderr.contains("does not appear to be a git repository")
+            let message = isNotFound
+                ? "Branch '\(branch)' was not found on the remote."
+                : stderr.isEmpty ? "Failed to fetch branch '\(branch)' from origin." : stderr
+            throw OhMyWorktreeError.commandExecutionFailed(command: "git fetch", stderr: message)
+        }
+    }
+
+    // MARK: - Fetch Pull Request Ref
+
+    /// Fetches the head commit of a pull request by number using `pull/<number>/head`.
+    /// Works for both same-repo and fork PRs.
+    ///
+    /// Returns a named ref (e.g. `refs/omw/pr/123`) that can be used as a stable
+    /// start-point for `git worktree add`. Using a named ref instead of `FETCH_HEAD`
+    /// avoids a race where an interleaving `git fetch` could overwrite `FETCH_HEAD`
+    /// between the fetch and the worktree creation.
+    /// Callers should delete the ref via `deleteRef(_:repositoryPath:)` after use.
+    @discardableResult
+    func fetchPullRequestRef(number: Int, repositoryPath: String) async throws -> String {
+        let ref = "refs/omw/pr/\(number)"
+        let result = try await executor.execute(
+            arguments: ["fetch", "origin", "+pull/\(number)/head:\(ref)"],
+            workingDirectory: repositoryPath
+        )
+        guard result.exitCode == 0 else {
+            let stderr = result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+            let message = stderr.isEmpty
+                ? "Failed to fetch PR #\(number) from origin."
+                : stderr
+            throw OhMyWorktreeError.commandExecutionFailed(command: "git fetch", stderr: message)
+        }
+        return ref
+    }
+
+    /// Deletes a named ref created by `fetchPullRequestRef`. Best-effort: errors are ignored.
+    func deleteRef(_ ref: String, repositoryPath: String) async {
+        _ = try? await executor.execute(
+            arguments: ["update-ref", "-d", ref],
+            workingDirectory: repositoryPath
+        )
+    }
+
+    // MARK: - Remove / Prune Worktrees
 
     func removeWorktree(repositoryPath: String, worktreePath: String, force: Bool = false) async throws {
         var arguments = ["worktree", "remove", worktreePath]
@@ -139,6 +248,21 @@ final class WorktreeManager: Sendable {
         }
     }
 
+    /// Runs `git worktree prune` to remove administrative files for worktrees
+    /// whose directories no longer exist on disk (e.g. manually deleted).
+    func pruneWorktrees(repositoryPath: String) async throws {
+        let result = try await executor.execute(
+            arguments: ["worktree", "prune"],
+            workingDirectory: repositoryPath
+        )
+        guard result.exitCode == 0 else {
+            throw OhMyWorktreeError.commandExecutionFailed(
+                command: "git worktree prune",
+                stderr: result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+            )
+        }
+    }
+
     // MARK: - Git Pull
 
     func gitPull(worktreePath: String) async throws -> GitPullResult {
@@ -147,9 +271,11 @@ final class WorktreeManager: Sendable {
             workingDirectory: worktreePath
         )
 
+        let stdout = result.stdout
         guard result.exitCode == 0 else {
             let stderr = result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
-            if stderr.contains("CONFLICT") {
+            // Git outputs "CONFLICT" markers to stdout, not stderr.
+            if stdout.contains("CONFLICT") || stderr.contains("CONFLICT") {
                 throw OhMyWorktreeError.commandExecutionFailed(
                     command: "git pull",
                     stderr: "Merge conflict detected. Please resolve conflicts manually."
@@ -271,6 +397,9 @@ final class WorktreeManager: Sendable {
         let lines = trimmedBlock.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
         let parsed = parseWorktreeLines(lines)
 
+        // Prunable entries have no directory on disk; exclude them so stale
+        // worktrees don't reappear in the list after manual deletion.
+        guard !parsed.isPrunable else { return nil }
         guard let worktreePath = parsed.path else { return nil }
         return Worktree(
             path: worktreePath,
@@ -290,6 +419,7 @@ final class WorktreeManager: Sendable {
         var isDetached = false
         var isBare = false
         var isLocked = false
+        var isPrunable = false
 
         for lineStr in lines {
             if lineStr.hasPrefix("worktree ") {
@@ -307,12 +437,15 @@ final class WorktreeManager: Sendable {
                 isBare = true
             } else if lineStr.hasPrefix("locked") {
                 isLocked = true
+            } else if lineStr.hasPrefix("prunable") {
+                isPrunable = true
             }
         }
 
         return WorktreeLineTokens(
             path: path, commitHash: commitHash, branch: branch,
-            isDetached: isDetached, isBare: isBare, isLocked: isLocked
+            isDetached: isDetached, isBare: isBare, isLocked: isLocked,
+            isPrunable: isPrunable
         )
     }
 }
@@ -324,4 +457,5 @@ private struct WorktreeLineTokens {
     let isDetached: Bool
     let isBare: Bool
     let isLocked: Bool
+    let isPrunable: Bool
 }

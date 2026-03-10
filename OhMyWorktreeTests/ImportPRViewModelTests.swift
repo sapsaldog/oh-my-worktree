@@ -1,0 +1,414 @@
+import XCTest
+
+@testable import OhMyWorktree
+
+// MARK: - Mock
+
+private final class MockPRFetching: PullRequestFetching, @unchecked Sendable {
+    var listResult: [PullRequestInfo]? = []
+
+    func fetchPullRequests(repositoryPath: String) async -> [String: PullRequestInfo] { [:] }
+    func fetchPullRequestList(repositoryPath: String) async -> [PullRequestInfo]? { listResult }
+}
+
+// MARK: - Helpers
+
+@MainActor
+final class ImportPRViewModelTests: XCTestCase {
+
+    private func makePR(
+        number: Int,
+        branch: String = "branch",
+        title: String = "Title",
+        author: String = "user",
+        state: PullRequestState = .open,
+        isDraft: Bool = false
+    ) -> PullRequestInfo {
+        PullRequestInfo(
+            number: number,
+            url: URL(string: "https://github.com/user/repo/pull/\(number)")!,
+            branch: branch,
+            state: state,
+            title: title,
+            author: author,
+            isDraft: isDraft
+        )
+    }
+
+    // MARK: - Tab Filtering
+
+    func testFilteredPRs_openTab_returnsOpenNonDraftOnly() {
+        let sut = ImportPRViewModel()
+        sut.allPRs = [
+            makePR(number: 1, state: .open, isDraft: false),
+            makePR(number: 2, state: .open, isDraft: true),
+            makePR(number: 3, state: .merged),
+            makePR(number: 4, state: .closed)
+        ]
+        sut.selectedTab = .open
+
+        XCTAssertEqual(sut.filteredPRs.map(\.number), [1])
+    }
+
+    func testFilteredPRs_draftTab_returnsDraftPRsOnly() {
+        let sut = ImportPRViewModel()
+        sut.allPRs = [
+            makePR(number: 1, state: .open, isDraft: false),
+            makePR(number: 2, state: .open, isDraft: true),
+            makePR(number: 3, state: .open, isDraft: true),
+            makePR(number: 4, state: .merged)
+        ]
+        sut.selectedTab = .draft
+
+        let numbers = sut.filteredPRs.map(\.number)
+        XCTAssertEqual(Set(numbers), [2, 3])
+    }
+
+    func testFilteredPRs_closedTab_includesMergedAndClosed() {
+        let sut = ImportPRViewModel()
+        sut.allPRs = [
+            makePR(number: 1, state: .open),
+            makePR(number: 2, state: .merged),
+            makePR(number: 3, state: .closed)
+        ]
+        sut.selectedTab = .closed
+
+        let numbers = sut.filteredPRs.map(\.number)
+        XCTAssertEqual(Set(numbers), [2, 3])
+    }
+
+    func testFilteredPRs_closedTab_excludesOpen() {
+        let sut = ImportPRViewModel()
+        sut.allPRs = [
+            makePR(number: 1, state: .open),
+            makePR(number: 2, state: .open, isDraft: true)
+        ]
+        sut.selectedTab = .closed
+
+        XCTAssertTrue(sut.filteredPRs.isEmpty)
+    }
+
+    func testFilteredPRs_emptyPRList_returnsEmpty() {
+        let sut = ImportPRViewModel()
+        sut.allPRs = []
+        sut.selectedTab = .open
+
+        XCTAssertTrue(sut.filteredPRs.isEmpty)
+    }
+
+    // MARK: - Search Filtering
+
+    func testFilteredPRs_searchByTitle_caseInsensitive() {
+        let sut = ImportPRViewModel()
+        sut.allPRs = [
+            makePR(number: 1, title: "Add Dark Mode"),
+            makePR(number: 2, title: "Fix memory leak")
+        ]
+        sut.selectedTab = .open
+        sut.searchText = "dark mode"
+
+        XCTAssertEqual(sut.filteredPRs.map(\.number), [1])
+    }
+
+    func testFilteredPRs_searchByNumber_matchesExact() {
+        let sut = ImportPRViewModel()
+        sut.allPRs = [
+            makePR(number: 42, title: "Something"),
+            makePR(number: 142, title: "Other")
+        ]
+        sut.selectedTab = .open
+        sut.searchText = "42"
+
+        let numbers = sut.filteredPRs.map(\.number)
+        XCTAssertTrue(numbers.contains(42))
+        XCTAssertTrue(numbers.contains(142))
+    }
+
+    func testFilteredPRs_searchByBranch_matchesPartial() {
+        let sut = ImportPRViewModel()
+        sut.allPRs = [
+            makePR(number: 1, branch: "feature/dark-mode", title: "PR 1"),
+            makePR(number: 2, branch: "fix/crash", title: "PR 2")
+        ]
+        sut.selectedTab = .open
+        sut.searchText = "dark"
+
+        XCTAssertEqual(sut.filteredPRs.map(\.number), [1])
+    }
+
+    func testFilteredPRs_emptySearch_returnsAll() {
+        let sut = ImportPRViewModel()
+        sut.allPRs = [
+            makePR(number: 1),
+            makePR(number: 2),
+            makePR(number: 3)
+        ]
+        sut.selectedTab = .open
+        sut.searchText = ""
+
+        XCTAssertEqual(sut.filteredPRs.count, 3)
+    }
+
+    func testFilteredPRs_searchWithNoMatch_returnsEmpty() {
+        let sut = ImportPRViewModel()
+        sut.allPRs = [makePR(number: 1, title: "Hello world")]
+        sut.selectedTab = .open
+        sut.searchText = "zzz"
+
+        XCTAssertTrue(sut.filteredPRs.isEmpty)
+    }
+
+    // MARK: - Tab + Search Combined
+
+    func testFilteredPRs_tabAndSearch_bothApplied() {
+        let sut = ImportPRViewModel()
+        sut.allPRs = [
+            makePR(number: 1, branch: "feature/login", state: .open, isDraft: false),
+            makePR(number: 2, branch: "feature/logout", state: .open, isDraft: true),
+            makePR(number: 3, branch: "fix/crash", state: .open, isDraft: false)
+        ]
+        sut.selectedTab = .open
+        sut.searchText = "feature"
+
+        // Only open non-draft PRs matching "feature"
+        XCTAssertEqual(sut.filteredPRs.map(\.number), [1])
+    }
+
+    // MARK: - Initial State
+
+    func testInitialState_defaultsToOpenTab() {
+        let sut = ImportPRViewModel()
+        XCTAssertEqual(sut.selectedTab, .open)
+    }
+
+    func testInitialState_emptySearch() {
+        let sut = ImportPRViewModel()
+        XCTAssertTrue(sut.searchText.isEmpty)
+    }
+
+    func testInitialState_noSelectedPR() {
+        let sut = ImportPRViewModel()
+        XCTAssertNil(sut.selectedPR)
+    }
+
+    func testInitialState_notLoading() {
+        let sut = ImportPRViewModel()
+        XCTAssertFalse(sut.isLoading)
+    }
+
+    func testInitialState_loadFailedFalse() {
+        let sut = ImportPRViewModel()
+        XCTAssertFalse(sut.loadFailed)
+    }
+
+    // MARK: - Search/tab clearing selectedPR
+    // Selection clearing on search/tab change is handled by ImportPRView's
+    // .onChange modifiers (SwiftUI view-layer concern, not ViewModel logic).
+
+    // MARK: - loadPRs (RED: drives protocol injection and loadFailed state)
+
+    func testLoadPRs_success_populatesAllPRs() async {
+        let mock = MockPRFetching()
+        mock.listResult = [makePR(number: 1), makePR(number: 2)]
+        let sut = ImportPRViewModel(pullRequestService: mock)
+        sut.repositoryPath = "/tmp/repo"
+
+        await sut.loadPRs()
+
+        XCTAssertEqual(sut.allPRs.count, 2)
+        XCTAssertFalse(sut.loadFailed)
+    }
+
+    func testLoadPRs_emptySuccess_doesNotSetLoadFailed() async {
+        let mock = MockPRFetching()
+        mock.listResult = [] // empty but not an error
+        let sut = ImportPRViewModel(pullRequestService: mock)
+        sut.repositoryPath = "/tmp/repo"
+
+        await sut.loadPRs()
+
+        XCTAssertTrue(sut.allPRs.isEmpty)
+        XCTAssertFalse(sut.loadFailed)
+    }
+
+    func testLoadPRs_failure_setsLoadFailed() async {
+        let mock = MockPRFetching()
+        mock.listResult = nil // nil means error
+        let sut = ImportPRViewModel(pullRequestService: mock)
+        sut.repositoryPath = "/tmp/repo"
+
+        await sut.loadPRs()
+
+        XCTAssertTrue(sut.loadFailed)
+        XCTAssertTrue(sut.allPRs.isEmpty)
+    }
+
+    func testLoadPRs_afterFailure_retrySuccess_clearsLoadFailed() async {
+        let mock = MockPRFetching()
+        mock.listResult = nil
+        let sut = ImportPRViewModel(pullRequestService: mock)
+        sut.repositoryPath = "/tmp/repo"
+
+        await sut.loadPRs()
+        XCTAssertTrue(sut.loadFailed)
+
+        mock.listResult = [makePR(number: 1)]
+        await sut.loadPRs()
+
+        XCTAssertFalse(sut.loadFailed)
+        XCTAssertEqual(sut.allPRs.count, 1)
+    }
+
+    func testLoadPRs_setsIsLoadingDuringFetch() async {
+        // Verify loading state is reset after completion (loadFailed case)
+        let mock = MockPRFetching()
+        mock.listResult = nil
+        let sut = ImportPRViewModel(pullRequestService: mock)
+        sut.repositoryPath = "/tmp/repo"
+
+        await sut.loadPRs()
+
+        XCTAssertFalse(sut.isLoading)
+    }
+
+    // MARK: - retry (RED: verifies retry() actually updates state)
+
+    func testRetry_afterFailure_updatesState() async {
+        let mock = MockPRFetching()
+        mock.listResult = nil
+        let sut = ImportPRViewModel(pullRequestService: mock)
+        sut.repositoryPath = "/tmp/repo"
+
+        await sut.loadPRs()
+        XCTAssertTrue(sut.loadFailed)
+
+        // Use retry() (not direct loadPRs call) to verify it doesn't self-cancel
+        mock.listResult = [makePR(number: 1)]
+        sut.retry()
+
+        // Wait for the retry Task to be scheduled and complete on @MainActor.
+        // Task.sleep suspends the current task, giving the retry task a chance to run.
+        let deadline = Date().addingTimeInterval(2)
+        while (sut.loadFailed || sut.allPRs.isEmpty) && Date() < deadline {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        XCTAssertFalse(sut.loadFailed, "retry() should clear loadFailed on success")
+        XCTAssertEqual(sut.allPRs.count, 1, "retry() should populate allPRs")
+    }
+
+    // MARK: - relativeTimeString (RED: drives guard for future dates)
+
+    func testRelativeTimeString_justNow_lessThan60Seconds() {
+        let date = Date().addingTimeInterval(-30) // 30 seconds ago
+        XCTAssertEqual(date.relativeTimeString, "just now")
+    }
+
+    func testRelativeTimeString_minutes() {
+        let date = Date().addingTimeInterval(-90) // 1.5 min ago
+        XCTAssertEqual(date.relativeTimeString, "1m ago")
+    }
+
+    func testRelativeTimeString_hours() {
+        let date = Date().addingTimeInterval(-7200) // 2 hours ago
+        XCTAssertEqual(date.relativeTimeString, "2h ago")
+    }
+
+    func testRelativeTimeString_days() {
+        let date = Date().addingTimeInterval(-86400 * 3) // 3 days ago
+        XCTAssertEqual(date.relativeTimeString, "3d ago")
+    }
+
+    func testRelativeTimeString_futureDate_returnsJustNow() {
+        let futureDate = Date().addingTimeInterval(3600) // 1 hour in the future
+        XCTAssertEqual(futureDate.relativeTimeString, "just now")
+    }
+
+    func testRelativeTimeString_months_usesMonthAbbreviation() {
+        let date = Date().addingTimeInterval(-86400 * 45) // 45 days ago
+        XCTAssertEqual(date.relativeTimeString, "1mo ago")
+    }
+
+    func testRelativeTimeString_oneYear_usesYearFormat() {
+        let date = Date().addingTimeInterval(-86400 * 400) // ~13 months ago
+        XCTAssertEqual(date.relativeTimeString, "1y ago")
+    }
+
+    func testRelativeTimeString_multipleYears_usesYearFormat() {
+        let date = Date().addingTimeInterval(-86400 * 800) // ~2.2 years ago
+        XCTAssertEqual(date.relativeTimeString, "2y ago")
+    }
+
+    /// Edge case: 360 days → months=12, but days/365=0 would produce "0y ago".
+    /// Must use months/12 to correctly show "1y ago".
+    func testRelativeTimeString_360days_showsOneYear() {
+        let date = Date().addingTimeInterval(-86400 * 360) // 360 days → 12 months
+        XCTAssertEqual(date.relativeTimeString, "1y ago")
+    }
+
+    // MARK: - loadPRs generation guard (isLoading race)
+
+    /// When a second loadPRs() call invalidates the first call's generation,
+    /// the stale call must NOT set isLoading = false (it belongs to the newer call).
+    func testLoadPRs_staleCall_doesNotResetIsLoading() async {
+        // Use a slow mock that lets us interleave two loadPRs calls.
+        let slowMock = SlowPRFetching()
+        let sut = ImportPRViewModel(pullRequestService: slowMock)
+        sut.repositoryPath = "/tmp/repo"
+
+        // Start first load — it will suspend at the await.
+        let firstLoad = Task { @MainActor in await sut.loadPRs() }
+
+        // Wait for the first load to reach the suspension point.
+        while !slowMock.isSuspended { await Task.yield() }
+
+        // Start second load — invalidates first load's generation.
+        let secondLoad = Task { @MainActor in await sut.loadPRs() }
+
+        // Wait for second load to reach the suspension point.
+        while slowMock.suspendCount < 2 { await Task.yield() }
+
+        // Resume first call — it should see generation mismatch.
+        slowMock.resume()
+
+        await firstLoad.value
+
+        // After first call returns, isLoading should still be true
+        // because the second call (the valid one) is still in progress.
+        XCTAssertTrue(sut.isLoading,
+                      "Stale loadPRs call must not reset isLoading when generation mismatches")
+
+        // Resume second call to clean up.
+        slowMock.resume()
+        await secondLoad.value
+        XCTAssertFalse(sut.isLoading)
+    }
+}
+
+// MARK: - Slow mock for interleaving test
+
+private final class SlowPRFetching: PullRequestFetching, @unchecked Sendable {
+    private var continuations: [CheckedContinuation<Void, Never>] = []
+    private let lock = NSLock()
+    private(set) var suspendCount = 0
+    var isSuspended: Bool { suspendCount > 0 }
+
+    func fetchPullRequests(repositoryPath: String) async -> [String: PullRequestInfo] { [:] }
+
+    func fetchPullRequestList(repositoryPath: String) async -> [PullRequestInfo]? {
+        await withCheckedContinuation { continuation in
+            lock.lock()
+            continuations.append(continuation)
+            suspendCount += 1
+            lock.unlock()
+        }
+        return []
+    }
+
+    func resume() {
+        lock.lock()
+        let cont = continuations.isEmpty ? nil : continuations.removeFirst()
+        lock.unlock()
+        cont?.resume()
+    }
+}

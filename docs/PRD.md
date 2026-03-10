@@ -168,14 +168,15 @@
 
 ---
 
-**US-011**: 원본 Worktree에서 Git Pull
+**US-011**: Worktree에서 Git Pull
 **우선순위**: P1
-**사용자로서**, 나는 원본 repository worktree(main 브랜치)의 컨텍스트 메뉴에서 git pull을 실행하고 결과를 확인하고 싶다.
+**사용자로서**, 나는 bare가 아닌 모든 worktree의 컨텍스트 메뉴에서 git pull을 실행하고 결과를 확인하고 싶다.
 
 **인수 조건**:
-- 원본 worktree(`worktree.path == repository.path`)의 컨텍스트 메뉴에만 "Git Pull" 항목 표시
-- `git worktree add`로 생성된 worktree에는 "Git Pull" 항목 미표시
-- Git pull 실행 후 결과 요약 표시 (예: "Already up to date." 또는 "3 files changed, 5 insertions, 2 deletions")
+- bare가 아닌 모든 worktree(`!worktree.isBare`)의 컨텍스트 메뉴에 "Git Pull" 항목 표시
+- bare worktree에는 "Git Pull" 항목 미표시
+- Git pull은 백그라운드 작업 큐(FR-031)를 통해 실행됨
+- Pull 완료 시 시스템 알림으로 결과 표시 (FR-034)
 - 실패 시 기존 에러 알림 패턴으로 오류 표시
 - Pull 완료 후 worktree 목록 자동 갱신 (커밋 해시 업데이트)
 
@@ -189,6 +190,23 @@
 - 원본 worktree(`worktree.path == repository.path`)의 컨텍스트 메뉴에 "Remove Worktree" / "Force Remove Worktree" 항목 미표시
 - `git worktree add`로 생성된 worktree에만 삭제 메뉴 표시
 - SwiftUI 컨텍스트 메뉴와 NSMenu 서브메뉴 양쪽 모두 적용
+
+---
+
+**US-013**: GitHub PR에서 Worktree Import
+**우선순위**: P1
+**사용자로서**, 나는 GitHub Pull Request의 원격 브랜치를 기반으로 worktree를 생성하여 PR 코드를 로컬에서 바로 확인하고 싶다.
+
+**인수 조건**:
+- QueueStatusBarView의 스플릿 버튼 드롭다운 또는 메뉴바에서 "Import from GitHub PR..." 선택 시 Import PR 시트 표시
+- PR 목록은 Open / Draft / Closed 탭으로 필터링 가능
+- 검색 필드로 PR 제목, 번호, 브랜치명으로 필터링 가능
+- 각 PR 항목에 상태 아이콘, 번호, 제목, draft 배지, 브랜치, 작성자, 마지막 업데이트 시간 표시
+- PR 선택 후 "Import Worktree" 버튼으로 백그라운드 큐에 import 작업 추가
+- 동일 PR 브랜치가 이미 checkout된 경우 버전 접미사 자동 생성 (feature/foo-v2, -v3 등)
+- Import 완료 시 시트 자동 닫힘
+- Import된 worktree에도 PR 배지가 정상 표시됨 (prRemoteBranch 폴백)
+- `gh` CLI 미설치 시 graceful degradation
 
 ---
 
@@ -449,8 +467,11 @@ branch refs/heads/feature/new-feature
   │   bright-ocean      16d ago  │
   ├──────────────────────────────┤
   │ + New Worktree               │
+  │ Import from GitHub PR…       │  ← GitHub PR Import
   ├──────────────────────────────┤
   │ Open Main Window             │
+  │ Settings...                  │
+  │ Check for Updates...         │
   │ Quit Oh My Worktree          │
   └──────────────────────────────┘
   ```
@@ -559,15 +580,20 @@ branch refs/heads/feature/new-feature
 - PR 정보는 브랜치명 기준으로 매핑 (`[String: PullRequestInfo]`)
 - Worktree 목록 로드 시 비동기 side task로 PR 정보를 가져옴
 - Repository 전환 시 이전 PR fetch task를 취소하고 새로 시작
-- `PullRequestInfo` 모델: `number`, `url` (URL 타입), `branch`, `state`
-- `PullRequestFetching` 프로토콜로 테스트 가능한 설계
+- `PullRequestInfo` 모델: `number`, `url` (URL 타입), `branch`, `state`, `title`, `author`, `updatedAt`, `isDraft`
+- `PullRequestFetching` 프로토콜 (3개 메서드):
+  - `fetchPullRequests(repositoryPath:)` → `[String: PullRequestInfo]` (브랜치 기준 dict)
+  - `isGitHubAvailable(repositoryPath:)` → `Bool` (gh CLI 사용 가능 여부)
+  - `fetchPullRequestList(repositoryPath:)` → `[PullRequestInfo]?` (Import PR 시트용, `gh pr list --json number,url,headRefName,state,title,author,updatedAt,isDraft`)
+- PR 배지 매칭 폴백 체인: `worktree.branch` → `worktree.prRemoteBranch` (Import된 워크트리의 로컬 브랜치명이 원격과 다를 수 있으므로)
 
 **영향받는 컴포넌트**:
-- `PullRequestInfo` (모델)
+- `PullRequestInfo` (모델, title/author/updatedAt/isDraft 필드 추가)
 - `PullRequestService` (서비스, `PullRequestFetching` 프로토콜)
-- `WorktreeListViewModel` (PR 데이터 상태 관리)
+- `WorktreeListViewModel` (PR 데이터 상태 관리, prRemoteBranch 폴백 매칭)
 - `WorktreeRowView` (PR 배지 표시)
 - `AppDelegate` (메뉴바 PR 번호 표시)
+- `ImportPRViewModel` (PR 목록 시트용 ViewModel)
 
 ---
 
@@ -608,20 +634,27 @@ branch refs/heads/feature/new-feature
   - `worktreeID: UUID` — 어느 워크트리의 작업인지 (UI 상태 표시용)
   - `displayName: String` — 삭제 완료 후에도 이름 표시 가능
   - `repositoryPath: String`
+  - `worktreePath: String` — 워크트리 디렉토리 전체 경로
+  - `folderName: String` — 메타데이터 저장용 폴더명
+  - `repositoryID: UUID` — 리포지토리별 충돌 검사 스코프
   - `kind: BackgroundJobKind`
-  - `state: BackgroundJobState` — `.pending` / `.inProgress` / `.completed` / `.failed(String)`
+  - `state: BackgroundJobState` — `.pending` / `.inProgress` / `.completed` / `.failed(String)` / `.cancelled`
   - `enqueuedAt: Date`
-- `BackgroundJobKind`: `.removeWorktree(force: Bool)`, `.pull`, 추후 확장 가능
+- `BackgroundJobKind`: `.removeWorktree(force: Bool)`, `.pull`, `.addWorktreeFromPR(remoteBranch: String, localBranch: String, prNumber: Int)`
 - 저장소별 직렬 처리 (같은 저장소의 작업은 순차 실행 — `.git/worktrees/` lock 충돌 방지)
 - 실패 시 해당 작업 건너뛰고 다음 작업 계속 진행
 - 단일 작업 enqueue 및 배치 enqueue(`[BackgroundJob]`) 모두 지원
 - pending 상태의 작업은 개별 취소 가능
-- 전체 취소(`cancelAll`) 지원
+- 대기중 전체 취소(`cancelPending`) 지원
+- 작업 타임아웃 메커니즘: `jobTimeoutSeconds` (기본 60초), 초과 시 `BackgroundJobTimeoutError` 발생
+  - `withThrowingTaskGroup`으로 작업과 타임아웃 sleep을 레이싱
+- 실패 작업 최대 보유 수: `maxFailedJobs = 50`
 
 **BackgroundJobState 전이**:
 ```
 .pending → .inProgress → .completed
                        → .failed(String)
+.pending → .cancelled
 ```
 
 **영향받는 컴포넌트**:
@@ -682,18 +715,24 @@ branch refs/heads/feature/new-feature
 
 **상태 바 상세 요구사항**:
 - 항상 표시 (Idle/Active 모두)
+- **스플릿 버튼 (addSplitButton)**:
+  - `+` (plus) 버튼: 새 worktree 생성 (기존 "+ New Worktree" 동작)
+  - 셰브론(▼) 드롭다운 메뉴: "Import from GitHub PR..." 항목
+  - 둥근 사각형 테두리로 시각적 그룹핑
 - **Idle 상태**: 빈 상태 텍스트 (예: "진행 중인 작업 없음")
 - **Active 상태**:
   - 현재 실행 중인 작업명 표시 (예: "feature/login 삭제 중...")
   - Determinate progress gauge: `완료된 작업 수 / 전체 작업 수` 기반
   - 예: 3개 큐, 1개 완료 → 33%
+- **Failed 상태**: 빨간 느낌표 아이콘 + "N failed (tap to review)" 텍스트
 - 상태 바 클릭 → 큐 상세 서브 팝오버 오픈
 - 배치 액션은 컨텍스트 메뉴(우클릭)로 처리 — 별도 배치 액션 바 불필요
 
 **큐 상세 서브 팝오버**:
 - 전체 작업 순차 목록
 - 각 항목: 상태 아이콘 + 작업명 + 종류 + 개별 `[×]` (pending 상태만)
-- `[모두 취소]` 버튼
+- `[모두 취소]` 버튼 (pending 작업 존재 시)
+- `[Clear Failed]` 버튼 (실패 작업 존재 시)
 - 작업 없을 때: "진행 중인 작업 없음" 표시
 
 **메뉴바 컨텍스트 메뉴 변경**:
@@ -724,6 +763,7 @@ branch refs/heads/feature/new-feature
 **알림 내용**:
 - **성공 (remove)**: Title "Oh My Worktree" / Body "'워크트리명' removed"
 - **성공 (pull)**: Title "Oh My Worktree" / Body "'워크트리명' pulled successfully"
+- **성공 (addWorktreeFromPR)**: Title "Oh My Worktree" / Body "PR #번호 imported successfully"
 - **실패**: Title "Oh My Worktree — Task Failed" / Body 에러 메시지 (워크트리명 포함)
 
 **포그라운드 동작**:
@@ -736,6 +776,53 @@ branch refs/heads/feature/new-feature
 **영향받는 컴포넌트**:
 - `NotificationManager` (신규 — `UNUserNotificationCenterDelegate` 구현체)
 - `WorktreeListViewModel` (init에서 권한 요청, `onJobStateChange`에서 알림 발송)
+
+---
+
+#### FR-035: GitHub PR에서 Worktree Import (P1)
+
+**설명**: GitHub Pull Request의 원격 브랜치를 기반으로 worktree를 생성하여 PR 코드를 로컬에서 검토 가능
+
+**상세 요구사항**:
+- **Import PR 시트 (ImportPRView)**:
+  - 3-탭 Picker: Open / Draft / Closed (`PRTab` enum)
+  - 검색 필드: PR 제목, 번호, 브랜치명으로 필터링
+  - PR 목록: 상태 아이콘, 번호, 제목, draft 배지, 브랜치, 작성자, 상대적 업데이트 시간 표시
+  - Cancel / "Import Worktree" 버튼
+  - 빈 상태: "No Pull Requests", "No {Tab} Pull Requests", "No Results" (검색 시), 로드 실패 시 Retry 버튼
+- **Import PR ViewModel (ImportPRViewModel)**:
+  - `PullRequestService.fetchPullRequestList()` 호출하여 PR 목록 로드
+  - `filteredPRs`: 탭 + 검색 텍스트 기반 필터링
+  - Retry 메커니즘
+- **진입점**:
+  - QueueStatusBarView: 스플릿 버튼의 셰브론(▼) 드롭다운 → "Import from GitHub PR..."
+  - 메뉴바 NSMenu: "Import from GitHub PR..." 항목 (FR-017, "+ New Worktree" 아래)
+  - 두 진입점 모두 `isShowingImportPR = true` 트리거
+- **백그라운드 큐 통합**:
+  - `BackgroundJob`의 `kind: .addWorktreeFromPR(remoteBranch:, localBranch:)` 로 enqueue
+  - 실행 흐름: `fetchBranch` → `addWorktreeFromRemoteBranch` (`git worktree add -B`) → 메타데이터 저장 (prRemoteBranch 포함) → 파일 복사 → worktree 목록 갱신
+  - 완료 시 Import PR 시트 자동 닫힘
+- **폴더명 생성**:
+  - PR Import 시 항상 `RandomNameGenerator.generate()`로 폴더명 생성 (PR 브랜치명 사용하지 않음)
+- **중복 PR 브랜치 처리**:
+  - 동일 PR 브랜치가 이미 checkout된 경우 버전 접미사 자동 생성 (예: `feature/foo-v2`, `-v3`)
+  - 기존 worktree 브랜치 + 큐에 대기 중인 작업 브랜치 모두 충돌 검사
+  - 충돌 검사 스코프: 리포지토리별 (`repositoryID`)
+- **PR 배지 연동**:
+  - Import된 worktree의 메타데이터에 `prRemoteBranch` 저장
+  - PR 배지 매칭 시 `worktree.branch` → `worktree.prRemoteBranch` 폴백 (FR-028)
+
+**영향받는 컴포넌트**:
+- `ImportPRView` (신규 — Import PR 시트 뷰)
+- `ImportPRViewModel` (신규 — PR 목록 관리)
+- `PullRequestService` (`fetchPullRequestList` 메서드)
+- `BackgroundTaskQueue` (`.addWorktreeFromPR` 작업 실행)
+- `BackgroundJob` (`kind: .addWorktreeFromPR`)
+- `WorktreeMetadata` (`prRemoteBranch` 필드)
+- `WorktreeManager` (`fetchBranch`, `addWorktreeFromRemoteBranch` 메서드)
+- `QueueStatusBarView` (스플릿 버튼 드롭다운)
+- `AppDelegate` (메뉴바 "Import from GitHub PR..." 항목)
+- `NotificationManager` (Import 완료 알림)
 
 ---
 
@@ -814,53 +901,46 @@ branch refs/heads/feature/new-feature
 
 ---
 
-#### FR-024: 원본 Worktree Git Pull (P1)
+#### FR-024: Worktree Git Pull (P1)
 
-**설명**: 원본 repository worktree의 컨텍스트 메뉴에서 `git pull`을 실행하고 결과를 표시
+**설명**: bare가 아닌 모든 worktree의 컨텍스트 메뉴에서 `git pull`을 백그라운드 큐를 통해 실행
 
 **상세 요구사항**:
-- 원본 worktree 판별: `worktree.isRoot(of: repository)` 메서드 사용
-  - 경로 정규화 (`URL.standardizedFileURL`)로 안전한 비교
-  - 심볼릭 링크, trailing slash, 대소문자 차이 처리
-- 원본 worktree의 컨텍스트 메뉴(SwiftUI, NSMenu 모두)에 "Git Pull" 항목 추가
-- 생성된 worktree(`git worktree add`)에는 "Git Pull" 항목 미표시
+- Git Pull 대상: bare가 아닌 모든 worktree (`!worktree.isBare`)
+  - 원본 worktree와 `git worktree add`로 생성된 worktree 모두 포함
+- 컨텍스트 메뉴(SwiftUI, NSMenu 모두)에 "Git Pull" 항목 추가
+- Git pull은 `BackgroundTaskQueue`(FR-031)를 통해 실행:
+  - `BackgroundJob`의 `kind: .pull`로 큐에 enqueue
+  - 동시 실행 방지: `jobQueue.busyWorktreeIDs`로 중복 차단 (기존 `pullingWorktrees` 대체)
 - `git pull` 명령어를 해당 worktree의 working directory에서 실행
-- 동시 실행 방지: `pullingWorktrees: Set<UUID>`로 중복 pull 차단
 - 실행 결과 파싱 및 사용자 친화적 요약 표시:
   - "Already up to date." → 그대로 표시
   - 변경 사항 있음 → "N file(s) changed, N insertion(s), N deletion(s)" 형태 요약
-- 결과는 알림(alert)으로 표시:
-  - 메인 윈도우에서 실행: ContentView의 SwiftUI alert
-  - 메뉴바에서 실행: 메인 윈도우를 표시하고 ContentView alert 사용 (일관된 UX)
-- 실패 시 `errorMessage`로 에러 표시 (기존 패턴)
+- 완료/실패 시 시스템 알림으로 결과 표시 (FR-034)
 - Pull 완료 후 `loadWorktrees()` 호출하여 커밋 해시 갱신
 
-**메뉴 위치** (원본 worktree):
+**메뉴 위치** (bare가 아닌 모든 worktree):
 ```
 Open in iTerm
 Open in Ghostty
 Open in VSCode
 Open in Cursor
 ───────────────
-Git Pull          ← 원본 worktree에만 표시
+Git Pull          ← bare가 아닌 모든 worktree에 표시
 ───────────────
 Show in Finder
 Copy Path
 ```
 
 **구현 컴포넌트**:
-- `Worktree`: `isRoot(of:)` 메서드 추가 (경로 정규화 기반 비교)
-- `WorktreeManager`: `gitPull(worktreePath:) async throws -> GitPullResult` 메서드 추가
-- `GitCommandExecutor`: `@unchecked Sendable` 추가 (Swift 6 대응)
+- `Worktree`: `isRoot(of:)` 메서드 (경로 정규화 기반 비교)
+- `WorktreeManager`: `gitPull(worktreePath:) async throws -> GitPullResult` 메서드
+- `GitCommandExecutor`: `@unchecked Sendable` (Swift 6 대응)
 - `WorktreeListViewModel`:
-  - `gitPull(_ worktree:) async` 메서드
-  - `@Published var pullResultMessage: String?` 추가
-  - `pullingWorktrees: Set<UUID>` 동시 실행 방지
-- `WorktreeListView`: 컨텍스트 메뉴에 조건부 "Git Pull" 항목 추가
-- `AppDelegate`:
-  - NSMenu 서브메뉴에 조건부 "Git Pull" 항목 추가
-  - 메뉴바 실행 시 메인 윈도우 표시
-- `ContentView`: Pull 결과 알림(alert) 추가
+  - `gitPull(_ worktree:) async` 메서드 → `BackgroundJob` enqueue
+  - `busyWorktreeIDs` (BackgroundTaskQueue에서 관리)
+- `WorktreeListView`: 컨텍스트 메뉴에 조건부 "Git Pull" 항목 (`!worktree.isBare && !isBusy`)
+- `AppDelegate`: NSMenu 서브메뉴에 조건부 "Git Pull" 항목 (`!worktree.isBare`)
 
 ---
 
@@ -887,9 +967,11 @@ Show in Finder
 Copy Path
 ```
 
-생성된 worktree (삭제 메뉴 있음, Git Pull 없음):
+생성된 worktree (삭제 메뉴 있음, Git Pull도 있음):
 ```
 Open in iTerm / Ghostty / VSCode / Cursor
+───────────────
+Git Pull
 ───────────────
 Show in Finder
 Copy Path
@@ -1021,6 +1103,7 @@ Force Remove Worktree
     - 폴더명 (folderName) - 안정적인 식별자
     - 생성 날짜
     - 사용자 지정 이름 (customName, optional) — FR-030
+    - PR 원격 브랜치명 (prRemoteBranch, optional) — FR-035, Import된 worktree의 PR 배지 매칭용
 - **중요**: 브랜치명은 저장하지 않음 (항상 `git worktree list --porcelain`로 실시간 조회)
 
 **데이터 구조**:
@@ -1040,7 +1123,8 @@ Force Remove Worktree
         },
         {
           "folderName": "bright-ocean-v2",
-          "createdAt": "2026-02-04T14:00:00Z"
+          "createdAt": "2026-02-04T14:00:00Z",
+          "prRemoteBranch": "feature/some-pr-branch"
         }
       ]
     }
@@ -1243,11 +1327,9 @@ graph TD
 │ │ fix/bug-123  ⟳삭제중...     1d ago  │ │  ← 큐 진행 중 (per-row 상태)
 │ ├──────────────────────────────────────┤ │
 │ │ hotfix/patch ⏳대기          3d ago  │ │  ← 큐 대기 중
-│ ├──────────────────────────────────────┤ │
-│ │ + New Worktree                       │ │
 │ └──────────────────────────────────────┘ │  ← ⌘+click/⇧+click 다중 선택
 ├──────────────────────────────────────────┤
-│ ⟳ fix/bug-123 삭제 중...  ████░░  [⋯] │  ← 큐 상태 바 (Active)
+│ [+][▼] ⟳ fix/bug-123 삭제 중... ████░░ [⋯]│  ← 스플릿 버튼 + 큐 상태 바
 └──────────────────────────────────────────┘
 
 ⌘+click으로 feature/login, fix/bug-123 선택 후 우클릭:
@@ -1268,8 +1350,9 @@ graph TD
 ├──────────────────────┤
 │ ⟳ fix/bug-123 삭제  │
 │ ⏳ hotfix/patch 삭제 [×] │
+│ ❌ some-pr import 실패 │
 ├──────────────────────┤
-│       [모두 취소]    │
+│  [Clear Failed] [모두 취소] │
 └──────────────────────┘
 ```
 
@@ -1361,11 +1444,16 @@ flowchart TD
 
 **원본 worktree** (`worktree.path == repository.path`):
 - Open in iTerm / Ghostty / VSCode / Cursor
-- Git Pull (원본 전용)
+- Open Pull Request #N (PR 매칭 시, 단일 선택만)
+- Rename
+- Git Pull (bare가 아닌 모든 worktree)
 - Show in Finder / Copy Path
 
 **생성된 worktree** (`git worktree add`로 생성):
 - Open in iTerm / Ghostty / VSCode / Cursor
+- Open Pull Request #N (PR 매칭 시, 단일 선택만)
+- Rename
+- Git Pull (bare가 아닌 모든 worktree)
 - Show in Finder / Copy Path
 - Remove Worktree / Force Remove Worktree (생성된 worktree 전용)
 
@@ -1426,6 +1514,8 @@ graph TB
         E[External Tool Launcher]
         K[Window Observer]
         L[BackgroundTaskQueue]
+        M[PullRequestService]
+        N[NotificationManager]
     end
 
     subgraph "Data Layer"
@@ -1523,6 +1613,10 @@ protocol WorktreeManager {
 - `git worktree list --porcelain` 파싱
 - `git worktree add` 실행 및 검증
 - `git worktree remove` 실행
+- `fetchBranch(_ branch:repositoryPath:)` — `git fetch origin <branch>` 실행
+- `addWorktreeFromRemoteBranch(repositoryPath:folderName:localBranch:remoteBranch:)` — `git worktree add -B` 로 원격 브랜치 기반 worktree 생성
+- `pruneWorktrees(repositoryPath:)` — `git worktree prune` 실행 (수동 삭제된 worktree 정리)
+- `gitPull(worktreePath:)` — `git pull` 실행 및 결과 파싱
 - 오류 처리 및 재시도 로직
 
 ---
@@ -1676,6 +1770,7 @@ struct Worktree: Identifiable {
     let isBare: Bool
     let isLocked: Bool
     var customName: String?  // 사용자 지정 이름 (FR-030, WorktreeMetadata에서 주입)
+    var prRemoteBranch: String?  // PR import 시 원격 브랜치명 (FR-035, WorktreeMetadata에서 주입)
 
     var displayName: String {
         if let customName, !customName.isEmpty {
@@ -1696,11 +1791,13 @@ struct Worktree: Identifiable {
 - `isBare`: bare worktree 여부
 - `isLocked`: locked 상태 여부
 - `customName`: 사용자 지정 표시 이름 (nil이면 기존 룰; RepositoryStore에서 저장 시 trim/nil 변환 보장) — FR-030
+- `prRemoteBranch`: PR import 시 원격 브랜치명 (로컬 브랜치명이 버전 접미사로 달라질 수 있으므로 PR 배지 매칭에 사용) — FR-035
 
 **중요**:
 - `branch`는 메타데이터에 저장되지 않음 (사용자가 CLI에서 브랜치 변경 가능)
 - `folderName`은 불변이며 worktree의 안정적인 식별자로 사용됨
 - `customName`은 `WorktreeMetadata`에 저장되며, ViewModel에서 로드 시 주입됨
+- `prRemoteBranch`는 `WorktreeMetadata`에 저장되며, ViewModel에서 로드 시 주입됨
 
 ---
 
@@ -1770,6 +1867,31 @@ class WorktreeListViewModel: ObservableObject {
     func openInITerm(_ worktree: Worktree) async
     func openInGhostty(_ worktree: Worktree) async
     func openInVSCode(_ worktree: Worktree) async
+}
+```
+
+---
+
+#### ImportPRViewModel
+
+```swift
+@MainActor
+class ImportPRViewModel: ObservableObject {
+    @Published var pullRequests: [PullRequestInfo] = []
+    @Published var selectedPR: PullRequestInfo?
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+    @Published var searchText: String = ""
+    @Published var selectedTab: PRTab = .open
+
+    enum PRTab: String, CaseIterable {
+        case open, draft, closed
+    }
+
+    var filteredPRs: [PullRequestInfo]  // selectedTab + searchText 기반 필터링
+
+    func loadPullRequests() async      // PullRequestService.fetchPullRequestList() 호출
+    func retry() async                 // 로드 실패 시 재시도
 }
 ```
 

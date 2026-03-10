@@ -212,6 +212,51 @@ final class WorktreeManagerTests: XCTestCase {
         )
     }
 
+    // MARK: - Prunable worktree filtering
+
+    func testListWorktrees_prunableWorktree_isExcluded() async throws {
+        mock.stub(stdout: """
+        worktree /Users/user/repo
+        HEAD abc1111
+        branch refs/heads/main
+
+        worktree /Users/user/worktrees/stale-wt
+        HEAD abc2222
+        branch refs/heads/feature/stale
+        prunable gitdir file points to non-existent location
+
+        """)
+
+        let result = try await sut.listWorktrees(repositoryPath: "/tmp/repo")
+
+        XCTAssertEqual(result.count, 1, "Prunable worktree must be excluded from the list")
+        XCTAssertEqual(result[0].branch, "main")
+    }
+
+    func testListWorktrees_prunableAmongMultiple_onlyExcludesPrunable() async throws {
+        mock.stub(stdout: """
+        worktree /Users/user/repo
+        HEAD abc1111
+        branch refs/heads/main
+
+        worktree /Users/user/worktrees/good-wt
+        HEAD abc2222
+        branch refs/heads/feature/good
+
+        worktree /Users/user/worktrees/stale-wt
+        HEAD abc3333
+        branch refs/heads/feature/stale
+        prunable gitdir file points to non-existent location
+
+        """)
+
+        let result = try await sut.listWorktrees(repositoryPath: "/tmp/repo")
+
+        XCTAssertEqual(result.count, 2)
+        XCTAssertFalse(result.contains { $0.folderName == "stale-wt" })
+        XCTAssertTrue(result.contains { $0.folderName == "good-wt" })
+    }
+
     // MARK: - gitPull result parsing
 
     func testGitPull_alreadyUpToDate_returnsAlreadyUpToDate() async throws {

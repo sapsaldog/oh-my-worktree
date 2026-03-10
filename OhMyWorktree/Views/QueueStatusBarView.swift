@@ -12,43 +12,89 @@ struct QueueStatusBarView: View {
 
     private var queueBar: some View {
         let queue = viewModel.jobQueue
-        return Button(action: {
-            guard queue.hasActiveJobs || queue.hasFailedJobs else { return }
-            showingQueueDetail.toggle()
-        }) {
-            HStack(spacing: 8) {
-                if queue.hasActiveJobs {
-                    ProgressView(value: queue.progressFraction)
-                        .progressViewStyle(.linear)
-                        .frame(width: 72)
-                        .tint(.blue)
+        return HStack(spacing: 8) {
+            Button(action: {
+                guard queue.hasActiveJobs || queue.hasFailedJobs else { return }
+                showingQueueDetail.toggle()
+            }) {
+                HStack(spacing: 8) {
+                    if queue.hasActiveJobs {
+                        ProgressView(value: queue.progressFraction)
+                            .progressViewStyle(.linear)
+                            .frame(width: 72)
+                            .tint(.blue)
 
-                    if let desc = queue.currentJobDescription {
-                        Text(desc)
+                        if let desc = queue.currentJobDescription {
+                            Text(desc)
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                    } else if queue.hasFailedJobs {
+                        Image(systemName: "exclamationmark.circle.fill")
                             .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
+                            .foregroundStyle(.red)
+                        Text("\(queue.failedJobCount) failed (click to review)")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.red)
+                    } else {
+                        Text("No active tasks")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.tertiary)
                     }
-                } else if queue.hasFailedJobs {
-                    let failCount = queue.jobs.filter { if case .failed = $0.state { return true }; return false }.count
-                    Image(systemName: "exclamationmark.circle.fill")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.red)
-                    Text("\(failCount) failed (tap to review)")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.red)
-                } else {
-                    Text("No active tasks")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.tertiary)
                 }
-                Spacer()
+            }
+            .buttonStyle(.plain)
+            .disabled(!queue.hasActiveJobs && !queue.hasFailedJobs)
+
+            Spacer()
+
+            if viewModel.repository != nil {
+                addSplitButton
             }
         }
-        .buttonStyle(.plain)
         .popover(isPresented: $showingQueueDetail, arrowEdge: .bottom) {
             QueueDetailPopoverView(queue: queue)
         }
+    }
+    // MARK: - Add Split Button
+
+    private var addSplitButton: some View {
+        HStack(spacing: 0) {
+            Button(action: { Task { await viewModel.addWorktree() } }) {
+                Image(systemName: "plus")
+                    .font(.system(size: 11, weight: .medium))
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+            }
+            .buttonStyle(.plain)
+            .help("New Worktree")
+            .accessibilityLabel("New Worktree")
+
+            if viewModel.isGitHubRepo {
+                Menu {
+                    Button("Import from GitHub PR…") {
+                        viewModel.isShowingImportPR = true
+                    }
+                } label: {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 9, weight: .semibold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 4)
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help("More options")
+                .accessibilityLabel("More options")
+            }
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 5)
+                .stroke(Color(NSColor.separatorColor), lineWidth: 1)
+        )
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Worktree actions")
     }
 }
 
@@ -56,6 +102,17 @@ struct QueueStatusBarView: View {
 
 struct QueueDetailPopoverView: View {
     @ObservedObject var queue: BackgroundTaskQueue
+
+    /// Only show actionable jobs: pending, in-progress, and failed.
+    /// Completed and cancelled jobs are noise in the popover.
+    private var visibleJobs: [BackgroundJob] {
+        queue.jobs.filter { job in
+            switch job.state {
+            case .pending, .inProgress, .failed: return true
+            case .completed, .cancelled: return false
+            }
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -66,7 +123,7 @@ struct QueueDetailPopoverView: View {
 
             Divider()
 
-            if queue.jobs.isEmpty {
+            if visibleJobs.isEmpty {
                 Text("No active tasks")
                     .font(.body)
                     .foregroundStyle(.secondary)
@@ -75,7 +132,7 @@ struct QueueDetailPopoverView: View {
             } else {
                 ScrollView {
                     VStack(spacing: 0) {
-                        ForEach(queue.jobs) { job in
+                        ForEach(visibleJobs) { job in
                             QueueJobRowView(job: job) {
                                 queue.cancel(job.id)
                             }
@@ -87,8 +144,8 @@ struct QueueDetailPopoverView: View {
 
                 if queue.hasActiveJobs {
                     Divider()
-                    Button("Cancel All", role: .destructive) {
-                        queue.cancelAll()
+                    Button("Cancel Pending", role: .destructive) {
+                        queue.cancelPending()
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
