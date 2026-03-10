@@ -82,4 +82,4 @@ xcodebuild -project OhMyWorktree.xcodeproj -scheme OhMyWorktreeTests -destinatio
 
 ## Release
 
-A local Claude skill at `.claude/skills/release/SKILL.md` documents the full Sparkle release workflow. Trigger with "release" or "릴리스".
+A local Claude skill at `.claude/skills/release/SKILL.md` documents the full Sparkle release workflow. Trigger with "release".

@@ -5,7 +5,12 @@ import UserNotifications
 /// Posts macOS system notifications for background job completions and failures.
 /// Acts as its own UNUserNotificationCenterDelegate so banners appear even while
 /// the app's popover is frontmost.
-final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @unchecked Sendable {
+///
+/// Fix 7: @MainActor replaces @unchecked Sendable — all notification calls originate
+/// from MainActor contexts (WorktreeListViewModel), so making the class MainActor-isolated
+/// gives the compiler proper thread-safety guarantees without bypassing checks.
+@MainActor
+final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
     static let shared = NotificationManager()
 
@@ -33,7 +38,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
     func notifyFailed(message: String, jobID: UUID) {
         let content = UNMutableNotificationContent()
         content.title = "Oh My Worktree — Task Failed"
-        content.body = message
+        // Truncate to 200 chars to prevent oversized banners from malformed git error output.
+        content.body = String(message.prefix(200))
         content.sound = .defaultCritical
         post(content: content, identifier: "fail-\(jobID.uuidString)")
     }
@@ -41,7 +47,9 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate, @un
     // MARK: - UNUserNotificationCenterDelegate
 
     /// Show notification banner even when the app's popover is open.
-    func userNotificationCenter(
+    /// nonisolated so the system can invoke this delegate method from any thread
+    /// without needing to dispatch to the MainActor first.
+    nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void

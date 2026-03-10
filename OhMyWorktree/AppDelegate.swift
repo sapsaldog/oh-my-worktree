@@ -61,8 +61,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
         }
 
-        worktreeViewModel?.$selectedWorktree
-            .receive(on: RunLoop.main)
+        worktreeViewModel?.selectedWorktreeSubject
             .sink { [weak self] worktree in
                 guard let self else { return }
                 self.liveBranchName = nil

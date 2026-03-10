@@ -5,7 +5,16 @@ import SwiftUI
 @MainActor
 final class WorktreeListViewModel: ObservableObject {
     @Published var worktrees: [Worktree] = []
-    @Published var selectedWorktree: Worktree?
+    // Not @Published: no SwiftUI view reads this in body, so firing objectWillChange
+    // when it changes would cause "Publishing changes from within view updates" warnings.
+    // AppDelegate observes changes via selectedWorktreeSubject instead.
+    var selectedWorktree: Worktree? {
+        didSet {
+            guard selectedWorktree?.id != oldValue?.id else { return }
+            selectedWorktreeSubject.send(selectedWorktree)
+        }
+    }
+    let selectedWorktreeSubject = PassthroughSubject<Worktree?, Never>()
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var pullRequests: [String: PullRequestInfo] = [:]
@@ -25,6 +34,7 @@ final class WorktreeListViewModel: ObservableObject {
     private var prFetchTask: Task<Void, Never>?
     private var lastLoadTime: Date?
     private var queueCancellable: AnyCancellable?
+    private var selectionSyncCancellable: AnyCancellable?
     private static let debounceInterval: TimeInterval = 2.0
 
     var repository: Repository? {
@@ -50,11 +60,35 @@ final class WorktreeListViewModel: ObservableObject {
         self.pullRequestService = pullRequestService
         self.jobQueue = BackgroundTaskQueue(worktreeManager: worktreeManager, store: store)
 
-        // Forward queue objectWillChange so views observing ViewModel also react to queue changes
+        // Forward queue objectWillChange so views observing ViewModel also react to queue changes.
+        // Use Task { @MainActor in } to break the synchronous Combine delivery chain.
+        // A RunLoop- or DispatchQueue-based sink can fire during SwiftUI's rendering pass,
+        // causing "Publishing changes from within view updates" warnings. Scheduling via
+        // the MainActor cooperative queue guarantees delivery between rendering passes.
+        // SwiftUI also naturally coalesces multiple objectWillChange signals per run loop,
+        // so no explicit debounce is needed.
         queueCancellable = jobQueue.objectWillChange
-            .receive(on: RunLoop.main)
             .sink { [weak self] _ in
-                self?.objectWillChange.send()
+                Task { @MainActor [weak self] in
+                    self?.objectWillChange.send()
+                }
+            }
+
+        // Keep selectedWorktree in sync with selectedWorktreeIDs.
+        // The @Published sink fires synchronously during SwiftUI's event-processing
+        // phase — after the binding setter stores the new value but before the
+        // rendering pass begins. Setting selectedWorktree directly here is therefore
+        // safe: objectWillChange.send() fires before any body evaluation, so SwiftUI
+        // coalesces both notifications into one render with no "Publishing changes
+        // from within view updates" warning.
+        selectionSyncCancellable = $selectedWorktreeIDs
+            .sink { [weak self] ids in
+                guard let self else { return }
+                if ids.count == 1, let id = ids.first {
+                    self.selectedWorktree = self.worktrees.first { $0.id == id }
+                } else {
+                    self.selectedWorktree = nil
+                }
             }
 
         // Request notification permission early so the system prompt doesn't appear mid-task

@@ -52,13 +52,8 @@ struct WorktreeListView: View {
                     viewModel.selectedWorktreeIDs = []
                     return .handled
                 }
-                .onChange(of: viewModel.selectedWorktreeIDs) { _, ids in
-                    if ids.count == 1, let id = ids.first {
-                        viewModel.selectedWorktree = viewModel.worktrees.first { $0.id == id }
-                    } else {
-                        viewModel.selectedWorktree = nil
-                    }
-                }
+                // selectedWorktree is now synced reactively inside WorktreeListViewModel
+                // via a $selectedWorktreeIDs subscription, avoiding view-update warnings.
             }
         }
         .overlay(alignment: .bottomTrailing) {
@@ -119,6 +114,9 @@ struct WorktreeListView: View {
             },
             onCancelRename: { renamingWorktreeID = nil }
         )
+        // Fix 10: Tooltip improves discoverability for users who may not know
+        // that context menu actions (open, rename, pull, remove) are on right-click.
+        .help("Right-click for actions")
     }
 
     // MARK: - Empty State

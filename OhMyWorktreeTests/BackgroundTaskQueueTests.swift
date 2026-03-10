@@ -306,6 +306,164 @@ final class BackgroundTaskQueueTests: XCTestCase {
         }
         XCTAssertTrue(sut.jobs.isEmpty)
     }
+
+    // MARK: - Fix 5: Concurrent Stress Tests
+
+    /// Simulates rapid enqueue from multiple repos at once (as would happen during bulk operations
+    /// triggered by simultaneous UI events). Verifies all jobs reach terminal state with no leaks.
+    func testConcurrentEnqueueFromMultipleRepos_allJobsReachTerminalState() async {
+        let repo3Path = "/tmp/bq-stress-repo-3"
+        let repo4Path = "/tmp/bq-stress-repo-4"
+
+        let jobs1 = (0..<4).map { _ in makeJob(kind: .pull) }
+        let jobs2 = (0..<4).map { _ in
+            BackgroundJob(
+                worktreeID: UUID(),
+                worktreePath: "\(repo3Path)/wt-\(UUID().uuidString.prefix(8))",
+                folderName: "wt",
+                displayName: "Repo3",
+                repositoryPath: repo3Path,
+                repositoryID: UUID(),
+                kind: .pull
+            )
+        }
+        let jobs3 = (0..<4).map { _ in
+            BackgroundJob(
+                worktreeID: UUID(),
+                worktreePath: "\(repo4Path)/wt-\(UUID().uuidString.prefix(8))",
+                folderName: "wt",
+                displayName: "Repo4",
+                repositoryPath: repo4Path,
+                repositoryID: UUID(),
+                kind: .pull
+            )
+        }
+
+        // Enqueue all at once to stress the per-repo serial queue
+        sut.enqueue(jobs1 + jobs2 + jobs3)
+        await waitForIdle(timeout: 10)
+
+        XCTAssertFalse(sut.hasActiveJobs, "All jobs should reach terminal state")
+        XCTAssertTrue(sut.busyWorktreeIDs.isEmpty, "No worktrees should remain busy")
+        XCTAssertFalse(sut.hasFailedJobs, "No jobs should fail with a succeeding mock")
+    }
+
+    /// Enqueue, cancel all, then immediately enqueue again — verifies processing tasks
+    /// are cleaned up and restarted correctly (no processingTasks leak from Fix 1).
+    func testCancelAll_thenReenqueue_processesNewJobs() async {
+        let initialJobs = (0..<5).map { _ in makeJob(kind: .pull) }
+        sut.enqueue(initialJobs)
+        sut.cancelAll()
+        await waitForIdle()
+
+        // After cancel, no pending jobs remain
+        XCTAssertFalse(sut.hasActiveJobs)
+
+        // Now enqueue fresh jobs — should be processed without being stuck
+        let freshJob = makeJob(kind: .pull)
+        sut.enqueue(freshJob)
+        await waitForIdle(timeout: 5)
+
+        XCTAssertFalse(sut.hasActiveJobs)
+        XCTAssertFalse(sut.hasFailedJobs)
+    }
+
+    /// Verifies that onJobStateChange receives a stable value-type snapshot (Fix 2):
+    /// the callback's job ID should match the job that was enqueued.
+    func testOnJobStateChange_receivesCorrectJobID() async {
+        var receivedIDs: [UUID] = []
+        let jobs = (0..<3).map { _ in makeJob(kind: .pull) }
+
+        sut.onJobStateChange = { job in
+            receivedIDs.append(job.id)
+        }
+        sut.enqueue(jobs)
+        await waitForIdle()
+
+        let enqueuedIDs = Set(jobs.map { $0.id })
+        let callbackIDs = Set(receivedIDs)
+        XCTAssertTrue(enqueuedIDs.isSubset(of: callbackIDs),
+                      "All enqueued job IDs should appear in callbacks")
+    }
+
+    // MARK: - Fix 8: Queue State / View Integration Tests
+    //
+    // These tests verify the queue properties that QueueStatusBarView and WorktreeRowView
+    // depend on: progressFraction, currentJobDescription, busyWorktreeIDs, hasFailedJobs.
+
+    func testProgressFraction_multipleJobs_zeroAfterCompletion() async {
+        let jobs = (0..<4).map { _ in makeJob(kind: .pull) }
+        sut.enqueue(jobs)
+
+        // Before processing starts: 0 of 4 terminal → 0.0
+        XCTAssertEqual(sut.progressFraction, 0.0)
+
+        await waitForIdle()
+
+        // After all complete, queue is cleared → 0 of 0 = 0.0
+        XCTAssertEqual(sut.progressFraction, 0.0)
+        XCTAssertTrue(sut.jobs.isEmpty)
+    }
+
+    func testCurrentJobDescription_nilWhenIdle() async {
+        sut.enqueue(makeJob(kind: .pull))
+        await waitForIdle()
+        XCTAssertNil(sut.currentJobDescription,
+                     "currentJobDescription should be nil when no job is in-progress")
+    }
+
+    func testCurrentJobDescription_nilWhenQueueEmpty() {
+        XCTAssertNil(sut.currentJobDescription)
+    }
+
+    func testBusyWorktreeIDs_tracksActiveWorktrees_andClearsOnCompletion() async {
+        let job1 = makeJob(kind: .pull)
+        let job2 = makeJob(kind: .pull)
+        sut.enqueue([job1, job2])
+
+        // Both worktrees should be busy immediately after enqueue
+        XCTAssertTrue(sut.busyWorktreeIDs.contains(job1.worktreeID),
+                      "job1 worktree should be busy")
+        XCTAssertTrue(sut.busyWorktreeIDs.contains(job2.worktreeID),
+                      "job2 worktree should be busy")
+
+        await waitForIdle()
+
+        XCTAssertTrue(sut.busyWorktreeIDs.isEmpty,
+                      "busyWorktreeIDs should be empty after all jobs complete")
+    }
+
+    func testBusyWorktreeIDs_excludesFailedJobs() async {
+        mockExecutor.shouldFail = true
+        let job = makeJob(kind: .pull)
+        sut.enqueue(job)
+        await waitForIdle()
+
+        // A failed job is terminal — it should not hold the worktree busy
+        XCTAssertFalse(sut.busyWorktreeIDs.contains(job.worktreeID),
+                       "Failed job should not keep worktree in busy set")
+        XCTAssertTrue(sut.hasFailedJobs)
+    }
+
+    func testHasActiveJobs_falseWhenOnlyFailedJobsRemain() async {
+        mockExecutor.shouldFail = true
+        sut.enqueue(makeJob(kind: .pull))
+        await waitForIdle()
+
+        XCTAssertFalse(sut.hasActiveJobs, "hasActiveJobs should be false for failed jobs")
+        XCTAssertTrue(sut.hasFailedJobs)
+    }
+
+    // MARK: - BackgroundJobTimeoutError
+
+    func testTimeoutError_hasDescriptiveMessage() {
+        let error = BackgroundJobTimeoutError()
+        XCTAssertNotNil(error.errorDescription)
+        XCTAssertTrue(
+            error.errorDescription?.contains("60") == true,
+            "Timeout error should mention the 60-second limit"
+        )
+    }
 }
 
 // MARK: - WorktreeListViewModel Bulk Remove Tests
