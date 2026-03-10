@@ -5,9 +5,11 @@ import SwiftUI
 @MainActor
 final class WorktreeListViewModel: ObservableObject {
     @Published var worktrees: [Worktree] = []
-    // Not @Published: no SwiftUI view reads this in body, so firing objectWillChange
-    // when it changes would cause "Publishing changes from within view updates" warnings.
-    // AppDelegate observes changes via selectedWorktreeSubject instead.
+    // WARNING: Intentionally NOT @Published. Do NOT add @Published here.
+    // No SwiftUI view reads this in body, so firing objectWillChange on changes
+    // causes "Publishing changes from within view updates" warnings.
+    // AppDelegate and other observers must use `selectedWorktreeSubject` instead
+    // of Combine's `$selectedWorktree` publisher (which doesn't exist).
     var selectedWorktree: Worktree? {
         didSet {
             guard selectedWorktree?.id != oldValue?.id else { return }
@@ -30,7 +32,9 @@ final class WorktreeListViewModel: ObservableObject {
     @Published var isShowingImportPR = false
 
     private let worktreeManager: WorktreeManager
+    // internal for WorktreeListViewModel+ExternalTools extension
     let toolLauncher: ExternalToolLauncher
+    // internal for WorktreeListViewModel+ExternalTools and handleJobStateChange
     let store: RepositoryStore
     private let fileCopier: WorktreeFileCopier
     private let pullRequestService: PullRequestFetching
@@ -320,7 +324,12 @@ final class WorktreeListViewModel: ObservableObject {
             // The PR branch is already checked out: create a versioned local branch
             // (e.g. "feature/foo-v2") starting at origin/feature/foo.
             var version = 2
-            while existingBranches.contains("\(pr.branch)-v\(version)") { version += 1 }
+            while existingBranches.contains("\(pr.branch)-v\(version)") {
+                version += 1
+                if version > 100 {
+                    return "Too many worktrees for branch '\(pr.branch)'"
+                }
+            }
             localBranch = "\(pr.branch)-v\(version)"
         } else {
             localBranch = pr.branch

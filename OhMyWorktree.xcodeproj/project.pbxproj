@@ -34,6 +34,7 @@
 		78CA79D990B38BC4BA845726 /* MockGitExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D17D255D9C03D39E65FC37E5 /* MockGitExecutor.swift */; };
 		7DC6228DB15054EE52B4F8CB /* WorktreeManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2A39FCA55BDC5AFC0131335 /* WorktreeManagerTests.swift */; };
 		80092B38847E833C625A2FC9 /* WorktreeListViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABF450885A0658CB279EE089 /* WorktreeListViewModelTests.swift */; };
+		81182F4E1FD7B88AE6CCD9C2 /* Date+RelativeTime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71C73C1DDF96F9DBDBE34C9D /* Date+RelativeTime.swift */; };
 		83813D0890D4D7B8E1705EE3 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7C98BC9064213F12D218E3 /* SettingsView.swift */; };
 		83D7231E6DC8D4F148FC9F67 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 811A9D3615B46E7D12735276 /* NotificationManager.swift */; };
 		87214B7F1DF98D6DDC0902D3 /* ImportPRViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41217BF38EB2E221F3B98D28 /* ImportPRViewModel.swift */; };
@@ -100,6 +101,7 @@
 		688E52A50119AE1D61EBC870 /* BackgroundTaskQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundTaskQueue.swift; sourceTree = "<group>"; };
 		6A761722B5707AF84AB6CA37 /* WorktreeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeManager.swift; sourceTree = "<group>"; };
 		6F7C98BC9064213F12D218E3 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		71C73C1DDF96F9DBDBE34C9D /* Date+RelativeTime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+RelativeTime.swift"; sourceTree = "<group>"; };
 		73CCA7E1C1ACBAF4E4291EA8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		811A9D3615B46E7D12735276 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 		8C48E8BD55146561E170E91A /* WorktreeRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeRowView.swift; sourceTree = "<group>"; };
@@ -144,6 +146,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		28E523E37A889B517B21BD6D /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				71C73C1DDF96F9DBDBE34C9D /* Date+RelativeTime.swift */,
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
 		2CB433639A5E8438A723AD23 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
@@ -204,6 +214,7 @@
 				73CCA7E1C1ACBAF4E4291EA8 /* Assets.xcassets */,
 				1E244AEB611F8ACEFC7862B5 /* Info.plist */,
 				31E4C67AC16118B79418121C /* OhMyWorktreeApp.swift */,
+				28E523E37A889B517B21BD6D /* Extensions */,
 				9951BB49C3A159F4FAEDBADD /* Models */,
 				590CBC428F37846B356EDBBD /* Resources */,
 				31977D589F9DEB08CB9961BA /* Services */,
@@ -411,6 +422,7 @@
 				069FE3565BC42960E0CFBDEA /* BackgroundJob.swift in Sources */,
 				0349E56A97431ED05B90B995 /* BackgroundTaskQueue.swift in Sources */,
 				BE5701A4F52B99C834D7ACB5 /* ContentView.swift in Sources */,
+				81182F4E1FD7B88AE6CCD9C2 /* Date+RelativeTime.swift in Sources */,
 				1D5329DDE42009E76C2650C5 /* ExternalToolLauncher.swift in Sources */,
 				D13B27C586A4730DF2924206 /* GitCommandExecutor.swift in Sources */,
 				A1B84A7C2495A084A1A9A9C3 /* GitHeadMonitor.swift in Sources */,

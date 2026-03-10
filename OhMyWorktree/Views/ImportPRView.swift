@@ -41,8 +41,12 @@ struct ImportPRView: View {
             }
             .pickerStyle(.segmented)
             .onChange(of: viewModel.selectedTab) { _, _ in
-                let vm = viewModel
-                Task { @MainActor in vm.selectedPR = nil }
+                viewModel.selectedPR = nil
+                selectedID = nil
+            }
+            .onChange(of: viewModel.searchText) { _, _ in
+                viewModel.selectedPR = nil
+                selectedID = nil
             }
 
             HStack(spacing: 6) {

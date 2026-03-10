@@ -93,6 +93,8 @@ struct QueueStatusBarView: View {
             RoundedRectangle(cornerRadius: 5)
                 .stroke(Color(NSColor.separatorColor), lineWidth: 1)
         )
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Worktree actions")
     }
 }
 

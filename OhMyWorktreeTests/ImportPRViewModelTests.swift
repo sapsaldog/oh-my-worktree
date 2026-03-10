@@ -201,49 +201,9 @@ final class ImportPRViewModelTests: XCTestCase {
         XCTAssertFalse(sut.loadFailed)
     }
 
-    // MARK: - Search clears selectedPR (RED: drives didSet on searchText)
-
-    func testSearchTextChange_clearsSelectedPR() async {
-        let sut = ImportPRViewModel()
-        sut.allPRs = [makePR(number: 1, title: "Fix bug")]
-        sut.selectedPR = makePR(number: 1, title: "Fix bug")
-
-        sut.searchText = "something else"
-        await Task.yield() // let the deferred Task in didSet run
-
-        XCTAssertNil(sut.selectedPR)
-    }
-
-    func testSearchTextChange_toSameValue_doesNotClearSelectedPR() async {
-        let sut = ImportPRViewModel()
-        let pr = makePR(number: 1)
-        sut.allPRs = [pr]
-        sut.searchText = "hello"    // initial set
-        await Task.yield()
-        sut.selectedPR = pr         // select after initial search
-
-        sut.searchText = "hello"    // same value — must NOT clear
-        await Task.yield()
-
-        XCTAssertNotNil(sut.selectedPR)
-    }
-
-    func testSearchTextClear_resetsSelectedPR() async {
-        let sut = ImportPRViewModel()
-        let pr = makePR(number: 1)
-        sut.allPRs = [pr]
-        sut.selectedPR = pr
-
-        sut.searchText = "xyz"
-        await Task.yield()
-        XCTAssertNil(sut.selectedPR) // cleared by search change
-
-        // New selection after search works normally
-        sut.selectedPR = pr
-        sut.searchText = "" // clear search
-        await Task.yield()
-        XCTAssertNil(sut.selectedPR) // cleared again
-    }
+    // MARK: - Search/tab clearing selectedPR
+    // Selection clearing on search/tab change is handled by ImportPRView's
+    // .onChange modifiers (SwiftUI view-layer concern, not ViewModel logic).
 
     // MARK: - loadPRs (RED: drives protocol injection and loadFailed state)
 

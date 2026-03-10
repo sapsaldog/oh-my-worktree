@@ -14,17 +14,7 @@ final class ImportPRViewModel: ObservableObject {
     @Published var loadFailed = false
     @Published var errorMessage: String?
     @Published var selectedPR: PullRequestInfo?
-    @Published var searchText = "" {
-        didSet {
-            guard searchText != oldValue else { return }
-            // Defer to avoid "publishing during view update" warning:
-            // @Published willChange fires synchronously inside the SwiftUI binding
-            // setter; posting a second change there is undefined behaviour.
-            Task { @MainActor [weak self] in
-                self?.selectedPR = nil
-            }
-        }
-    }
+    @Published var searchText = ""
     @Published var selectedTab: PRTab = .open
 
     var repositoryPath: String = ""
@@ -78,24 +68,5 @@ final class ImportPRViewModel: ObservableObject {
     func retry() {
         loadTask?.cancel()
         loadTask = Task { await loadPRs() }
-    }
-}
-
-// MARK: - Date Relative Time
-
-extension Date {
-    var relativeTimeString: String {
-        let seconds = Int(-timeIntervalSinceNow)
-        guard seconds >= 0 else { return "just now" }
-        if seconds < 60 { return "just now" }
-        let minutes = seconds / 60
-        if minutes < 60 { return "\(minutes)m ago" }
-        let hours = minutes / 60
-        if hours < 24 { return "\(hours)h ago" }
-        let days = hours / 24
-        if days < 30 { return "\(days)d ago" }
-        let months = days / 30
-        if months < 12 { return "\(months)mo ago" }
-        return "\(days / 365)y ago"
     }
 }

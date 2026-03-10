@@ -24,11 +24,12 @@ final class PullRequestService: PullRequestFetching, Sendable {
     )
 
     private let gitExecutor: GitCommandExecuting
-    private let ghCliPath: String?
+    /// Resolved once at init to avoid repeated filesystem checks and `which` subprocess spawns.
+    private let resolvedGhCliPath: String?
 
     init(gitExecutor: GitCommandExecuting = GitCommandExecutor(), ghCliPath: String? = nil) {
         self.gitExecutor = gitExecutor
-        self.ghCliPath = ghCliPath
+        self.resolvedGhCliPath = ghCliPath ?? Self.findGhCli()
     }
 
     // MARK: - Public API
@@ -37,7 +38,7 @@ final class PullRequestService: PullRequestFetching, Sendable {
     /// Returns an empty dictionary if `gh` is unavailable, the repo is not GitHub, or any error occurs.
     /// Note: Limited to the 100 most recent PRs across all states.
     func fetchPullRequests(repositoryPath: String) async -> [String: PullRequestInfo] {
-        guard let ghPath = ghCliPath ?? findGhCli() else {
+        guard let ghPath = resolvedGhCliPath else {
             Self.logger.debug("gh CLI not found, skipping PR fetch")
             return [:]
         }
@@ -62,16 +63,18 @@ final class PullRequestService: PullRequestFetching, Sendable {
     }
 
     /// Returns true when the `gh` CLI is installed and the repository is hosted on GitHub.
+    /// Validates that the resolved gh path actually exists on disk (unlike fetchPullRequests,
+    /// which defers failure to the command execution layer).
     func isGitHubAvailable(repositoryPath: String) async -> Bool {
-        let resolvedPath = ghCliPath ?? findGhCli()
-        guard let path = resolvedPath, FileManager.default.isExecutableFile(atPath: path) else { return false }
+        guard let path = resolvedGhCliPath,
+              FileManager.default.isExecutableFile(atPath: path) else { return false }
         return await isGitHubRepository(repositoryPath: repositoryPath)
     }
 
     /// Fetches all PRs (open, draft, merged, closed) as an ordered array with full metadata.
     /// Returns `nil` on any error; returns an empty array when there are genuinely no PRs.
     func fetchPullRequestList(repositoryPath: String) async -> [PullRequestInfo]? {
-        guard let ghPath = ghCliPath ?? findGhCli() else { return nil }
+        guard let ghPath = resolvedGhCliPath else { return nil }
         guard await isGitHubRepository(repositoryPath: repositoryPath) else { return nil }
 
         do {
@@ -97,7 +100,7 @@ final class PullRequestService: PullRequestFetching, Sendable {
 
     /// Checks common paths for the `gh` CLI binary, then falls back to `which`
     /// so installs via nix, asdf, mise, etc. are discovered.
-    private func findGhCli() -> String? {
+    private static func findGhCli() -> String? {
         let commonPaths = [
             "/opt/homebrew/bin/gh",
             "/usr/local/bin/gh",
@@ -110,7 +113,7 @@ final class PullRequestService: PullRequestFetching, Sendable {
     }
 
     /// Runs `/usr/bin/which` to resolve a command from the system PATH.
-    private func resolveFromPath(_ command: String) -> String? {
+    private static func resolveFromPath(_ command: String) -> String? {
         let process = Process()
         let pipe = Pipe()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
@@ -147,8 +150,20 @@ final class PullRequestService: PullRequestFetching, Sendable {
         }
     }
 
-    /// Shared formatter — `ISO8601DateFormatter` is expensive to initialize.
-    private static let isoFormatter = ISO8601DateFormatter()
+    /// Shared formatters — `ISO8601DateFormatter` is expensive to initialize.
+    /// GitHub's `updatedAt` typically includes fractional seconds (e.g. "2024-01-15T10:30:00.000Z"),
+    /// but we keep a fallback for dates without them since the format isn't guaranteed.
+    private static let isoFormatterWithFractional: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private static let isoFormatterWithoutFractional: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
 
     /// Parses the rich JSON output from `gh pr list` (with title, author, updatedAt, isDraft) into an array.
     /// Returns `nil` on parse error; returns an empty array when the JSON array is empty.
@@ -170,11 +185,12 @@ final class PullRequestService: PullRequestFetching, Sendable {
 
         do {
             let prs = try JSONDecoder().decode([GhPR].self, from: data)
-            let isoFormatter = Self.isoFormatter
             return prs.compactMap { pr in
                 guard let url = URL(string: pr.url) else { return nil }
                 let state = pr.state.flatMap { PullRequestState(rawValue: $0) } ?? .open
-                let updatedAt = pr.updatedAt.flatMap { isoFormatter.date(from: $0) }
+                let updatedAt = pr.updatedAt.flatMap {
+                    Self.isoFormatterWithFractional.date(from: $0) ?? Self.isoFormatterWithoutFractional.date(from: $0)
+                }
                 return PullRequestInfo(
                     number: pr.number,
                     url: url,

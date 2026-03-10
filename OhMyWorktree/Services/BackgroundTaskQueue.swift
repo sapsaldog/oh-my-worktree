@@ -62,11 +62,12 @@ final class BackgroundTaskQueue: ObservableObject {
     var activeJobs: [BackgroundJob] { jobs.filter { $0.state.isActive } }
     var hasActiveJobs: Bool { !activeJobs.isEmpty }
     @Published private(set) var busyWorktreeIDs: Set<UUID> = []
-    var hasFailedJobs: Bool { failedJobCount > 0 }
-    var failedJobCount: Int { jobs.filter { if case .failed = $0.state { return true }; return false }.count }
+    var failedJobs: [BackgroundJob] { jobs.filter { if case .failed = $0.state { return true }; return false } }
+    var hasFailedJobs: Bool { !failedJobs.isEmpty }
+    var failedJobCount: Int { failedJobs.count }
 
     func clearFailed() {
-        jobs = jobs.filter { if case .failed = $0.state { return false }; return true }
+        jobs.removeAll { if case .failed = $0.state { return true }; return false }
         refreshBusyWorktreeIDs()
     }
 
@@ -95,8 +96,6 @@ final class BackgroundTaskQueue: ObservableObject {
 
     private func startProcessingIfNeeded(for repoPath: String) {
         guard processingTasks[repoPath] == nil else { return }
-        // Fix 1: guard let self prevents processingTasks from leaking if self is deallocated
-        // before the task runs, which would leave the entry non-nil and block future jobs.
         processingTasks[repoPath] = Task { [weak self] in
             guard let self else { return }
             await self.processQueue(for: repoPath)
@@ -154,23 +153,22 @@ final class BackgroundTaskQueue: ObservableObject {
                 case .pull:
                     _ = try await wm.gitPull(worktreePath: job.worktreePath)
                 case .addWorktreeFromPR(let remoteBranch, let localBranch, let prNumber):
-                    // Fetch via pull/<number>/head so fork PRs are handled correctly.
-                    // This writes FETCH_HEAD which is used as the start point below.
-                    try await wm.fetchPullRequestRef(number: prNumber, repositoryPath: job.repositoryPath)
+                    // Fetch via pull/<number>/head into a named ref so fork PRs
+                    // are handled correctly without relying on FETCH_HEAD (which
+                    // could be overwritten by an interleaving git fetch).
+                    let ref = try await wm.fetchPullRequestRef(number: prNumber, repositoryPath: job.repositoryPath)
                     _ = try await wm.addWorktreeFromRemoteBranch(
                         repositoryPath: job.repositoryPath,
                         folderName: job.folderName,
                         localBranch: localBranch,
                         remoteBranch: remoteBranch,
-                        startPoint: "FETCH_HEAD"
+                        startPoint: ref
                     )
+                    await wm.deleteRef(ref, repositoryPath: job.repositoryPath)
                     let metadata = WorktreeMetadata(folderName: job.folderName, prRemoteBranch: remoteBranch)
                     await st.addWorktreeMetadata(metadata, repositoryID: job.repositoryID)
                 }
             }
-            // Fix 2: Re-look up by ID (not original index) and capture an explicit
-            // value-copy snapshot before invoking the callback, making it clear that
-            // the callback receives stable, point-in-time state.
             if let i = jobIndex(for: jobID) {
                 jobs[i].state = .completed
                 refreshBusyWorktreeIDs()
@@ -236,17 +234,13 @@ final class BackgroundTaskQueue: ObservableObject {
         }
         // Keep only the most recent failed jobs for display, evicting stale entries.
         let cutoff = Date().addingTimeInterval(-Self.failedJobMaxAge)
-        let failed = jobs
-            .filter { if case .failed = $0.state { return true }; return false }
-            .filter { $0.enqueuedAt > cutoff }
-        jobs = Array(failed.suffix(Self.maxFailedJobs))
+        let recentFailed = failedJobs.filter { $0.enqueuedAt > cutoff }
+        jobs = Array(recentFailed.suffix(Self.maxFailedJobs))
         refreshBusyWorktreeIDs()
     }
 
     // MARK: - Private: Helpers
 
-    /// Fix 9: Centralized job ID → index lookup. All O(n) searches go through here,
-    /// making it easy to swap in an O(1) implementation later if needed.
     private func jobIndex(for id: UUID) -> Int? {
         jobs.firstIndex(where: { $0.id == id })
     }

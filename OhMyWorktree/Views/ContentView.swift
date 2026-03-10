@@ -18,7 +18,6 @@ struct ContentView: View {
 
             Divider()
 
-            // FR-033: Queue status bar (replaces ActionButtonsView)
             QueueStatusBarView(viewModel: worktreeViewModel)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
@@ -28,24 +27,23 @@ struct ContentView: View {
         .alert(
             "Error",
             isPresented: .init(
-                get: { repoViewModel.errorMessage != nil },
-                set: { if !$0 { Task { @MainActor in repoViewModel.clearError() } } }
+                get: { repoViewModel.errorMessage != nil || worktreeViewModel.errorMessage != nil },
+                set: { newValue in
+                    if !newValue {
+                        Task { @MainActor in
+                            repoViewModel.clearError()
+                            worktreeViewModel.clearError()
+                        }
+                    }
+                }
             )
         ) {
-            Button("OK") { repoViewModel.clearError() }
+            Button("OK") {
+                repoViewModel.clearError()
+                worktreeViewModel.clearError()
+            }
         } message: {
-            Text(repoViewModel.errorMessage ?? "")
-        }
-        .alert(
-            "Error",
-            isPresented: .init(
-                get: { worktreeViewModel.errorMessage != nil },
-                set: { if !$0 { Task { @MainActor in worktreeViewModel.clearError() } } }
-            )
-        ) {
-            Button("OK") { worktreeViewModel.clearError() }
-        } message: {
-            Text(worktreeViewModel.errorMessage ?? "")
+            Text(repoViewModel.errorMessage ?? worktreeViewModel.errorMessage ?? "")
         }
         .task {
             await repoViewModel.loadRepositories()

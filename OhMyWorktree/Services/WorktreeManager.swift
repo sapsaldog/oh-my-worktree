@@ -196,9 +196,17 @@ final class WorktreeManager: Sendable {
 
     /// Fetches the head commit of a pull request by number using `pull/<number>/head`.
     /// Works for both same-repo and fork PRs.
-    func fetchPullRequestRef(number: Int, repositoryPath: String) async throws {
+    ///
+    /// Returns a named ref (e.g. `refs/omw/pr/123`) that can be used as a stable
+    /// start-point for `git worktree add`. Using a named ref instead of `FETCH_HEAD`
+    /// avoids a race where an interleaving `git fetch` could overwrite `FETCH_HEAD`
+    /// between the fetch and the worktree creation.
+    /// Callers should delete the ref via `deleteRef(_:repositoryPath:)` after use.
+    @discardableResult
+    func fetchPullRequestRef(number: Int, repositoryPath: String) async throws -> String {
+        let ref = "refs/omw/pr/\(number)"
         let result = try await executor.execute(
-            arguments: ["fetch", "origin", "pull/\(number)/head"],
+            arguments: ["fetch", "origin", "+pull/\(number)/head:\(ref)"],
             workingDirectory: repositoryPath
         )
         guard result.exitCode == 0 else {
@@ -208,6 +216,15 @@ final class WorktreeManager: Sendable {
                 : stderr
             throw OhMyWorktreeError.commandExecutionFailed(command: "git fetch", stderr: message)
         }
+        return ref
+    }
+
+    /// Deletes a named ref created by `fetchPullRequestRef`. Best-effort: errors are ignored.
+    func deleteRef(_ ref: String, repositoryPath: String) async {
+        _ = try? await executor.execute(
+            arguments: ["update-ref", "-d", ref],
+            workingDirectory: repositoryPath
+        )
     }
 
     // MARK: - Remove / Prune Worktrees

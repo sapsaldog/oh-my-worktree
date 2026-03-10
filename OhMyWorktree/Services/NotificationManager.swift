@@ -7,9 +7,10 @@ import UserNotifications
 /// Acts as its own UNUserNotificationCenterDelegate so banners appear even while
 /// the app's popover is frontmost.
 ///
-/// Fix 7: @MainActor replaces @unchecked Sendable — all notification calls originate
-/// from MainActor contexts (WorktreeListViewModel), so making the class MainActor-isolated
-/// gives the compiler proper thread-safety guarantees without bypassing checks.
+/// @MainActor because all call sites (WorktreeListViewModel callbacks) are MainActor-isolated.
+/// `static let shared` is safe because the first access always happens from a MainActor
+/// context (WorktreeListViewModel.init); if a future call site is off-MainActor, the
+/// compiler will flag it.
 @MainActor
 final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 

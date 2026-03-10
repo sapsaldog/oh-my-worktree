@@ -47,9 +47,10 @@ private struct OpenWindowModifier: ViewModifier {
                 }
                 appDelegate.openImportPRWindow = { [openWindow, worktreeViewModel] in
                     openWindow(id: "main")
-                    // Delay ensures the window's view hierarchy (including the
-                    // .sheet modifier) is fully set up before presenting the sheet.
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    // Dispatch to the next run-loop tick so SwiftUI finishes setting
+                    // up the window's view hierarchy (including the .sheet modifier)
+                    // before we present the sheet.
+                    DispatchQueue.main.async {
                         worktreeViewModel.isShowingImportPR = true
                     }
                 }

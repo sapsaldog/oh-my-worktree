@@ -48,6 +48,10 @@ struct Worktree: Identifiable, Hashable, Sendable {
     /// the same worktree always produces the same id across reloads.
     /// Uses SHA-256 for collision resistance (the previous XOR-fold had
     /// poor entropy for paths sharing long common prefixes).
+    ///
+    /// **Migration note (v1.x → v2.0):** This changed from XOR-fold to SHA-256,
+    /// so all worktree IDs differ from previous versions. This is safe because
+    /// IDs are never persisted — they are re-derived from paths on every reload.
     static func stableID(for path: String) -> UUID {
         let digest = SHA256.hash(data: Data(path.utf8))
         var hash = Array(digest.prefix(16))
