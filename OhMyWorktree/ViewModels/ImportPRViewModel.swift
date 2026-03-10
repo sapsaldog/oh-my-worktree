@@ -32,6 +32,9 @@ final class ImportPRViewModel: ObservableObject {
 
     private let pullRequestService: any PullRequestFetching
     private var loadTask: Task<Void, Never>?
+    /// Generation counter to invalidate stale results when loadPRs is called
+    /// concurrently (e.g. rapid sheet open/close cycles).
+    private var loadGeneration = UUID()
 
     init(pullRequestService: any PullRequestFetching = PullRequestService()) {
         self.pullRequestService = pullRequestService
@@ -57,15 +60,17 @@ final class ImportPRViewModel: ObservableObject {
     func loadPRs() async {
         guard !repositoryPath.isEmpty else { return }
         loadTask?.cancel()
+        let myGeneration = UUID()
+        loadGeneration = myGeneration
         isLoading = true
         loadFailed = false
         errorMessage = nil
         defer { isLoading = false }
         if let prs = await pullRequestService.fetchPullRequestList(repositoryPath: repositoryPath) {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, loadGeneration == myGeneration else { return }
             allPRs = prs
         } else {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, loadGeneration == myGeneration else { return }
             loadFailed = true
             allPRs = []
         }
@@ -90,6 +95,8 @@ extension Date {
         if hours < 24 { return "\(hours)h ago" }
         let days = hours / 24
         if days < 30 { return "\(days)d ago" }
-        return "\(days / 30)M ago"
+        let months = days / 30
+        if months < 12 { return "\(months)mo ago" }
+        return "\(days / 365)y ago"
     }
 }

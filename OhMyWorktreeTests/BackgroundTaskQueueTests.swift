@@ -363,6 +363,73 @@ final class BackgroundTaskQueueTests: XCTestCase {
         XCTAssertFalse(sut.hasFailedJobs)
     }
 
+    // MARK: - progressFraction with stale failed jobs
+
+    /// progressFraction should exclude stale failed jobs from previous batches
+    /// so that new enqueued jobs start at 0% rather than an inflated value.
+    func testProgressFraction_withStaleFailedJobs_excludesFailedFromDenominator() async {
+        // Create a failed job first
+        mockExecutor.shouldFail = true
+        sut.enqueue(makeJob(kind: .pull))
+        await waitForIdle()
+        XCTAssertTrue(sut.hasFailedJobs, "Precondition: should have 1 failed job")
+
+        // Now enqueue new jobs — progress should reflect only the new batch
+        mockExecutor.shouldFail = false
+        let job2 = makeJob(kind: .pull)
+        let job3 = makeJob(kind: .pull)
+        sut.enqueue([job2, job3])
+
+        // Immediately after enqueue: 0 of 2 tracked (failed job excluded)
+        XCTAssertEqual(sut.progressFraction, 0.0,
+                       "Progress should be 0% with stale failed + 2 pending, not 1/3 = 33%")
+    }
+
+    // MARK: - failedJobCount
+
+    func testFailedJobCount_noJobs_returnsZero() {
+        XCTAssertEqual(sut.failedJobCount, 0)
+    }
+
+    func testFailedJobCount_afterMultipleFailures_returnsCorrectCount() async {
+        mockExecutor.shouldFail = true
+        sut.enqueue([makeJob(kind: .pull), makeJob(kind: .pull)])
+        await waitForIdle()
+
+        XCTAssertEqual(sut.failedJobCount, 2)
+    }
+
+    func testFailedJobCount_afterClearFailed_returnsZero() async {
+        mockExecutor.shouldFail = true
+        sut.enqueue(makeJob(kind: .pull))
+        await waitForIdle()
+        XCTAssertEqual(sut.failedJobCount, 1)
+
+        sut.clearFailed()
+        XCTAssertEqual(sut.failedJobCount, 0)
+    }
+
+    // MARK: - activeJobs
+
+    func testActiveJobs_emptyQueue_isEmpty() {
+        XCTAssertTrue(sut.activeJobs.isEmpty)
+    }
+
+    func testActiveJobs_afterAllComplete_isEmpty() async {
+        sut.enqueue(makeJob(kind: .pull))
+        await waitForIdle()
+        XCTAssertTrue(sut.activeJobs.isEmpty)
+    }
+
+    func testActiveJobs_excludesFailedJobs() async {
+        mockExecutor.shouldFail = true
+        sut.enqueue(makeJob(kind: .pull))
+        await waitForIdle()
+
+        XCTAssertTrue(sut.activeJobs.isEmpty)
+        XCTAssertFalse(sut.jobs.isEmpty, "Failed jobs should still be in jobs array")
+    }
+
     // MARK: - BackgroundJobTimeoutError
 
     func testTimeoutError_hasDescriptiveMessage() {

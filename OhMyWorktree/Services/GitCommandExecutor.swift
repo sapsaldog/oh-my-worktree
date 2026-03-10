@@ -17,8 +17,7 @@ extension GitCommandExecuting {
 }
 
 /// Executes Git commands via Process. Thread-safe because it has no mutable state.
-/// @unchecked Sendable is safe here because all operations are stateless.
-final class GitCommandExecutor: GitCommandExecuting, @unchecked Sendable {
+final class GitCommandExecutor: GitCommandExecuting, Sendable {
     func execute(
         command: String = "/usr/bin/git",
         arguments: [String],

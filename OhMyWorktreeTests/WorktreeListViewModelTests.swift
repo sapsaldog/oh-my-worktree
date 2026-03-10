@@ -412,4 +412,70 @@ extension WorktreeListViewModelTests {
     }
 }
 
+// MARK: - gitPull
+
+extension WorktreeListViewModelTests {
+
+    func test_gitPull_enqueuesJobForWorktree() {
+        sut.worktrees = [rootWorktree, featureWorktree]
+
+        sut.gitPull(featureWorktree)
+
+        XCTAssertEqual(sut.jobQueue.jobs.count, 1)
+        XCTAssertEqual(sut.jobQueue.jobs[0].kind, .pull)
+        XCTAssertEqual(sut.jobQueue.jobs[0].worktreeID, featureWorktree.id)
+    }
+
+    func test_gitPull_noRepository_doesNotEnqueue() {
+        sut.repository = nil
+        let worktree = featureWorktree
+
+        sut.gitPull(worktree)
+
+        XCTAssertTrue(sut.jobQueue.jobs.isEmpty)
+    }
+
+    func test_gitPull_busyWorktree_doesNotDuplicate() {
+        sut.worktrees = [rootWorktree, featureWorktree]
+
+        sut.gitPull(featureWorktree)
+        sut.gitPull(featureWorktree) // second pull for same worktree
+
+        // Should be 1 — second call is guarded by busyWorktreeIDs
+        XCTAssertEqual(sut.jobQueue.jobs.count, 1)
+    }
+}
+
+// MARK: - removeWorktree
+
+extension WorktreeListViewModelTests {
+
+    func test_removeWorktree_enqueuesJobForWorktree() {
+        sut.worktrees = [rootWorktree, featureWorktree]
+
+        sut.removeWorktree(featureWorktree)
+
+        XCTAssertEqual(sut.jobQueue.jobs.count, 1)
+        XCTAssertEqual(sut.jobQueue.jobs[0].kind, .removeWorktree(force: false))
+        XCTAssertEqual(sut.jobQueue.jobs[0].worktreeID, featureWorktree.id)
+    }
+
+    func test_removeWorktree_force_enqueuesForceJob() {
+        sut.worktrees = [rootWorktree, featureWorktree]
+
+        sut.removeWorktree(featureWorktree, force: true)
+
+        XCTAssertEqual(sut.jobQueue.jobs.count, 1)
+        XCTAssertEqual(sut.jobQueue.jobs[0].kind, .removeWorktree(force: true))
+    }
+
+    func test_removeWorktree_noRepository_doesNotEnqueue() {
+        sut.repository = nil
+
+        sut.removeWorktree(featureWorktree)
+
+        XCTAssertTrue(sut.jobQueue.jobs.isEmpty)
+    }
+}
+
 // MockNoPRService is defined in MockGitExecutor.swift

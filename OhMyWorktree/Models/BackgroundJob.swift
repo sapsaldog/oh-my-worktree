@@ -11,7 +11,7 @@ enum BackgroundJobKind: Equatable, Sendable {
         switch self {
         case .removeWorktree(let force): return force ? "Force Remove" : "Remove"
         case .pull: return "Git Pull"
-        case .addWorktreeFromPR: return "Import PR"
+        case .addWorktreeFromPR(_, _, let prNumber): return "Import PR #\(prNumber)"
         }
     }
 

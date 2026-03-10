@@ -30,9 +30,10 @@ struct WorktreeListView: View {
                     subtitle: "Click + to create a new worktree"
                 )
             } else {
+                let jobStates = jobStateByWorktreeID
                 List(selection: $selectedIDs) {
                     ForEach(viewModel.worktrees) { worktree in
-                        worktreeRow(for: worktree)
+                        worktreeRow(for: worktree, jobStates: jobStates)
                             .tag(worktree.id)
                             .contextMenu {
                                 contextMenuItems(for: worktree)
@@ -129,8 +130,7 @@ struct WorktreeListView: View {
             ?? worktree.prRemoteBranch.flatMap { viewModel.pullRequests[$0] }
     }
 
-    private func worktreeRow(for worktree: Worktree) -> some View {
-        let jobStates = jobStateByWorktreeID
+    private func worktreeRow(for worktree: Worktree, jobStates: [UUID: BackgroundJobState]) -> some View {
         let jobState = jobStates[worktree.id]
         return WorktreeRowView(
             worktree: worktree,

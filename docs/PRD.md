@@ -640,7 +640,7 @@ branch refs/heads/feature/new-feature
   - `kind: BackgroundJobKind`
   - `state: BackgroundJobState` — `.pending` / `.inProgress` / `.completed` / `.failed(String)` / `.cancelled`
   - `enqueuedAt: Date`
-- `BackgroundJobKind`: `.removeWorktree(force: Bool)`, `.pull`, `.addWorktreeFromPR(remoteBranch: String, localBranch: String)`
+- `BackgroundJobKind`: `.removeWorktree(force: Bool)`, `.pull`, `.addWorktreeFromPR(remoteBranch: String, localBranch: String, prNumber: Int)`
 - 저장소별 직렬 처리 (같은 저장소의 작업은 순차 실행 — `.git/worktrees/` lock 충돌 방지)
 - 실패 시 해당 작업 건너뛰고 다음 작업 계속 진행
 - 단일 작업 enqueue 및 배치 enqueue(`[BackgroundJob]`) 모두 지원
@@ -763,7 +763,7 @@ branch refs/heads/feature/new-feature
 **알림 내용**:
 - **성공 (remove)**: Title "Oh My Worktree" / Body "'워크트리명' removed"
 - **성공 (pull)**: Title "Oh My Worktree" / Body "'워크트리명' pulled successfully"
-- **성공 (addWorktreeFromPR)**: Title "Oh My Worktree" / Body "'워크트리명' imported successfully"
+- **성공 (addWorktreeFromPR)**: Title "Oh My Worktree" / Body "PR #번호 imported successfully"
 - **실패**: Title "Oh My Worktree — Task Failed" / Body 에러 메시지 (워크트리명 포함)
 
 **포그라운드 동작**:

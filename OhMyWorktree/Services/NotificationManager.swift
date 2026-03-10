@@ -1,3 +1,4 @@
+import os
 import UserNotifications
 
 // MARK: - NotificationManager
@@ -12,6 +13,11 @@ import UserNotifications
 @MainActor
 final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
+    private static let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "com.ohmyworktree",
+        category: "NotificationManager"
+    )
+
     static let shared = NotificationManager()
 
     private override init() {
@@ -22,9 +28,9 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     func requestAuthorization() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
             if let error {
-                print("[NotificationManager] Authorization error: \(error.localizedDescription)")
+                Self.logger.error("Authorization error: \(error.localizedDescription)")
             } else if !granted {
-                print("[NotificationManager] Notification permission denied by user")
+                Self.logger.info("Notification permission denied by user")
             }
         }
     }
@@ -37,8 +43,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
             content.body = "'\(job.displayName)' removed"
         case .pull:
             content.body = "'\(job.displayName)' pulled successfully"
-        case .addWorktreeFromPR:
-            content.body = "'\(job.displayName)' imported successfully"
+        case .addWorktreeFromPR(_, _, let prNumber):
+            content.body = "PR #\(prNumber) imported successfully"
         }
         post(content: content, identifier: job.id.uuidString)
     }

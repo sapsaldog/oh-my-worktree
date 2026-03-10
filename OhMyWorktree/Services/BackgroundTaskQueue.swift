@@ -71,9 +71,14 @@ final class BackgroundTaskQueue: ObservableObject {
     }
 
     var progressFraction: Double {
-        guard !jobs.isEmpty else { return 0 }
-        let done = jobs.filter { $0.state.isTerminal }.count
-        return Double(done) / Double(jobs.count)
+        // Exclude stale failed/cancelled jobs — they are retained for the detail
+        // popover but should not inflate the denominator of the progress bar.
+        let tracked = jobs.filter {
+            $0.state == .pending || $0.state == .inProgress || $0.state == .completed
+        }
+        guard !tracked.isEmpty else { return 0 }
+        let done = tracked.filter { $0.state == .completed }.count
+        return Double(done) / Double(tracked.count)
     }
 
     var currentJobDescription: String? {
@@ -81,7 +86,8 @@ final class BackgroundTaskQueue: ObservableObject {
         switch job.kind {
         case .removeWorktree: return "Removing \(job.displayName)..."
         case .pull: return "Pulling \(job.displayName)..."
-        case .addWorktreeFromPR: return "Importing \(job.displayName)..."
+        case .addWorktreeFromPR(_, _, let prNumber):
+            return "Importing PR #\(prNumber)..."
         }
     }
 

@@ -337,4 +337,19 @@ final class ImportPRViewModelTests: XCTestCase {
         let futureDate = Date().addingTimeInterval(3600) // 1 hour in the future
         XCTAssertEqual(futureDate.relativeTimeString, "just now")
     }
+
+    func testRelativeTimeString_months_usesMonthAbbreviation() {
+        let date = Date().addingTimeInterval(-86400 * 45) // 45 days ago
+        XCTAssertEqual(date.relativeTimeString, "1mo ago")
+    }
+
+    func testRelativeTimeString_oneYear_usesYearFormat() {
+        let date = Date().addingTimeInterval(-86400 * 400) // ~13 months ago
+        XCTAssertEqual(date.relativeTimeString, "1y ago")
+    }
+
+    func testRelativeTimeString_multipleYears_usesYearFormat() {
+        let date = Date().addingTimeInterval(-86400 * 800) // ~2.2 years ago
+        XCTAssertEqual(date.relativeTimeString, "2y ago")
+    }
 }
