@@ -6,7 +6,6 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Repository selector at top
             RepositorySelectorView(viewModel: repoViewModel)
                 .padding(.horizontal, 12)
                 .padding(.top, 12)
@@ -14,14 +13,13 @@ struct ContentView: View {
 
             Divider()
 
-            // Worktree list in middle
             WorktreeListView(viewModel: worktreeViewModel)
                 .frame(maxHeight: .infinity)
 
             Divider()
 
-            // Action buttons at bottom
-            ActionButtonsView(viewModel: worktreeViewModel)
+            // FR-033: Queue status bar (replaces ActionButtonsView)
+            QueueStatusBarView(viewModel: worktreeViewModel)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
         }
@@ -47,25 +45,6 @@ struct ContentView: View {
             }
         } message: {
             Text(repoViewModel.errorMessage ?? worktreeViewModel.errorMessage ?? "")
-        }
-        .alert(
-            "Git Pull",
-            isPresented: .init(
-                get: { worktreeViewModel.pullResultMessage != nil },
-                set: { newValue in
-                    if !newValue {
-                        Task { @MainActor in
-                            worktreeViewModel.clearPullResult()
-                        }
-                    }
-                }
-            )
-        ) {
-            Button("OK") {
-                worktreeViewModel.clearPullResult()
-            }
-        } message: {
-            Text(worktreeViewModel.pullResultMessage ?? "")
         }
         .task {
             await repoViewModel.loadRepositories()

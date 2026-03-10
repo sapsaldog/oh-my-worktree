@@ -1,15 +1,30 @@
+import Combine
 import Foundation
 import SwiftUI
 
 @MainActor
 final class WorktreeListViewModel: ObservableObject {
     @Published var worktrees: [Worktree] = []
-    @Published var selectedWorktree: Worktree?
+    // Not @Published: no SwiftUI view reads this in body, so firing objectWillChange
+    // when it changes would cause "Publishing changes from within view updates" warnings.
+    // AppDelegate observes changes via selectedWorktreeSubject instead.
+    var selectedWorktree: Worktree? {
+        didSet {
+            guard selectedWorktree?.id != oldValue?.id else { return }
+            selectedWorktreeSubject.send(selectedWorktree)
+        }
+    }
+    let selectedWorktreeSubject = PassthroughSubject<Worktree?, Never>()
     @Published var isLoading = false
     @Published var errorMessage: String?
-    @Published var pullResultMessage: String?
-    @Published var pullingWorktrees: Set<UUID> = []
     @Published var pullRequests: [String: PullRequestInfo] = [:]
+
+    // FR-032: Multi-select (native ⌘+click / ⇧+click via SwiftUI List)
+    @Published var selectedWorktreeIDs: Set<UUID> = []
+
+    // FR-031: BackgroundTaskQueue (exposed for views)
+    let jobQueue: BackgroundTaskQueue
+
     private let worktreeManager: WorktreeManager
     private let toolLauncher: ExternalToolLauncher
     private let store: RepositoryStore
@@ -18,6 +33,8 @@ final class WorktreeListViewModel: ObservableObject {
     private var loadTask: Task<Void, Never>?
     private var prFetchTask: Task<Void, Never>?
     private var lastLoadTime: Date?
+    private var queueCancellable: AnyCancellable?
+    private var selectionSyncCancellable: AnyCancellable?
     private static let debounceInterval: TimeInterval = 2.0
 
     var repository: Repository? {
@@ -41,6 +58,64 @@ final class WorktreeListViewModel: ObservableObject {
         self.store = store
         self.fileCopier = fileCopier
         self.pullRequestService = pullRequestService
+        self.jobQueue = BackgroundTaskQueue(worktreeManager: worktreeManager, store: store)
+
+        // Forward queue objectWillChange so views observing ViewModel also react to queue changes.
+        // Use Task { @MainActor in } to break the synchronous Combine delivery chain.
+        // A RunLoop- or DispatchQueue-based sink can fire during SwiftUI's rendering pass,
+        // causing "Publishing changes from within view updates" warnings. Scheduling via
+        // the MainActor cooperative queue guarantees delivery between rendering passes.
+        // SwiftUI also naturally coalesces multiple objectWillChange signals per run loop,
+        // so no explicit debounce is needed.
+        queueCancellable = jobQueue.objectWillChange
+            .sink { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.objectWillChange.send()
+                }
+            }
+
+        // Keep selectedWorktree in sync with selectedWorktreeIDs.
+        // The @Published sink fires synchronously during SwiftUI's event-processing
+        // phase — after the binding setter stores the new value but before the
+        // rendering pass begins. Setting selectedWorktree directly here is therefore
+        // safe: objectWillChange.send() fires before any body evaluation, so SwiftUI
+        // coalesces both notifications into one render with no "Publishing changes
+        // from within view updates" warning.
+        selectionSyncCancellable = $selectedWorktreeIDs
+            .sink { [weak self] ids in
+                guard let self else { return }
+                if ids.count == 1, let id = ids.first {
+                    self.selectedWorktree = self.worktrees.first { $0.id == id }
+                } else {
+                    self.selectedWorktree = nil
+                }
+            }
+
+        // Request notification permission early so the system prompt doesn't appear mid-task
+        NotificationManager.shared.requestAuthorization()
+
+        // React to job state changes
+        jobQueue.onJobStateChange = { [weak self] job in
+            guard let self else { return }
+            switch (job.state, job.kind) {
+            case (.completed, .removeWorktree):
+                // Immediately remove from the in-memory list
+                self.worktrees.removeAll { $0.id == job.worktreeID }
+                if self.selectedWorktree?.id == job.worktreeID {
+                    self.selectedWorktree = nil
+                }
+                self.selectedWorktreeIDs.remove(job.worktreeID)
+                NotificationManager.shared.notifyCompleted(job: job)
+            case (.completed, .pull):
+                Task { [weak self] in await self?.loadWorktrees() }
+                NotificationManager.shared.notifyCompleted(job: job)
+            case (.failed(let msg), _):
+                self.errorMessage = msg
+                NotificationManager.shared.notifyFailed(message: msg, jobID: job.id)
+            default:
+                break
+            }
+        }
     }
 
     // MARK: - Load Worktrees
@@ -51,13 +126,11 @@ final class WorktreeListViewModel: ObservableObject {
             return
         }
 
-        // Skip if recently loaded (debounce for automatic refresh triggers)
         if debounce, let last = lastLoadTime,
            Date().timeIntervalSince(last) < Self.debounceInterval {
             return
         }
 
-        // Cancel any in-flight load to avoid race conditions
         loadTask?.cancel()
 
         let task = Task { @MainActor [weak self] in
@@ -72,6 +145,7 @@ final class WorktreeListViewModel: ObservableObject {
                 let metadata = await self.store.getWorktreeMetadata(repositoryID: repository.id)
 
                 freshWorktrees = await self.enriched(freshWorktrees, metadata: metadata)
+
                 guard !Task.isCancelled else { return }
 
                 freshWorktrees.sort { a, b in
@@ -141,7 +215,6 @@ final class WorktreeListViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
-            // Generate a unique folder name
             let existingNames = Set(worktrees.map { $0.folderName })
             let folderName = RandomNameGenerator.generate(existingFolderNames: existingNames)
 
@@ -151,11 +224,9 @@ final class WorktreeListViewModel: ObservableObject {
                 baseBranch: baseBranch
             )
 
-            // Store metadata (folderName + createdAt only)
             let metadata = WorktreeMetadata(folderName: folderName)
             await store.addWorktreeMetadata(metadata, repositoryID: repository.id)
 
-            // Copy files if enabled (.worktreeinclude patterns or .env* fallback)
             let fileCopyOverride = await store.getEnvCopyOverride(for: repository.id)
             let globalDefault = UserDefaults.standard.object(forKey: "copyEnvFilesEnabled") as? Bool ?? true
             let shouldCopyFiles = fileCopyOverride ?? globalDefault
@@ -166,7 +237,6 @@ final class WorktreeListViewModel: ObservableObject {
                 }
             }
 
-            // Refresh list and select the new worktree
             await loadWorktrees()
             selectedWorktree = worktrees.first { $0.path == newWorktree.path }
         } catch {
@@ -174,68 +244,59 @@ final class WorktreeListViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Remove Worktree
+    // MARK: - Remove Worktree (via queue)
 
-    func removeWorktree(_ worktree: Worktree, force: Bool = false) async {
+    func removeWorktree(_ worktree: Worktree, force: Bool = false) {
         guard let repository else { return }
-
-        isLoading = true
-        defer { isLoading = false }
-
-        do {
-            try await worktreeManager.removeWorktree(
-                repositoryPath: repository.path,
-                worktreePath: worktree.path,
-                force: force
-            )
-
-            // Remove metadata
-            await store.removeWorktreeMetadata(
-                folderName: worktree.folderName,
-                repositoryID: repository.id
-            )
-
-            if selectedWorktree?.id == worktree.id {
-                selectedWorktree = nil
-            }
-
-            await loadWorktrees()
-        } catch {
-            errorMessage = error.localizedDescription
-        }
+        let job = BackgroundJob(
+            worktreeID: worktree.id,
+            worktreePath: worktree.path,
+            folderName: worktree.folderName,
+            displayName: worktree.displayName,
+            repositoryPath: repository.path,
+            repositoryID: repository.id,
+            kind: .removeWorktree(force: force)
+        )
+        jobQueue.enqueue(job)
     }
 
-    func removeSelectedWorktree(force: Bool = false) async {
-        guard let selected = selectedWorktree else { return }
-        await removeWorktree(selected, force: force)
+    func removeSelectedWorktrees(force: Bool = false) {
+        guard let repository else { return }
+        let targets = worktrees.filter { worktree in
+            selectedWorktreeIDs.contains(worktree.id)
+                && !worktree.isRoot(of: repository)
+                && !worktree.isBare
+        }
+        let jobs = targets.map { worktree in
+            BackgroundJob(
+                worktreeID: worktree.id,
+                worktreePath: worktree.path,
+                folderName: worktree.folderName,
+                displayName: worktree.displayName,
+                repositoryPath: repository.path,
+                repositoryID: repository.id,
+                kind: .removeWorktree(force: force)
+            )
+        }
+        jobQueue.enqueue(jobs)
+        selectedWorktreeIDs = []
     }
 
     // MARK: - Git Pull
 
-    func gitPull(_ worktree: Worktree) async {
-        guard repository != nil else { return }
-        guard !pullingWorktrees.contains(worktree.id) else { return }
-
-        pullResultMessage = nil
-        isLoading = true
-        pullingWorktrees.insert(worktree.id)
-
-        do {
-            let result = try await worktreeManager.gitPull(worktreePath: worktree.path)
-            pullResultMessage = result.summary
-            await loadWorktrees()
-        } catch {
-            pullResultMessage = nil
-            errorMessage = error.localizedDescription
-        }
-
-        // Clean up after all async work completes
-        isLoading = false
-        pullingWorktrees.remove(worktree.id)
-    }
-
-    func clearPullResult() {
-        pullResultMessage = nil
+    func gitPull(_ worktree: Worktree) {
+        guard let repository else { return }
+        guard !jobQueue.busyWorktreeIDs.contains(worktree.id) else { return }
+        let job = BackgroundJob(
+            worktreeID: worktree.id,
+            worktreePath: worktree.path,
+            folderName: worktree.folderName,
+            displayName: worktree.displayName,
+            repositoryPath: repository.path,
+            repositoryID: repository.id,
+            kind: .pull
+        )
+        jobQueue.enqueue(job)
     }
 
     // MARK: - Open Pull Request
@@ -244,7 +305,6 @@ final class WorktreeListViewModel: ObservableObject {
         guard let branch = worktree.branch,
               let pr = pullRequests[branch]
         else { return }
-
         NSWorkspace.shared.open(pr.url)
     }
 
@@ -262,7 +322,6 @@ final class WorktreeListViewModel: ObservableObject {
             repositoryID: repository.id
         )
 
-        // Update local state immediately
         if let index = worktrees.firstIndex(where: { $0.id == worktree.id }) {
             worktrees[index].customName = customName
         }
@@ -276,7 +335,6 @@ final class WorktreeListViewModel: ObservableObject {
     func openInITerm(_ worktree: Worktree? = nil, mode: AppSettings.OpenMode = .newTab) async {
         let target = worktree ?? selectedWorktree
         guard let target else { return }
-
         do {
             try await toolLauncher.openInITerm(path: target.path, mode: mode)
             await recordActivity(for: target)
@@ -288,7 +346,6 @@ final class WorktreeListViewModel: ObservableObject {
     func openInGhostty(_ worktree: Worktree? = nil) async {
         let target = worktree ?? selectedWorktree
         guard let target else { return }
-
         do {
             try await toolLauncher.openInGhostty(path: target.path)
             await recordActivity(for: target)
@@ -300,7 +357,6 @@ final class WorktreeListViewModel: ObservableObject {
     func openInVSCode(_ worktree: Worktree? = nil, mode: AppSettings.OpenMode = .newWindow) async {
         let target = worktree ?? selectedWorktree
         guard let target else { return }
-
         do {
             try await toolLauncher.openInVSCode(path: target.path, mode: mode)
             await recordActivity(for: target)
@@ -312,7 +368,6 @@ final class WorktreeListViewModel: ObservableObject {
     func openInCursor(_ worktree: Worktree? = nil) async {
         let target = worktree ?? selectedWorktree
         guard let target else { return }
-
         do {
             try await toolLauncher.openInCursor(path: target.path)
             await recordActivity(for: target)
@@ -324,7 +379,6 @@ final class WorktreeListViewModel: ObservableObject {
     func openInCmux(_ worktree: Worktree? = nil) async {
         let target = worktree ?? selectedWorktree
         guard let target else { return }
-
         do {
             try await toolLauncher.openInCmux(path: target.path)
             await recordActivity(for: target)
@@ -336,7 +390,6 @@ final class WorktreeListViewModel: ObservableObject {
     func recordActivity(for worktree: Worktree) async {
         guard let repository else { return }
         await store.updateLastActivity(folderName: worktree.folderName, repositoryID: repository.id)
-        // Update local state
         if let index = worktrees.firstIndex(where: { $0.id == worktree.id }) {
             worktrees[index].lastActivityAt = Date()
         }
@@ -344,24 +397,48 @@ final class WorktreeListViewModel: ObservableObject {
 
     // MARK: - Tool Availability
 
-    var isITermAvailable: Bool {
-        toolLauncher.isITermInstalled()
-    }
+    var isITermAvailable: Bool { toolLauncher.isITermInstalled() }
+    var isGhosttyAvailable: Bool { toolLauncher.isGhosttyInstalled() }
+    var isVSCodeAvailable: Bool { toolLauncher.isVSCodeInstalled() }
+    var isCursorAvailable: Bool { toolLauncher.isCursorInstalled() }
+    var isCmuxAvailable: Bool { toolLauncher.isCmuxInstalled() }
 
-    var isGhosttyAvailable: Bool {
-        toolLauncher.isGhosttyInstalled()
-    }
+    // MARK: - Context Menu Actions
 
-    var isVSCodeAvailable: Bool {
-        toolLauncher.isVSCodeInstalled()
-    }
+    func contextMenuActions(for worktree: Worktree) -> ContextMenuActions {
+        let isMultiSelected = selectedWorktreeIDs.count >= 2 && selectedWorktreeIDs.contains(worktree.id)
 
-    var isCursorAvailable: Bool {
-        toolLauncher.isCursorInstalled()
-    }
+        if isMultiSelected {
+            let hasRemovableTarget = worktrees.contains { w in
+                selectedWorktreeIDs.contains(w.id)
+                    && !(repository.map { w.isRoot(of: $0) } ?? false)
+                    && !w.isBare
+                    && !jobQueue.busyWorktreeIDs.contains(w.id)
+            }
+            return ContextMenuActions(
+                canOpen: false,
+                canRename: false,
+                canGitPull: false,
+                canRemove: hasRemovableTarget,
+                canForceRemove: hasRemovableTarget,
+                canShowInFinder: false,
+                canCopyPath: false
+            )
+        }
 
-    var isCmuxAvailable: Bool {
-        toolLauncher.isCmuxInstalled()
+        // Single-item behavior
+        let isBusy = jobQueue.busyWorktreeIDs.contains(worktree.id)
+        let isRoot = repository.map { worktree.isRoot(of: $0) } ?? false
+        let canRemove = !isRoot && !worktree.isBare && !isBusy
+        return ContextMenuActions(
+            canOpen: !isBusy,
+            canRename: !isBusy,
+            canGitPull: !worktree.isBare && !isBusy,
+            canRemove: canRemove,
+            canForceRemove: canRemove,
+            canShowInFinder: true,
+            canCopyPath: true
+        )
     }
 
     // MARK: - Error Handling
@@ -369,4 +446,16 @@ final class WorktreeListViewModel: ObservableObject {
     func clearError() {
         errorMessage = nil
     }
+}
+
+// MARK: - ContextMenuActions
+
+struct ContextMenuActions: Equatable {
+    let canOpen: Bool
+    let canRename: Bool
+    let canGitPull: Bool
+    let canRemove: Bool
+    let canForceRemove: Bool
+    let canShowInFinder: Bool
+    let canCopyPath: Bool
 }

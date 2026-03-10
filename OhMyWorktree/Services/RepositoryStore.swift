@@ -3,9 +3,12 @@ import Foundation
 actor RepositoryStore {
     static let shared = RepositoryStore()
 
-    private var repositories: [Repository] = []
-    private var worktreeMetadata: [UUID: [WorktreeMetadata]] = [:] // keyed by repository ID
-    private var envCopyOverrides: [UUID: Bool] = [:]
+    // No default values: init body performs definite initialization, which is
+    // allowed in a nonisolated actor init (Swift 6). Default values would make
+    // the body assignments "mutations", which are forbidden in that context.
+    private var repositories: [Repository]
+    private var worktreeMetadata: [UUID: [WorktreeMetadata]] // keyed by repository ID
+    private var envCopyOverrides: [UUID: Bool]
 
     private nonisolated var storageDirectory: URL {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
@@ -27,8 +30,11 @@ actor RepositoryStore {
     // MARK: - Initialization
 
     private init() {
-        // Ensure storage directory exists before loading
-        let storageDir = storageDirectory
+        // Compute URLs locally — nonisolated computed properties reference `self`,
+        // which cannot be used before all stored properties are initialized.
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let storageDir = appSupport.appendingPathComponent("OhMyWorktree", isDirectory: true)
+
         if !FileManager.default.fileExists(atPath: storageDir.path) {
             try? FileManager.default.createDirectory(at: storageDir, withIntermediateDirectories: true)
         }
@@ -36,40 +42,40 @@ actor RepositoryStore {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
 
-        // Load repositories (with backup fallback)
-        repositories = Self.loadJSON(
-            from: repositoriesFileURL,
+        // Load into locals first, then assign to self in three definite-initialization
+        // writes at the end. Swift 6 permits `self.x = value` in a nonisolated actor
+        // init only when it is the *first* (definite) assignment to that property.
+        let loadedRepos: [Repository] = Self.loadJSON(
+            from: storageDir.appendingPathComponent("repositories.json"),
             type: [Repository].self,
             decoder: decoder
         ) ?? []
 
-        // Load metadata (with backup fallback)
+        var loadedMetadata: [UUID: [WorktreeMetadata]] = [:]
         if let decoded: [String: [WorktreeMetadata]] = Self.loadJSON(
-            from: metadataFileURL,
+            from: storageDir.appendingPathComponent("worktree_metadata.json"),
             type: [String: [WorktreeMetadata]].self,
             decoder: decoder
         ) {
-            var result: [UUID: [WorktreeMetadata]] = [:]
             for (key, value) in decoded {
-                if let uuid = UUID(uuidString: key) {
-                    result[uuid] = value
-                }
+                if let uuid = UUID(uuidString: key) { loadedMetadata[uuid] = value }
             }
-            worktreeMetadata = result
         }
 
-        // Load env copy overrides (with backup fallback)
+        var loadedOverrides: [UUID: Bool] = [:]
         if let decoded: [String: Bool] = Self.loadJSON(
-            from: envCopyOverridesFileURL,
+            from: storageDir.appendingPathComponent("env_copy_overrides.json"),
             type: [String: Bool].self,
             decoder: decoder
         ) {
             for (key, value) in decoded {
-                if let uuid = UUID(uuidString: key) {
-                    envCopyOverrides[uuid] = value
-                }
+                if let uuid = UUID(uuidString: key) { loadedOverrides[uuid] = value }
             }
         }
+
+        self.repositories = loadedRepos
+        self.worktreeMetadata = loadedMetadata
+        self.envCopyOverrides = loadedOverrides
     }
 
     // MARK: - Backup-Aware Loading
