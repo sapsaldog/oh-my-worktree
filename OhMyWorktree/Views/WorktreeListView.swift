@@ -212,9 +212,17 @@ struct WorktreeListView: View {
         }
         .disabled(!actions.canCopyPath)
 
+        removalMenuItems(for: worktree, actions: actions, isMultiSelected: isMultiSelected)
+    }
+
+    @ViewBuilder
+    private func removalMenuItems(for worktree: Worktree, actions: ContextMenuActions, isMultiSelected: Bool) -> some View {
         if isMultiSelected {
             if actions.canRemove {
                 Divider()
+                Button("Quick Remove Selected Worktrees") {
+                    viewModel.quickRemoveSelectedWorktrees()
+                }
                 Button("Remove Selected Worktrees", role: .destructive) {
                     confirmBulkRemove = true
                 }
@@ -224,6 +232,11 @@ struct WorktreeListView: View {
             }
         } else if let repository = viewModel.repository, !worktree.isRoot(of: repository) {
             Divider()
+            Button("Quick Remove Worktree") {
+                viewModel.quickRemoveWorktree(worktree)
+            }
+            .disabled(!actions.canQuickRemove)
+
             Button("Remove Worktree", role: .destructive) {
                 viewModel.removeWorktree(worktree)
             }

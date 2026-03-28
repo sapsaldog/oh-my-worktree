@@ -7,6 +7,7 @@ private let logger = Logger(subsystem: "com.ohmyworktree", category: "Settings")
 struct SettingsView: View {
     @ObservedObject var updaterManager: UpdaterManager
     @AppStorage("copyEnvFilesEnabled") private var copyEnvFilesEnabled = true
+    @AppStorage("jobTimeoutSeconds") private var jobTimeoutSeconds = 60
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
     private var appVersion: String {
@@ -48,6 +49,21 @@ struct SettingsView: View {
                 Text(
                     "When enabled, files matching .worktreeinclude patterns " +
                     "(or .env files by default) are automatically copied into newly created worktrees."
+                )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Advanced") {
+                Stepper(
+                    "Background task timeout: \(jobTimeoutSeconds)s",
+                    value: $jobTimeoutSeconds,
+                    in: 30...600,
+                    step: 10
+                )
+                Text(
+                    "Maximum time allowed for Remove / Force Remove operations. " +
+                    "Quick Remove Worktree is not affected by this setting."
                 )
                     .font(.caption)
                     .foregroundStyle(.secondary)

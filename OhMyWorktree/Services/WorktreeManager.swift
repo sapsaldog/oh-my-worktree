@@ -6,11 +6,20 @@ struct GitPullResult: Sendable {
     let summary: String
 }
 
+/// Abstraction over FileManager for testability (trash operations).
+protocol FileManaging: Sendable {
+    func trashItem(at url: URL, resultingItemURL outResultingURL: AutoreleasingUnsafeMutablePointer<NSURL?>?) throws
+}
+
+extension FileManager: FileManaging, @unchecked Sendable {}
+
 final class WorktreeManager: Sendable {
     private let executor: GitCommandExecuting
+    let fileManager: FileManaging
 
-    init(executor: GitCommandExecuting = GitCommandExecutor()) {
+    init(executor: GitCommandExecuting = GitCommandExecutor(), fileManager: FileManaging = FileManager.default) {
         self.executor = executor
+        self.fileManager = fileManager
     }
 
     // MARK: - Path Construction
@@ -246,6 +255,15 @@ final class WorktreeManager: Sendable {
                 stderr: result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
             )
         }
+    }
+
+    /// Moves the worktree directory to macOS Trash, then runs `git worktree prune`
+    /// to clean up git metadata. Much faster than `git worktree remove` for projects
+    /// with large directories (e.g. node_modules).
+    func quickRemoveWorktree(worktreePath: String, repositoryPath: String) async throws {
+        let url = URL(fileURLWithPath: worktreePath)
+        try fileManager.trashItem(at: url, resultingItemURL: nil)
+        try await pruneWorktrees(repositoryPath: repositoryPath)
     }
 
     /// Runs `git worktree prune` to remove administrative files for worktrees

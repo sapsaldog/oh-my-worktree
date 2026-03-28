@@ -8,6 +8,7 @@ struct ContextMenuActions {
     let canGitPull: Bool
     let canRemove: Bool
     let canForceRemove: Bool
+    let canQuickRemove: Bool
     let canShowInFinder: Bool
     let canCopyPath: Bool
 }
@@ -32,6 +33,7 @@ extension WorktreeListViewModel {
                 canGitPull: false,
                 canRemove: hasRemovableTarget,
                 canForceRemove: hasRemovableTarget,
+                canQuickRemove: hasRemovableTarget,
                 canShowInFinder: false,
                 canCopyPath: false
             )
@@ -47,6 +49,7 @@ extension WorktreeListViewModel {
             canGitPull: !worktree.isBare && !isBusy,
             canRemove: canRemove,
             canForceRemove: canRemove,
+            canQuickRemove: canRemove,
             canShowInFinder: true,
             canCopyPath: true
         )

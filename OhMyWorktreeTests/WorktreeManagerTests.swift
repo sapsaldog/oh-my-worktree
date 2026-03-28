@@ -7,8 +7,10 @@ import XCTest
 private final class MockGitExecutor: GitCommandExecuting, @unchecked Sendable {
     var stubbedResult: CommandResult = CommandResult(stdout: "", stderr: "", exitCode: 0)
     var stubbedError: Error?
+    var executedCommands: [[String]] = []
 
     func execute(command: String, arguments: [String], workingDirectory: String?) async throws -> CommandResult {
+        executedCommands.append(arguments)
         if let error = stubbedError { throw error }
         return stubbedResult
     }
@@ -19,6 +21,20 @@ private final class MockGitExecutor: GitCommandExecuting, @unchecked Sendable {
 
     func stubError(_ error: Error) {
         stubbedError = error
+    }
+}
+
+// MARK: - Mock FileManager
+
+private final class MockFileManager: FileManaging, @unchecked Sendable {
+    var trashedURLs: [URL] = []
+    var shouldFailTrash = false
+
+    func trashItem(at url: URL, resultingItemURL outResultingURL: AutoreleasingUnsafeMutablePointer<NSURL?>?) throws {
+        if shouldFailTrash {
+            throw NSError(domain: "test", code: 1, userInfo: [NSLocalizedDescriptionKey: "trash failed"])
+        }
+        trashedURLs.append(url)
     }
 }
 
@@ -290,6 +306,56 @@ final class WorktreeManagerTests: XCTestCase {
 
         await XCTAssertThrowsErrorAsync(
             try await sut.gitPull(worktreePath: "/tmp/repo")
+        )
+    }
+}
+
+// MARK: - Quick Remove Worktree Tests
+
+final class WorktreeManagerQuickRemoveTests: XCTestCase {
+
+    private var mockExecutor: MockGitExecutor!
+    private var mockFileManager: MockFileManager!
+    private var sut: WorktreeManager!
+
+    override func setUp() {
+        super.setUp()
+        mockExecutor = MockGitExecutor()
+        mockFileManager = MockFileManager()
+        sut = WorktreeManager(executor: mockExecutor, fileManager: mockFileManager)
+    }
+
+    func testQuickRemove_trashesDirectoryAndRunsPrune() async throws {
+        try await sut.quickRemoveWorktree(
+            worktreePath: "/tmp/worktree",
+            repositoryPath: "/tmp/repo"
+        )
+
+        // Verify trash was called with correct URL
+        XCTAssertEqual(mockFileManager.trashedURLs.count, 1)
+        XCTAssertEqual(mockFileManager.trashedURLs.first?.path, "/tmp/worktree")
+
+        // Verify git worktree prune was called
+        XCTAssertTrue(
+            mockExecutor.executedCommands.contains(["worktree", "prune"]),
+            "Expected 'git worktree prune' to be called"
+        )
+    }
+
+    func testQuickRemove_trashFailure_throwsError() async {
+        mockFileManager.shouldFailTrash = true
+
+        await XCTAssertThrowsErrorAsync(
+            try await sut.quickRemoveWorktree(
+                worktreePath: "/tmp/worktree",
+                repositoryPath: "/tmp/repo"
+            )
+        )
+
+        // Prune should NOT be called if trash failed
+        XCTAssertFalse(
+            mockExecutor.executedCommands.contains(["worktree", "prune"]),
+            "Prune should not run when trash fails"
         )
     }
 }

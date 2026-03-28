@@ -54,7 +54,8 @@
 
 - 앱 실행 후 1초 이내 UI 로딩 완료
 - 메모리 사용량 50MB 이하
-- worktree 생성/삭제 작업 3초 이내 완료
+- worktree 생성 작업 3초 이내 완료
+- worktree 삭제 작업 즉시 완료 (휴지통 이동 방식, 파일 수에 무관)
 - 외부 도구(iTerm/Ghostty/VSCode) 연동 성공률 99%
 
 ---
@@ -386,13 +387,14 @@ branch refs/heads/feature/new-feature
 
 #### FR-006: Worktree 삭제 (P0)
 
-**설명**: 기존 worktree를 제거
+**설명**: 기존 worktree를 제거. 3가지 삭제 방식 제공
 
 **상세 요구사항**:
-- 삭제 확인 다이얼로그
-- 옵션: "디스크에서도 삭제" (디폴트: true)
-- Git 명령어 실행:
-  - `git worktree remove <path>` (강제 삭제 옵션: `-f`)
+- **삭제 방식 3가지**:
+  1. **Remove Worktree**: `git worktree remove <path>` — uncommitted changes가 있으면 거부 (dirty check)
+  2. **Force Remove Worktree**: `git worktree remove --force <path>` — dirty 상태여도 강제 삭제
+  3. **Quick Remove Worktree** (FR-036): `FileManager.trashItem` + `git worktree prune` — 즉시 완료, 휴지통에서 복구 가능
+- Force Remove 시 삭제 확인 다이얼로그
 - 실행 결과 피드백
 - 성공 시 worktree 목록 자동 갱신
 
@@ -640,7 +642,7 @@ branch refs/heads/feature/new-feature
   - `kind: BackgroundJobKind`
   - `state: BackgroundJobState` — `.pending` / `.inProgress` / `.completed` / `.failed(String)` / `.cancelled`
   - `enqueuedAt: Date`
-- `BackgroundJobKind`: `.removeWorktree(force: Bool)`, `.pull`, `.addWorktreeFromPR(remoteBranch: String, localBranch: String, prNumber: Int)`
+- `BackgroundJobKind`: `.removeWorktree(force: Bool)`, `.quickRemove`, `.pull`, `.addWorktreeFromPR(remoteBranch: String, localBranch: String, prNumber: Int)`
 - 저장소별 직렬 처리 (같은 저장소의 작업은 순차 실행 — `.git/worktrees/` lock 충돌 방지)
 - 실패 시 해당 작업 건너뛰고 다음 작업 계속 진행
 - 단일 작업 enqueue 및 배치 enqueue(`[BackgroundJob]`) 모두 지원
@@ -687,12 +689,12 @@ branch refs/heads/feature/new-feature
   - `Open in ...` 계열 항목: disabled
   - `Rename`: disabled
   - `Git Pull`: disabled
-  - `Remove Worktree` / `Force Remove`: 선택된 항목 전체에 일괄 enqueue (root 제외, 실행 가능)
+  - `Quick Remove Worktree` / `Remove Worktree` / `Force Remove`: 선택된 항목 전체에 일괄 enqueue (root 제외, 실행 가능)
   - `Show in Finder`, `Copy Path`: disabled
 
 **원본 워크트리(root) 제약**:
-- root 워크트리가 다중 선택에 포함된 경우 Remove/Force Remove는 root를 제외하고 나머지만 enqueue
-- root만 선택된 경우 Remove 항목 disabled
+- root 워크트리가 다중 선택에 포함된 경우 Quick Remove Worktree/Remove/Force Remove는 root를 제외하고 나머지만 enqueue
+- root만 선택된 경우 삭제 관련 항목 disabled
 
 **큐에 추가된 워크트리 행**: per-row 상태 아이콘 표시 (⏳ 대기, ⟳ 진행 중)
 **완료된 워크트리**: 목록에서 즉시 제거
@@ -761,7 +763,7 @@ branch refs/heads/feature/new-feature
 - `.failed`: 작업 실패 시 Critical 사운드와 함께 배너 알림
 
 **알림 내용**:
-- **성공 (remove)**: Title "Oh My Worktree" / Body "'워크트리명' removed"
+- **성공 (remove/moveToTrash)**: Title "Oh My Worktree" / Body "'워크트리명' removed"
 - **성공 (pull)**: Title "Oh My Worktree" / Body "'워크트리명' pulled successfully"
 - **성공 (addWorktreeFromPR)**: Title "Oh My Worktree" / Body "PR #번호 imported successfully"
 - **실패**: Title "Oh My Worktree — Task Failed" / Body 에러 메시지 (워크트리명 포함)
@@ -823,6 +825,77 @@ branch refs/heads/feature/new-feature
 - `QueueStatusBarView` (스플릿 버튼 드롭다운)
 - `AppDelegate` (메뉴바 "Import from GitHub PR..." 항목)
 - `NotificationManager` (Import 완료 알림)
+
+---
+
+#### FR-036: Worktree 삭제 시 휴지통 이동 방식 (P1)
+
+**설명**: "Quick Remove Worktree" 메뉴 항목 추가 — macOS 휴지통으로 이동 후 `git worktree prune`을 실행하여 삭제 속도를 대폭 개선. 기존 Remove/Force Remove는 유지
+
+**배경**:
+- `git worktree remove`는 내부적으로 worktree 디렉토리를 재귀적으로 삭제
+- `node_modules`, `.next`, `build` 등 대량 파일이 존재하는 프로젝트에서 삭제에 수십 초~수 분 소요
+- 기존 60초 타임아웃으로도 부족한 경우 발생
+- macOS `FileManager.trashItem`은 같은 볼륨 내 rename 수준으로 즉시 완료
+
+**상세 요구사항**:
+- **컨텍스트 메뉴에 "Quick Remove Worktree" 항목 추가** (기존 Remove Worktree / Force Remove Worktree 유지):
+  ```
+  Remove Worktree          ← git worktree remove (dirty check)
+  Force Remove Worktree    ← git worktree remove --force
+  Quick Remove Worktree            ← FileManager.trashItem + prune (즉시, 복구 가능)
+  ```
+- **Quick Remove Worktree 흐름**:
+  1. `FileManager.trashItem(at:resultingItemURL:)`으로 worktree 디렉토리를 휴지통으로 이동 (즉시 완료)
+  2. `git worktree prune`으로 git 메타데이터(`.git/worktrees/<name>`) 정리
+  3. `RepositoryStore.removeWorktreeMetadata()`로 앱 메타데이터 정리
+- **복구 가능성**: 사용자가 실수로 삭제한 경우 macOS 휴지통에서 디렉토리 복구 가능 (단, git worktree 등록은 수동 재등록 필요)
+- **다중 선택 지원**: 기존 일괄 Remove/Force Remove와 동일하게 다중 선택 시 "Quick Remove Worktree" 일괄 enqueue
+- **BackgroundJobKind 추가**: `.quickRemove` — 기존 `.removeWorktree(force:)`와 별도
+- **기존 동작 유지**:
+  - Remove Worktree / Force Remove Worktree는 기존 `git worktree remove` 방식 그대로
+  - 디렉토리가 이미 수동 삭제된 경우: 기존과 동일하게 `git worktree prune` 실행
+  - 메타데이터 정리, UI 업데이트, 시스템 알림 등 후처리는 변경 없음
+
+**영향받는 컴포넌트**:
+- `WorktreeManager` (`quickRemoveWorktree` 메서드 신규)
+- `BackgroundJobKind` (`.quickRemove` 추가)
+- `BackgroundTaskQueue` (`executeJob` — `.quickRemove` 케이스 처리)
+- `WorktreeListView` (컨텍스트 메뉴 "Quick Remove Worktree" 항목 추가)
+- `WorktreeListViewModel` (`quickRemoveWorktree` 메서드 신규)
+- `AppDelegate` (메뉴바 NSMenu "Quick Remove Worktree" 항목 추가)
+
+---
+
+#### FR-037: 백그라운드 작업 타임아웃 설정 (P2)
+
+**설명**: Remove Worktree / Force Remove Worktree의 타임아웃 시간을 Settings에서 변경 가능. 타임아웃 발생 시 안내 메시지 제공
+
+**배경**:
+- 기존 타임아웃 60초는 `node_modules` 등 대량 파일 프로젝트에서 부족할 수 있음
+- "Quick Remove Worktree"를 사용하면 즉시 완료되지만, 사용자가 Remove/Force Remove를 선호하는 경우에도 대응 필요
+- 타임아웃 발생 시 사용자가 원인을 파악하고 조치할 수 있도록 안내 필요
+
+**상세 요구사항**:
+- **Settings UI (Advanced 섹션)**:
+  - "Background task timeout" 라벨 + Stepper 또는 텍스트 필드 (초 단위)
+  - 기본값: 60초, 범위: 30~600초
+  - 캡션: "Maximum time allowed for Remove/Force Remove operations. Quick Remove Worktree is not affected by this setting."
+- **AppSettings 확장**:
+  - `jobTimeoutSeconds: Int` 필드 추가 (기본값 60)
+  - `@AppStorage("jobTimeoutSeconds")` 바인딩
+- **BackgroundTaskQueue 연동**:
+  - 초기화 시 AppSettings의 값을 `jobTimeoutSeconds`로 전달
+  - Settings 변경 시 새로 enqueue되는 작업부터 적용
+- **타임아웃 에러 메시지 개선**:
+  - 기존: `"Operation timed out after 60 seconds"`
+  - 변경: `"Operation timed out after {N} seconds. Projects with large directories (e.g. node_modules) may need more time. You can increase the timeout in Settings > Advanced, or use 'Quick Remove Worktree' for instant removal."`
+
+**영향받는 컴포넌트**:
+- `AppSettings` (`jobTimeoutSeconds` 필드 추가)
+- `SettingsView` (Advanced 섹션 추가)
+- `BackgroundTaskQueue` (타임아웃 값 AppSettings 연동)
+- `BackgroundJobTimeoutError` (에러 메시지 개선)
 
 ---
 
@@ -976,6 +1049,7 @@ Git Pull
 Show in Finder
 Copy Path
 ───────────────
+Quick Remove Worktree
 Remove Worktree
 Force Remove Worktree
 ```
@@ -1008,6 +1082,7 @@ Force Remove Worktree
 - macOS 표준 Settings 창 (`⌘,` 단축키)
 - General 섹션: Launch at Login 토글
 - Worktree 생성 섹션: .env 파일 복사 토글
+- Advanced 섹션 (FR-037): 백그라운드 작업 타임아웃 설정
 - 메뉴바에서 "Settings..." 항목으로 접근 가능
 - SwiftUI Settings Scene 사용
 
@@ -2243,6 +2318,7 @@ end tell
 | 1.2.0 | 2026-02-26 | .worktreeinclude 패턴 기반 파일 복사 (FR-027) + GitHub PR 번호 및 상태 아이콘 (FR-028, FR-029) — EnvFileCopier를 WorktreeFileCopier로 대체, glob 패턴 지원, fnmatch 기반 매칭, `.env*` 폴백 하위호환, `gh` CLI 기반 PR 정보 조회, open/merged/closed 상태 배지, 옥티콘 SVG 아이콘 (Asset Catalog) | Claude Code |
 | 1.2.1 | 2026-02-27 | Worktree 이름 변경 (FR-030) — WorktreeMetadata에 customName 필드 추가, displayName 우선순위 로직 (customName → branch → detached), 인라인 TextField 편집 (Finder 스타일), 컨텍스트 메뉴 Rename 항목, Enter 키 트리거, 빈 문자열로 기본 표기 복귀, JSON 하위호환 | Claude Code |
 | 1.2.2 | 2026-03-09 | 백그라운드 작업 큐 및 다중 선택 일괄 삭제 (FR-031/032/033) — BackgroundTaskQueue (actor 기반), 네이티브 List 다중 선택, 컨텍스트 메뉴 일괄 Remove/Force Remove, QueueStatusBarView, AppDelegate 리팩토링, CI/CD 추가, 보안 수정 + 코드 리뷰 반영 (FR-034): loadWorktrees 이중 경로 제거, busyWorktreeIDs 캐싱(@Published 저장 프로퍼티), 에러 메시지 컨텍스트 추가, Force Remove 확인 다이얼로그, Job 배열 자동 정리(maxFailedJobs=50), macOS 시스템 알림(NotificationManager/UNUserNotificationCenter), 스트레스 테스트 추가 | Claude Code |
+| 1.2.4 | 2026-03-28 | "Quick Remove Worktree" 메뉴 추가 (FR-036) + 타임아웃 설정 (FR-037) — 기존 Remove/Force Remove 유지하면서 `FileManager.trashItem` + `git worktree prune` 방식의 세 번째 삭제 옵션 추가, node_modules 등 대량 파일 프로젝트에서 즉시 삭제 체감, 휴지통을 통한 복구 가능, `BackgroundJobKind.quickRemove` 추가, 다중 선택 일괄 지원; Settings > Advanced에 백그라운드 작업 타임아웃 설정(30~600초) 추가, 타임아웃 에러 메시지에 원인 및 해결 방법 안내 | Claude Code |
 
 ---
 

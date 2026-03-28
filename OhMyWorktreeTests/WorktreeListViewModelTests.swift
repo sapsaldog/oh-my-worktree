@@ -242,6 +242,7 @@ extension WorktreeListViewModelTests {
         XCTAssertTrue(actions.canGitPull)
         XCTAssertTrue(actions.canRemove)
         XCTAssertTrue(actions.canForceRemove)
+        XCTAssertTrue(actions.canQuickRemove)
         XCTAssertTrue(actions.canShowInFinder)
         XCTAssertTrue(actions.canCopyPath)
     }
@@ -272,6 +273,7 @@ extension WorktreeListViewModelTests {
         XCTAssertTrue(actions.canGitPull)
         XCTAssertFalse(actions.canRemove)
         XCTAssertFalse(actions.canForceRemove)
+        XCTAssertFalse(actions.canQuickRemove)
         XCTAssertTrue(actions.canShowInFinder)
         XCTAssertTrue(actions.canCopyPath)
     }

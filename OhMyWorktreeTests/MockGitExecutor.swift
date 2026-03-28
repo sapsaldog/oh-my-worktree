@@ -33,3 +33,13 @@ final class MockSimpleGitExecutor: GitCommandExecuting, @unchecked Sendable {
         return CommandResult(stdout: "", stderr: "", exitCode: 0)
     }
 }
+
+// MARK: - No-op FileManager Mock
+
+/// Always succeeds — used by BackgroundTaskQueue tests where the real FileManager
+/// would fail because worktree paths don't exist on disk.
+final class MockNoOpFileManager: FileManaging, @unchecked Sendable {
+    func trashItem(at url: URL, resultingItemURL outResultingURL: AutoreleasingUnsafeMutablePointer<NSURL?>?) throws {
+        // no-op success
+    }
+}

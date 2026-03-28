@@ -213,8 +213,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let deletingIDs = Set((worktreeViewModel?.jobQueue.jobs ?? [])
             .filter { job in
                 job.state.isActive && {
-                    if case .removeWorktree = job.kind { return true }
-                    return false
+                    switch job.kind {
+                    case .removeWorktree, .quickRemove: return true
+                    default: return false
+                    }
                 }()
             }
             .map { $0.worktreeID })
