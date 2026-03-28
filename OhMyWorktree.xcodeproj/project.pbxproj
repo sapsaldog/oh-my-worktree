@@ -311,6 +311,7 @@
 			buildPhases = (
 				86AFCA224C3663917CE6196A /* SwiftLint */,
 				BBA496511C689A80B7DB5528 /* Sources */,
+				FF2FF9FC85463811CE911B1B /* Embed Git Commit Hash */,
 				346CF7640FFC5EE403C6A669 /* Resources */,
 				8887AF1AF9D10274C5F0E81D /* Frameworks */,
 			);
@@ -390,6 +391,25 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "if which swiftlint > /dev/null; then\n  swiftlint\nelse\n  echo \"warning: SwiftLint not installed. Run: brew install swiftlint\"\nfi\n";
+		};
+		FF2FF9FC85463811CE911B1B /* Embed Git Commit Hash */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Embed Git Commit Hash";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "GIT_HASH=$(git -C \"${PROJECT_DIR}\" rev-parse --short HEAD 2>/dev/null || echo \"unknown\")\n/usr/libexec/PlistBuddy -c \"Add :GitCommitHash string ${GIT_HASH}\" \"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\" 2>/dev/null || \\\n/usr/libexec/PlistBuddy -c \"Set :GitCommitHash ${GIT_HASH}\" \"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

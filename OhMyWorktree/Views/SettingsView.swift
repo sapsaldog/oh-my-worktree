@@ -9,6 +9,18 @@ struct SettingsView: View {
     @AppStorage("copyEnvFilesEnabled") private var copyEnvFilesEnabled = true
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+    }
+
+    private var buildNumber: String {
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
+    }
+
+    private var commitHash: String {
+        Bundle.main.infoDictionary?["GitCommitHash"] as? String ?? "unknown"
+    }
+
     var body: some View {
         Form {
             Section("General") {
@@ -53,6 +65,13 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .safeAreaInset(edge: .bottom) {
+            Text("v\(appVersion) (\(buildNumber)) · \(commitHash)")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .frame(maxWidth: .infinity)
+                .padding(.bottom, 8)
+        }
         .onAppear {
             launchAtLogin = SMAppService.mainApp.status == .enabled
         }
