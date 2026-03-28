@@ -8,6 +8,12 @@ struct OhMyWorktreeApp: App {
     @StateObject private var updaterManager = UpdaterManager()
 
     var body: some Scene {
+        // Connect view models to AppDelegate during Scene body evaluation,
+        // so the menu bar works even if the main window hasn't appeared yet
+        // (e.g. cold start after reboot with Login Items).
+        // swiftlint:disable:next redundant_discardable_let
+        let _ = connectAppDelegate()
+
         WindowGroup(id: "main") {
             ContentView(repoViewModel: repoViewModel, worktreeViewModel: worktreeViewModel)
                 .frame(minWidth: 400, minHeight: 300)
@@ -15,11 +21,6 @@ struct OhMyWorktreeApp: App {
                     ImportPRView(worktreeViewModel: worktreeViewModel)
                 }
                 .modifier(OpenWindowModifier(appDelegate: appDelegate, worktreeViewModel: worktreeViewModel))
-                .onAppear {
-                    appDelegate.repoViewModel = repoViewModel
-                    appDelegate.worktreeViewModel = worktreeViewModel
-                    appDelegate.updaterManager = updaterManager
-                }
         }
         .defaultSize(width: 500, height: 400)
         .windowResizability(.contentSize)
@@ -27,6 +28,12 @@ struct OhMyWorktreeApp: App {
         Settings {
             SettingsView(updaterManager: updaterManager)
         }
+    }
+
+    private func connectAppDelegate() {
+        appDelegate.repoViewModel = repoViewModel
+        appDelegate.worktreeViewModel = worktreeViewModel
+        appDelegate.updaterManager = updaterManager
     }
 }
 

@@ -8,7 +8,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: - Properties
 
     var statusItem: NSStatusItem?
-    var repoViewModel: RepositoryListViewModel?
+    var repoViewModel: RepositoryListViewModel? {
+        didSet {
+            guard repoViewModel !== oldValue else { return }
+            observeRepositoryChanges()
+        }
+    }
     var worktreeViewModel: WorktreeListViewModel? {
         didSet {
             guard worktreeViewModel !== oldValue else { return }
@@ -21,6 +26,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var updaterManager: UpdaterManager?
     private var menuRefreshTask: Task<Void, Never>?
     private var cancellables = Set<AnyCancellable>()
+    private var repoCancellables = Set<AnyCancellable>()
     private let headMonitor = GitHeadMonitor()
     private let windowObserver = WindowObserver()
     private var liveBranchName: String?
@@ -41,6 +47,37 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     // MARK: - Observe ViewModel Changes
+
+    private func observeRepositoryChanges() {
+        repoCancellables.removeAll()
+
+        guard let repoViewModel else { return }
+
+        // Eagerly load repositories so the menu bar is populated
+        // even before the main window appears (fixes cold-start on reboot).
+        if repoViewModel.repositories.isEmpty {
+            Task {
+                await repoViewModel.loadRepositories()
+            }
+        }
+
+        // Rebuild menu whenever the repository list or selection changes.
+        repoViewModel.$repositories
+            .dropFirst()
+            .sink { [weak self] _ in
+                self?.rebuildMenu()
+                self?.updateStatusItemTitle()
+            }
+            .store(in: &repoCancellables)
+
+        repoViewModel.$selectedRepository
+            .dropFirst()
+            .sink { [weak self] _ in
+                self?.rebuildMenu()
+                self?.updateStatusItemTitle()
+            }
+            .store(in: &repoCancellables)
+    }
 
     private func observeWorktreeChanges() {
         cancellables.removeAll()
@@ -122,6 +159,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menuRefreshTask?.cancel()
         menuRefreshTask = Task { @MainActor [weak self] in
             guard let self else { return }
+            // Ensure repositories are loaded (cold-start safety net)
+            if self.repoViewModel?.repositories.isEmpty == true {
+                await self.repoViewModel?.loadRepositories()
+            }
             let before = self.worktreeViewModel?.worktrees
             await self.worktreeViewModel?.loadWorktrees(debounce: true)
             // Only rebuild if data actually changed to avoid menu flicker
