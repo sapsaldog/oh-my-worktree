@@ -143,7 +143,12 @@ extension AppDelegate {
 
     @objc func settingsClicked(_ sender: NSMenuItem) {
         NSApp.activate(ignoringOtherApps: true)
-        openSettings?()
+        if let openSettings {
+            openSettings()
+        } else {
+            // Fallback when SwiftUI environment hasn't been captured yet (cold start)
+            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        }
     }
 
     @objc func checkForUpdatesClicked(_ sender: NSMenuItem) {

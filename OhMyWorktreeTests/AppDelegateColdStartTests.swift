@@ -3,17 +3,21 @@ import XCTest
 
 @testable import OhMyWorktree
 
-/// Tests for the cold-start race condition fix where the menu bar would show
-/// an empty repository list when the app launched via Login Items on reboot.
+/// Tests for cold-start race conditions where the menu bar would be broken
+/// when the app launched via Login Items on reboot.
 ///
-/// Root cause: `repoViewModel` was only connected to AppDelegate in
-/// ContentView's `.onAppear`, and `loadRepositories()` was only called in
-/// ContentView's `.task`. If the main window hadn't appeared yet, the menu
-/// bar had no data.
+/// Problems fixed:
+/// 1. Empty repository list — `repoViewModel` was only connected and loaded
+///    in ContentView's `.onAppear`/`.task`, which depend on window visibility.
+/// 2. Non-functional "Open Main Window" and "Settings" — closures capturing
+///    `@Environment(\.openWindow)` / `@Environment(\.openSettings)` were set
+///    in `.onAppear`, so they stayed nil until the window appeared.
 ///
-/// Fix: `repoViewModel.didSet` now eagerly loads repositories and subscribes
-/// to changes via Combine, ensuring the menu is populated regardless of
-/// window state.
+/// Fixes:
+/// - ViewModel connection moved to Scene body evaluation
+/// - `repoViewModel.didSet` eagerly loads repos and subscribes via Combine
+/// - Environment closures captured in View `body` (not `.onAppear`)
+/// - `settingsClicked` has NSApp fallback for when closures are nil
 @MainActor
 final class AppDelegateColdStartTests: XCTestCase {
 
@@ -87,5 +91,34 @@ final class AppDelegateColdStartTests: XCTestCase {
         }
         let repoItem = menu.items.first(where: { $0.title == testRepo.name })
         XCTAssertNotNil(repoItem, "Menu should contain the repository after cold-start loading")
+    }
+
+    // MARK: - Settings fallback works without SwiftUI environment
+
+    func testSettingsClickFallbackWhenClosureIsNil() async throws {
+        // Given: AppDelegate with NO openSettings closure set
+        // (simulates cold start before SwiftUI window appears)
+        let appDelegate = AppDelegate()
+        appDelegate.setupStatusItem()
+        XCTAssertNil(appDelegate.openSettings, "openSettings should be nil before window appears")
+
+        // When: settingsClicked is invoked
+        // Then: Should not crash (falls back to NSApp.sendAction)
+        let menuItem = NSMenuItem(title: "Settings...", action: nil, keyEquivalent: "")
+        appDelegate.settingsClicked(menuItem)
+    }
+
+    // MARK: - Open Main Window works without SwiftUI environment
+
+    func testOpenMainWindowWhenClosureIsNil() async throws {
+        // Given: AppDelegate with NO openMainWindow closure set
+        let appDelegate = AppDelegate()
+        appDelegate.setupStatusItem()
+        XCTAssertNil(appDelegate.openMainWindow, "openMainWindow should be nil before window appears")
+
+        // When: openMainWindowClicked is invoked
+        // Then: Should not crash (activates app and searches for existing windows)
+        let menuItem = NSMenuItem(title: "Open Main Window", action: nil, keyEquivalent: "")
+        appDelegate.openMainWindowClicked(menuItem)
     }
 }

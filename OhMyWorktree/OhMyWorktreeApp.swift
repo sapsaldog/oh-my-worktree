@@ -47,23 +47,26 @@ private struct OpenWindowModifier: ViewModifier {
     @Environment(\.openSettings) private var openSettings
 
     func body(content: Content) -> some View {
+        // Capture environment closures during body evaluation (not .onAppear)
+        // so they're available even before the window appears on screen
+        // (e.g. cold start via Login Items after reboot).
+        // swiftlint:disable:next redundant_discardable_let
+        let _ = captureEnvironment()
         content
-            .onAppear {
-                appDelegate.openMainWindow = { [openWindow] in
-                    openWindow(id: "main")
-                }
-                appDelegate.openImportPRWindow = { [openWindow, worktreeViewModel] in
-                    openWindow(id: "main")
-                    // Dispatch to the next run-loop tick so SwiftUI finishes setting
-                    // up the window's view hierarchy (including the .sheet modifier)
-                    // before we present the sheet.
-                    DispatchQueue.main.async {
-                        worktreeViewModel.isShowingImportPR = true
-                    }
-                }
-                appDelegate.openSettings = { [openSettings] in
-                    openSettings()
-                }
+    }
+
+    private func captureEnvironment() {
+        appDelegate.openMainWindow = { [openWindow] in
+            openWindow(id: "main")
+        }
+        appDelegate.openImportPRWindow = { [openWindow, worktreeViewModel] in
+            openWindow(id: "main")
+            DispatchQueue.main.async {
+                worktreeViewModel.isShowingImportPR = true
             }
+        }
+        appDelegate.openSettings = { [openSettings] in
+            openSettings()
+        }
     }
 }
