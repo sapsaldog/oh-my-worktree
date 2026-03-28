@@ -137,8 +137,16 @@ final class BackgroundTaskQueue: ObservableObject {
         let timeout = jobTimeoutSeconds
 
         do {
-            try await withJobTimeout(seconds: timeout) {
+            // Quick remove uses FileManager.trashItem which completes near-instantly,
+            // so it does not need (and should not have) a timeout wrapper.
+            if job.kind == .quickRemove {
                 try await Self.dispatchJob(job, worktreeManager: wm, store: st)
+            } else {
+                // Wrap the git operation in a timeout to prevent indefinite blocking
+                // if a git process hangs (e.g. waiting for SSH passphrase or network).
+                try await withJobTimeout(seconds: timeout) {
+                    try await Self.dispatchJob(job, worktreeManager: wm, store: st)
+                }
             }
             if let i = jobIndex(for: jobID) {
                 jobs[i].state = .completed
@@ -158,6 +166,8 @@ final class BackgroundTaskQueue: ObservableObject {
 
     // MARK: - Private: Job Dispatch
 
+    /// Dispatches the actual git/filesystem work for a single job.
+    /// Extracted from `executeJob` to keep function body length within lint limits.
     private nonisolated static func dispatchJob(
         _ job: BackgroundJob,
         worktreeManager wm: WorktreeManager,
@@ -172,6 +182,8 @@ final class BackgroundTaskQueue: ObservableObject {
                     force: force
                 )
             } else {
+                // Directory was manually deleted; prune the dangling git
+                // registration so it doesn't reappear on next reload.
                 try? await wm.pruneWorktrees(repositoryPath: job.repositoryPath)
             }
             await st.removeWorktreeMetadata(

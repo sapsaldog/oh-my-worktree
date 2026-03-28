@@ -29,6 +29,11 @@ private final class MockGitExecutor: GitCommandExecuting, @unchecked Sendable {
 private final class MockFileManager: FileManaging, @unchecked Sendable {
     var trashedURLs: [URL] = []
     var shouldFailTrash = false
+    var existingPaths: Set<String> = ["/tmp/worktree"]
+
+    func fileExists(atPath path: String) -> Bool {
+        existingPaths.contains(path)
+    }
 
     func trashItem(at url: URL, resultingItemURL outResultingURL: AutoreleasingUnsafeMutablePointer<NSURL?>?) throws {
         if shouldFailTrash {
@@ -339,6 +344,24 @@ final class WorktreeManagerQuickRemoveTests: XCTestCase {
         XCTAssertTrue(
             mockExecutor.executedCommands.contains(["worktree", "prune"]),
             "Expected 'git worktree prune' to be called"
+        )
+    }
+
+    func testQuickRemove_directoryNotExists_skipTrashAndPruneOnly() async throws {
+        // Use a path that doesn't exist on disk
+        try await sut.quickRemoveWorktree(
+            worktreePath: "/nonexistent/path/that/does/not/exist",
+            repositoryPath: "/tmp/repo"
+        )
+
+        // Trash should NOT be called for non-existent directory
+        XCTAssertTrue(mockFileManager.trashedURLs.isEmpty,
+                       "Trash should not be called when directory doesn't exist")
+
+        // Prune should still be called to clean up git metadata
+        XCTAssertTrue(
+            mockExecutor.executedCommands.contains(["worktree", "prune"]),
+            "Prune should still run for non-existent directory"
         )
     }
 

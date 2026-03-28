@@ -39,6 +39,8 @@ final class MockSimpleGitExecutor: GitCommandExecuting, @unchecked Sendable {
 /// Always succeeds — used by BackgroundTaskQueue tests where the real FileManager
 /// would fail because worktree paths don't exist on disk.
 final class MockNoOpFileManager: FileManaging, @unchecked Sendable {
+    func fileExists(atPath path: String) -> Bool { true }
+
     func trashItem(at url: URL, resultingItemURL outResultingURL: AutoreleasingUnsafeMutablePointer<NSURL?>?) throws {
         // no-op success
     }
