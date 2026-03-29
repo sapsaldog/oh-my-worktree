@@ -118,6 +118,35 @@ final class ShortcutManagerTests: XCTestCase {
         XCTAssertNil(shortcut)
     }
 
+    // MARK: - KeyboardShortcut Helper (Delete Key Variants)
+
+    @MainActor
+    func testKeyboardShortcutForAction_deleteWithoutModifiers() {
+        // removeWorktree default is "⌫" (delete with no modifiers)
+        let shortcut = manager.keyboardShortcut(for: .removeWorktree)
+        XCTAssertNotNil(shortcut, "Delete key without modifiers should produce a valid shortcut")
+        XCTAssertEqual(shortcut?.key, KeyEquivalent.delete)
+        XCTAssertEqual(shortcut?.modifiers, [])
+    }
+
+    @MainActor
+    func testKeyboardShortcutForAction_commandDelete() {
+        // forceRemoveWorktree default is "⌘⌫"
+        let shortcut = manager.keyboardShortcut(for: .forceRemoveWorktree)
+        XCTAssertNotNil(shortcut)
+        XCTAssertEqual(shortcut?.key, KeyEquivalent.delete)
+        XCTAssertEqual(shortcut?.modifiers, .command)
+    }
+
+    @MainActor
+    func testKeyboardShortcutForAction_shiftCommandDelete() {
+        // quickRemoveWorktree default is "⇧⌘⌫"
+        let shortcut = manager.keyboardShortcut(for: .quickRemoveWorktree)
+        XCTAssertNotNil(shortcut)
+        XCTAssertEqual(shortcut?.key, KeyEquivalent.delete)
+        XCTAssertEqual(shortcut?.modifiers, [.shift, .command])
+    }
+
     // MARK: - Version Counter
 
     @MainActor
@@ -133,6 +162,21 @@ final class ShortcutManagerTests: XCTestCase {
         let before = manager.version
         manager.resetToDefault(.openSettings)
         XCTAssertGreaterThan(manager.version, before)
+    }
+
+    // MARK: - KeyboardShortcut Coverage
+
+    @MainActor
+    func testKeyboardShortcut_allDefaultCombos_areConvertible() {
+        // Every non-global action's default combo should produce a valid KeyboardShortcut.
+        // This guards against KeyCombo.keyCodeMap and ShortcutManager.keyCodeToCharacter drifting apart.
+        for action in ShortcutAction.allCases where !action.isGlobal {
+            let shortcut = manager.keyboardShortcut(for: action)
+            XCTAssertNotNil(
+                shortcut,
+                "\(action) default combo '\(action.defaultCombo)' failed to convert to KeyboardShortcut"
+            )
+        }
     }
 
     // MARK: - Migration

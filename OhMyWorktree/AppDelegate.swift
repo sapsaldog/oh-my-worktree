@@ -38,6 +38,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var menuRefreshTask: Task<Void, Never>?
     var cancellables = Set<AnyCancellable>()
     private var repoCancellables = Set<AnyCancellable>()
+    var shortcutCancellables = Set<AnyCancellable>()
     private let headMonitor = GitHeadMonitor()
     private let windowObserver = WindowObserver()
     var liveBranchName: String?

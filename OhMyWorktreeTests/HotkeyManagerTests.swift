@@ -90,6 +90,25 @@ final class HotkeyManagerTests: XCTestCase {
         XCTAssertEqual(combo?.displayString, original)
     }
 
+    func testKeyComboDisplayString_allFourModifiers_roundTrips() {
+        // Canonical order is ⌃⌥⇧⌘ (Control, Option, Shift, Command)
+        let original = "⌃⌥⇧⌘W"
+        let combo = KeyCombo.from(string: original)
+        XCTAssertNotNil(combo)
+        XCTAssertTrue(combo?.modifiers.contains(.control) ?? false)
+        XCTAssertTrue(combo?.modifiers.contains(.option) ?? false)
+        XCTAssertTrue(combo?.modifiers.contains(.shift) ?? false)
+        XCTAssertTrue(combo?.modifiers.contains(.command) ?? false)
+        XCTAssertEqual(combo?.displayString, original)
+    }
+
+    func testKeyComboDisplayString_modifierOrder_isCanonical() {
+        // Even if parsed from a non-canonical order, displayString should produce canonical order
+        let combo = KeyCombo.from(string: "⌘⌃⇧⌥A")
+        XCTAssertNotNil(combo)
+        XCTAssertEqual(combo?.displayString, "⌃⌥⇧⌘A")
+    }
+
     // MARK: - HotkeyManager Lifecycle
 
     @MainActor

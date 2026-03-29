@@ -178,4 +178,27 @@ final class HotkeyRecorderViewModelTests: XCTestCase {
         XCTAssertFalse(consumed)
         XCTAssertEqual(vm.state, .idle)
     }
+
+    // MARK: - resolveConflict When Not In Conflict State
+
+    @MainActor
+    func testResolveConflict_whenIdle_isNoOp() {
+        let vm = HotkeyRecorderViewModel(action: .openSettings, shortcutManager: shortcutManager)
+        XCTAssertEqual(vm.state, .idle)
+
+        vm.resolveConflict(override: true)
+        XCTAssertEqual(vm.state, .idle)
+        // Original combo should be unchanged
+        XCTAssertEqual(shortcutManager.combo(for: .openSettings), "⌘,")
+    }
+
+    @MainActor
+    func testResolveConflict_whenRecording_isNoOp() {
+        let vm = HotkeyRecorderViewModel(action: .openSettings, shortcutManager: shortcutManager)
+        vm.startRecording()
+        XCTAssertEqual(vm.state, .recording)
+
+        vm.resolveConflict(override: false)
+        XCTAssertEqual(vm.state, .recording)
+    }
 }

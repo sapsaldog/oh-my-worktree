@@ -162,11 +162,12 @@ extension AppDelegate {
 extension AppDelegate {
 
     func observeShortcutChanges() {
+        shortcutCancellables.removeAll()
         shortcutManager?.$version
             .dropFirst()
             .sink { [weak self] _ in
                 self?.setupGlobalHotkey()
             }
-            .store(in: &cancellables)
+            .store(in: &shortcutCancellables)
     }
 }
