@@ -109,6 +109,45 @@ final class HotkeyManagerTests: XCTestCase {
         XCTAssertEqual(combo?.displayString, "⌃⌥⇧⌘A")
     }
 
+    // MARK: - KeyMapping Single Source of Truth
+
+    func testKeyMapping_allKeys_coversAllKeyCodeMapEntries() {
+        // Every entry in the derived keyCodeMap must originate from allKeys
+        let derivedMap = KeyCombo.keyCodeMap
+        let allKeyDisplayChars = Set(KeyCombo.allKeys.map(\.displayChar))
+        for key in derivedMap.keys {
+            XCTAssertTrue(allKeyDisplayChars.contains(key), "keyCodeMap key '\(key)' not in allKeys")
+        }
+        XCTAssertEqual(derivedMap.count, KeyCombo.allKeys.count)
+    }
+
+    func testKeyMapping_allKeys_coversAllSwiftUICharacterMapEntries() {
+        // Every entry in the derived swiftUI map must originate from allKeys
+        let derivedMap = KeyCombo.keyCodeToSwiftUICharacter
+        let allKeyCodes = Set(KeyCombo.allKeys.map(\.keyCode))
+        for keyCode in derivedMap.keys {
+            XCTAssertTrue(allKeyCodes.contains(keyCode), "keyCodeToSwiftUICharacter code \(keyCode) not in allKeys")
+        }
+        XCTAssertEqual(derivedMap.count, KeyCombo.allKeys.count)
+    }
+
+    func testKeyMapping_allKeys_noDuplicateKeyCodes() {
+        let keyCodes = KeyCombo.allKeys.map(\.keyCode)
+        XCTAssertEqual(keyCodes.count, Set(keyCodes).count, "Duplicate key codes in allKeys")
+    }
+
+    func testKeyMapping_allKeys_noDuplicateDisplayChars() {
+        let displayChars = KeyCombo.allKeys.map(\.displayChar)
+        XCTAssertEqual(displayChars.count, Set(displayChars).count, "Duplicate display chars in allKeys")
+    }
+
+    func testKeyMapping_derivedMaps_coverSameKeyCodes() {
+        // Both derived maps should cover exactly the same set of key codes
+        let fromKeyCodeMap = Set(KeyCombo.keyCodeMap.values)
+        let fromCharacterMap = Set(KeyCombo.keyCodeToSwiftUICharacter.keys)
+        XCTAssertEqual(fromKeyCodeMap, fromCharacterMap)
+    }
+
     // MARK: - HotkeyManager Lifecycle
 
     @MainActor

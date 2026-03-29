@@ -1,4 +1,3 @@
-import Carbon.HIToolbox
 import SwiftUI
 
 /// Central manager for all configurable keyboard shortcuts.
@@ -64,7 +63,7 @@ final class ShortcutManager: ObservableObject {
         let comboString = combo(for: action)
         guard !comboString.isEmpty, let parsed = KeyCombo.from(string: comboString) else { return nil }
 
-        guard let character = Self.keyCodeToCharacter[parsed.keyCode] else { return nil }
+        guard let character = KeyCombo.keyCodeToSwiftUICharacter[parsed.keyCode] else { return nil }
         let key = KeyEquivalent(character)
 
         var modifiers: SwiftUI.EventModifiers = []
@@ -89,21 +88,4 @@ final class ShortcutManager: ObservableObject {
         defaults.removeObject(forKey: legacyKey)
     }
 
-    // MARK: - Key Code → Character Mapping
-
-    private static let keyCodeToCharacter: [UInt16: Character] = [
-        UInt16(kVK_ANSI_A): "a", UInt16(kVK_ANSI_B): "b", UInt16(kVK_ANSI_C): "c",
-        UInt16(kVK_ANSI_D): "d", UInt16(kVK_ANSI_E): "e", UInt16(kVK_ANSI_F): "f",
-        UInt16(kVK_ANSI_G): "g", UInt16(kVK_ANSI_H): "h", UInt16(kVK_ANSI_I): "i",
-        UInt16(kVK_ANSI_J): "j", UInt16(kVK_ANSI_K): "k", UInt16(kVK_ANSI_L): "l",
-        UInt16(kVK_ANSI_M): "m", UInt16(kVK_ANSI_N): "n", UInt16(kVK_ANSI_O): "o",
-        UInt16(kVK_ANSI_P): "p", UInt16(kVK_ANSI_Q): "q", UInt16(kVK_ANSI_R): "r",
-        UInt16(kVK_ANSI_S): "s", UInt16(kVK_ANSI_T): "t", UInt16(kVK_ANSI_U): "u",
-        UInt16(kVK_ANSI_V): "v", UInt16(kVK_ANSI_W): "w", UInt16(kVK_ANSI_X): "x",
-        UInt16(kVK_ANSI_Y): "y", UInt16(kVK_ANSI_Z): "z",
-        UInt16(kVK_ANSI_Comma): ",",
-        UInt16(kVK_ANSI_Period): ".",
-        UInt16(kVK_ANSI_Slash): "/",
-        UInt16(kVK_Delete): Character(UnicodeScalar(8))  // matches KeyEquivalent.delete
-    ]
 }

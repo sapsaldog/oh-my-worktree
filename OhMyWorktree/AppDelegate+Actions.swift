@@ -139,7 +139,7 @@ extension AppDelegate {
 
     @objc func importFromGitHubPRClicked(_ sender: NSMenuItem) {
         showOrCreateMainWindow()
-        DispatchQueue.main.async { [weak self] in
+        Task { @MainActor [weak self] in
             self?.worktreeViewModel?.isShowingImportPR = true
         }
     }

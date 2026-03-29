@@ -17,12 +17,7 @@ struct ShortcutsSettingsView: View {
                         }
                     }
 
-                HotkeyRecorderView(
-                    viewModel: HotkeyRecorderViewModel(
-                        action: .globalHotkey,
-                        shortcutManager: shortcutManager
-                    )
-                )
+                HotkeyRecorderView(action: .globalHotkey, shortcutManager: shortcutManager)
 
                 Text("Press the global hotkey to toggle the menu bar popup from anywhere.")
                     .font(.caption)
@@ -31,12 +26,7 @@ struct ShortcutsSettingsView: View {
 
             Section("In-App Shortcuts") {
                 ForEach(inAppActions, id: \.self) { action in
-                    HotkeyRecorderView(
-                        viewModel: HotkeyRecorderViewModel(
-                            action: action,
-                            shortcutManager: shortcutManager
-                        )
-                    )
+                    HotkeyRecorderView(action: action, shortcutManager: shortcutManager)
                 }
             }
 

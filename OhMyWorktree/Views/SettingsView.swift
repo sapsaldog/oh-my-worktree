@@ -18,22 +18,23 @@ struct SettingsView: View {
 
     var body: some View {
         TabView {
-            GeneralSettingsView()
-                .tabItem { Label("General", systemImage: "gear") }
-
-            ShortcutsSettingsView(shortcutManager: shortcutManager)
-                .tabItem { Label("Shortcuts", systemImage: "keyboard") }
-
-            AdvancedSettingsView()
-                .tabItem { Label("Advanced", systemImage: "wrench.adjustable") }
-
-            UpdatesSettingsView(updaterManager: updaterManager)
-                .tabItem { Label("Updates", systemImage: "arrow.triangle.2.circlepath") }
+            Tab("General", systemImage: "gear") {
+                GeneralSettingsView()
+            }
+            Tab("Shortcuts", systemImage: "keyboard") {
+                ShortcutsSettingsView(shortcutManager: shortcutManager)
+            }
+            Tab("Advanced", systemImage: "wrench.adjustable") {
+                AdvancedSettingsView()
+            }
+            Tab("Updates", systemImage: "arrow.triangle.2.circlepath") {
+                UpdatesSettingsView(updaterManager: updaterManager)
+            }
         }
         .frame(minWidth: 450, minHeight: 350)
         .overlay(alignment: .bottom) {
             Text("v\(appVersion) (\(buildNumber)) · \(commitHash)")
-                .font(.caption2)
+                .font(.caption)
                 .foregroundStyle(.tertiary)
                 .padding(.bottom, 8)
         }

@@ -113,7 +113,18 @@ final class HotkeyRecorderViewModel: ObservableObject {
 
 /// A clickable shortcut recorder that captures keyboard input.
 struct HotkeyRecorderView: View {
-    @StateObject var viewModel: HotkeyRecorderViewModel
+    let action: ShortcutAction
+    let shortcutManager: ShortcutManager
+
+    @StateObject private var viewModel: HotkeyRecorderViewModel
+
+    init(action: ShortcutAction, shortcutManager: ShortcutManager) {
+        self.action = action
+        self.shortcutManager = shortcutManager
+        _viewModel = StateObject(wrappedValue: HotkeyRecorderViewModel(
+            action: action, shortcutManager: shortcutManager
+        ))
+    }
 
     var body: some View {
         HStack {
@@ -134,7 +145,7 @@ struct HotkeyRecorderView: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .background(Color.secondary.opacity(0.15))
-            .cornerRadius(6)
+            .clipShape(.rect(cornerRadius: 6))
             .font(.system(.body, design: .monospaced))
 
         case .recording:
@@ -142,7 +153,7 @@ struct HotkeyRecorderView: View {
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .background(Color.accentColor.opacity(0.2))
-                .cornerRadius(6)
+                .clipShape(.rect(cornerRadius: 6))
                 .font(.system(.body, design: .monospaced))
 
         case .conflict(let actionName, let combo):

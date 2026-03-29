@@ -169,7 +169,6 @@ final class ShortcutManagerTests: XCTestCase {
     @MainActor
     func testKeyboardShortcut_allDefaultCombos_areConvertible() {
         // Every non-global action's default combo should produce a valid KeyboardShortcut.
-        // This guards against KeyCombo.keyCodeMap and ShortcutManager.keyCodeToCharacter drifting apart.
         for action in ShortcutAction.allCases where !action.isGlobal {
             let shortcut = manager.keyboardShortcut(for: action)
             XCTAssertNotNil(
