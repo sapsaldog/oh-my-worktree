@@ -4,6 +4,9 @@ import Foundation
 final class BackgroundTaskQueue: ObservableObject {
     @Published private(set) var jobs: [BackgroundJob] = []
 
+    /// UserDefaults key for the configurable job timeout (shared with SettingsView).
+    static let jobTimeoutSecondsKey = "jobTimeoutSeconds"
+
     /// Called whenever a job transitions to completed/failed/cancelled.
     var onJobStateChange: (@MainActor (BackgroundJob) -> Void)?
 
@@ -19,7 +22,7 @@ final class BackgroundTaskQueue: ObservableObject {
 
     var jobTimeoutSeconds: TimeInterval {
         if let override = jobTimeoutOverride { return override }
-        let stored = UserDefaults.standard.integer(forKey: "jobTimeoutSeconds")
+        let stored = UserDefaults.standard.integer(forKey: Self.jobTimeoutSecondsKey)
         return stored > 0 ? TimeInterval(stored) : 60
     }
 
@@ -174,7 +177,7 @@ final class BackgroundTaskQueue: ObservableObject {
     ) async throws {
         switch job.kind {
         case .removeWorktree(let force):
-            if FileManager.default.fileExists(atPath: job.worktreePath) {
+            if wm.fileExists(atPath: job.worktreePath) {
                 try await wm.removeWorktree(
                     repositoryPath: job.repositoryPath,
                     worktreePath: job.worktreePath,

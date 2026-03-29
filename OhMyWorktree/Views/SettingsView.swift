@@ -7,7 +7,7 @@ private let logger = Logger(subsystem: "com.ohmyworktree", category: "Settings")
 struct SettingsView: View {
     @ObservedObject var updaterManager: UpdaterManager
     @AppStorage("copyEnvFilesEnabled") private var copyEnvFilesEnabled = true
-    @AppStorage("jobTimeoutSeconds") private var jobTimeoutSeconds = 60
+    @AppStorage(BackgroundTaskQueue.jobTimeoutSecondsKey) private var jobTimeoutSeconds = 60
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
     private var appVersion: String {

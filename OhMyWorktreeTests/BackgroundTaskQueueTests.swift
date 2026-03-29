@@ -454,6 +454,12 @@ final class BackgroundTaskQueueTests: XCTestCase {
         XCTAssertTrue(completedIDs.contains(job.id))
     }
 
+    // MARK: - jobTimeoutSecondsKey
+
+    func testJobTimeoutSecondsKey_hasExpectedValue() {
+        XCTAssertEqual(BackgroundTaskQueue.jobTimeoutSecondsKey, "jobTimeoutSeconds")
+    }
+
     // MARK: - BackgroundJobTimeoutError
 
     func testTimeoutError_hasDescriptiveMessage() {

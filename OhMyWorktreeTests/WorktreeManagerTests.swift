@@ -382,6 +382,23 @@ final class WorktreeManagerQuickRemoveTests: XCTestCase {
         )
     }
 
+    // MARK: - fileExists delegation
+
+    func testFileExists_delegatesToInjectedFileManager() {
+        // Path present in MockFileManager.existingPaths → true
+        XCTAssertTrue(sut.fileExists(atPath: "/tmp/worktree"))
+
+        // Path NOT present → false
+        XCTAssertFalse(sut.fileExists(atPath: "/nonexistent/path"))
+    }
+
+    func testFileExists_reflectsCustomExistingPaths() {
+        mockFileManager.existingPaths = ["/custom/a", "/custom/b"]
+        XCTAssertTrue(sut.fileExists(atPath: "/custom/a"))
+        XCTAssertTrue(sut.fileExists(atPath: "/custom/b"))
+        XCTAssertFalse(sut.fileExists(atPath: "/custom/c"))
+    }
+
     func testQuickRemove_pruneFailure_doesNotThrowAfterSuccessfulTrash() async throws {
         // Prune will fail (exitCode != 0)
         mockExecutor.stubbedResult = CommandResult(stdout: "", stderr: "prune error", exitCode: 1)
