@@ -1,6 +1,6 @@
 import Foundation
 
-final class ExternalToolLauncher {
+final class ExternalToolLauncher: Sendable {
 
     // MARK: - iTerm
 
