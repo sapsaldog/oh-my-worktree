@@ -19,6 +19,8 @@ final class BackgroundTaskQueue {
     private let store: RepositoryStore
     /// Serial processing task per repository path (prevents git lock conflicts).
     @ObservationIgnored private var processingTasks: [String: Task<Void, Never>] = [:]
+    /// Continuations waiting for the queue to become idle.
+    @ObservationIgnored private var idleContinuations: [CheckedContinuation<Void, Never>] = []
 
     /// Maximum duration (in seconds) for any single job before it times out.
     /// Injectable for testing. In production, reads from UserDefaults ("jobTimeoutSeconds")
@@ -59,6 +61,7 @@ final class BackgroundTaskQueue {
         refreshBusyWorktreeIDs()
         let snapshot = jobs[index]
         onJobStateChange?(snapshot)
+        resumeIdleContinuationsIfNeeded()
     }
 
     /// Cancels all pending jobs. In-progress jobs continue to completion.
@@ -70,6 +73,20 @@ final class BackgroundTaskQueue {
             onJobStateChange?(snapshot)
         }
         refreshBusyWorktreeIDs()
+        resumeIdleContinuationsIfNeeded()
+    }
+
+    /// Suspends until the queue has no pending or in-progress jobs.
+    /// Uses continuations instead of polling — no magic timeouts.
+    func waitUntilIdle() async {
+        guard hasActiveJobs else { return }
+        await withCheckedContinuation { continuation in
+            guard hasActiveJobs else {
+                continuation.resume()
+                return
+            }
+            idleContinuations.append(continuation)
+        }
     }
 
     // MARK: - Derived State
@@ -262,6 +279,7 @@ final class BackgroundTaskQueue {
 
     private func clearJobsIfIdle() {
         guard activeJobs.isEmpty else { return }
+        resumeIdleContinuationsIfNeeded()
         // Fast-path: nothing failed, clear everything.
         if failedJobCount == 0 {
             if !jobs.isEmpty {
@@ -285,6 +303,15 @@ final class BackgroundTaskQueue {
 
     private func refreshBusyWorktreeIDs() {
         busyWorktreeIDs = Set(jobs.filter { $0.state.isActive }.map { $0.worktreeID })
+    }
+
+    private func resumeIdleContinuationsIfNeeded() {
+        guard !hasActiveJobs, !idleContinuations.isEmpty else { return }
+        let continuations = idleContinuations
+        idleContinuations.removeAll()
+        for continuation in continuations {
+            continuation.resume()
+        }
     }
 }
 
