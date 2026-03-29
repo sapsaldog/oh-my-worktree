@@ -3,6 +3,7 @@ import SwiftUI
 struct WorktreeListView: View {
     @ObservedObject var viewModel: WorktreeListViewModel
     @EnvironmentObject var shortcutManager: ShortcutManager
+    @FocusState private var isListFocused: Bool
     @State private var selectedIDs: Set<UUID> = []
     @State private var renamingWorktreeID: UUID?
     @State private var forceRemoveTarget: ForceRemoveTarget?
@@ -70,6 +71,21 @@ struct WorktreeListView: View {
         .onChange(of: viewModel.selectedWorktreeIDs) { _, newIDs in
             if newIDs != selectedIDs { selectedIDs = newIDs }
         }
+        .focused($isListFocused)
+        .onDeleteCommand {
+            viewModel.removeSelectedWorktrees(force: false)
+        }
+        .modifier(ListFocusModifier(
+            worktrees: viewModel.worktrees,
+            isListFocused: $isListFocused
+        ))
+        .modifier(DeleteKeyModifier(
+            selectedIDs: selectedIDs,
+            worktrees: viewModel.worktrees,
+            forceRemoveTarget: $forceRemoveTarget,
+            confirmBulkQuickRemove: $confirmBulkQuickRemove,
+            quickRemoveTarget: $quickRemoveTarget
+        ))
     }
 
     // MARK: - Worktree Row
@@ -205,23 +221,20 @@ struct WorktreeListView: View {
             }
         } else if let repository = viewModel.repository, !worktree.isRoot(of: repository) {
             Divider()
-            Button("Remove Worktree", role: .destructive) {
+            Button("Remove Worktree  ⌫", role: .destructive) {
                 viewModel.removeWorktree(worktree)
             }
             .disabled(!actions.canRemove)
-            .keyboardShortcut(.delete, modifiers: [])
 
-            Button("Force Remove Worktree", role: .destructive) {
+            Button("Force Remove Worktree  ⌘⌫", role: .destructive) {
                 forceRemoveTarget = .single(worktree)
             }
             .disabled(!actions.canForceRemove)
-            .keyboardShortcut(.delete, modifiers: .command)
 
-            Button("Quick Remove Worktree", role: .destructive) {
+            Button("Quick Remove Worktree  ⇧⌘⌫", role: .destructive) {
                 quickRemoveTarget = worktree
             }
             .disabled(!actions.canQuickRemove)
-            .keyboardShortcut(.delete, modifiers: [.command, .shift])
         }
     }
 
@@ -333,5 +346,56 @@ private struct SingleQuickRemoveDialog: ViewModifier {
         } message: {
             Text("Directory will be moved to Trash. Uncommitted changes will not be checked.")
         }
+    }
+}
+
+// MARK: - List Focus
+
+private struct ListFocusModifier: ViewModifier {
+    let worktrees: [Worktree]
+    var isListFocused: FocusState<Bool>.Binding
+
+    func body(content: Content) -> some View {
+        content.onChange(of: worktrees) { _, newValue in
+            if !newValue.isEmpty {
+                isListFocused.wrappedValue = true
+            }
+        }
+    }
+}
+
+// MARK: - Delete Key Handling (Cmd+Delete, Cmd+Shift+Delete)
+
+private struct DeleteKeyModifier: ViewModifier {
+    let selectedIDs: Set<UUID>
+    let worktrees: [Worktree]
+    @Binding var forceRemoveTarget: WorktreeListView.ForceRemoveTarget?
+    @Binding var confirmBulkQuickRemove: Bool
+    @Binding var quickRemoveTarget: Worktree?
+
+    func body(content: Content) -> some View {
+        content
+            .onKeyPress(.delete, phases: .down) { press in
+                guard !selectedIDs.isEmpty else { return .ignored }
+                let mods = press.modifiers
+                if mods.contains(.command) && mods.contains(.shift) {
+                    if selectedIDs.count >= 2 {
+                        confirmBulkQuickRemove = true
+                    } else if let id = selectedIDs.first,
+                              let wt = worktrees.first(where: { $0.id == id }) {
+                        quickRemoveTarget = wt
+                    }
+                    return .handled
+                } else if mods.contains(.command) {
+                    if selectedIDs.count >= 2 {
+                        forceRemoveTarget = .selectedWorktrees(count: selectedIDs.count)
+                    } else if let id = selectedIDs.first,
+                              let wt = worktrees.first(where: { $0.id == id }) {
+                        forceRemoveTarget = .single(wt)
+                    }
+                    return .handled
+                }
+                return .ignored
+            }
     }
 }
