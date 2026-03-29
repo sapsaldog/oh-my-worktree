@@ -239,6 +239,13 @@ final class AppDelegateColdStartTests: XCTestCase {
                        "Main window title should match AppDelegate.mainWindowTitle")
     }
 
+    // MARK: - Test environment detection
+
+    func testIsRunningTests_returnsTrueInTestEnvironment() {
+        XCTAssertTrue(AppDelegate.isRunningTests,
+                      "isRunningTests should be true when running under XCTest")
+    }
+
     // MARK: - Settings view does not impose a fixed size that conflicts with window
 
     func testSettingsViewIntrinsicSizeIsNotFixedFramePlusPadding() async throws {

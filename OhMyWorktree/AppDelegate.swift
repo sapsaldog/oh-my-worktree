@@ -10,6 +10,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     static let mainWindowTitle = "Oh My Worktree"
     static let settingsWindowTitle = "OhMyWorktree Settings"
 
+    /// `true` when the process is hosted by XCTest (unit-test runs).
+    static let isRunningTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+
     // MARK: - Properties
 
     var statusItem: NSStatusItem?
@@ -39,7 +42,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         setupStatusItem()
-        windowObserver.startObserving()
+        // Skip WindowObserver during tests — each test-created window would
+        // trigger .regular activation policy, spawning Dock icons that pile up
+        // across repeated xcodebuild runs.
+        if !Self.isRunningTests {
+            windowObserver.startObserving()
+        }
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
