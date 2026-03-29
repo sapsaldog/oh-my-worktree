@@ -20,16 +20,26 @@ private actor ConcurrencyTracker {
     }
 }
 
+/// All stored properties are `let` — `@unchecked Sendable` is safe because
+/// no mutation occurs after initialization.
 private final class ConcurrencyTrackingExecutor: GitCommandExecuting, @unchecked Sendable {
-    var worktreeListOutput: String = ""
-    /// Per-path commit timestamps; key = workingDirectory.
-    var commitTimestampsByPath: [String: String] = [:]
-    /// Fallback timestamp when path is not in `commitTimestampsByPath`.
-    var defaultTimestamp: String = "1700000000"
-    /// Artificial delay per `git log` call so concurrent tasks overlap.
-    var logCallDelay: UInt64 = 50_000_000 // 50 ms
-
+    let worktreeListOutput: String
+    let commitTimestampsByPath: [String: String]
+    let defaultTimestamp: String
+    let logCallDelay: UInt64
     let tracker = ConcurrencyTracker()
+
+    init(
+        worktreeListOutput: String = "",
+        commitTimestampsByPath: [String: String] = [:],
+        defaultTimestamp: String = "1700000000",
+        logCallDelay: UInt64 = 50_000_000
+    ) {
+        self.worktreeListOutput = worktreeListOutput
+        self.commitTimestampsByPath = commitTimestampsByPath
+        self.defaultTimestamp = defaultTimestamp
+        self.logCallDelay = logCallDelay
+    }
 
     func execute(
         command: String,
@@ -52,31 +62,36 @@ private final class ConcurrencyTrackingExecutor: GitCommandExecuting, @unchecked
 
 // MARK: - Tests
 
-@Suite("WorktreeListViewModel enrichment (issue #12)")
+@Suite("WorktreeListViewModel enrichment",
+       .bug("https://github.com/sapsaldog/oh-my-worktree/issues/12",
+            "Parallel commit-date enrichment"))
 @MainActor
 struct WorktreeListViewModelEnrichmentTests {
 
     private let testRepo = Repository(name: "test-repo", path: "/tmp/test-repo")
 
+    private let threeWorktreesPorcelain = """
+    worktree /tmp/test-repo
+    HEAD abc1111
+    branch refs/heads/main
+
+    worktree /tmp/worktrees/wt-a
+    HEAD abc2222
+    branch refs/heads/feature/a
+
+    worktree /tmp/worktrees/wt-b
+    HEAD abc3333
+    branch refs/heads/feature/b
+
+    """
+
     // MARK: - Concurrent execution
 
     @Test("lastCommitDate calls run concurrently for multiple worktrees")
     func enrichment_fetchesCommitDatesConcurrently() async {
-        let executor = ConcurrencyTrackingExecutor()
-        executor.worktreeListOutput = """
-        worktree /tmp/test-repo
-        HEAD abc1111
-        branch refs/heads/main
-
-        worktree /tmp/worktrees/wt-a
-        HEAD abc2222
-        branch refs/heads/feature/a
-
-        worktree /tmp/worktrees/wt-b
-        HEAD abc3333
-        branch refs/heads/feature/b
-
-        """
+        let executor = ConcurrencyTrackingExecutor(
+            worktreeListOutput: threeWorktreesPorcelain
+        )
 
         let vm = WorktreeListViewModel(
             worktreeManager: WorktreeManager(executor: executor),
@@ -94,29 +109,16 @@ struct WorktreeListViewModelEnrichmentTests {
     // MARK: - Correct date mapping
 
     @Test("each worktree gets its own commit date after parallel enrichment")
-    func enrichment_mapsCorrectDatesToWorktrees() async {
-        let executor = ConcurrencyTrackingExecutor()
-        executor.worktreeListOutput = """
-        worktree /tmp/test-repo
-        HEAD abc1111
-        branch refs/heads/main
-
-        worktree /tmp/worktrees/wt-a
-        HEAD abc2222
-        branch refs/heads/feature/a
-
-        worktree /tmp/worktrees/wt-b
-        HEAD abc3333
-        branch refs/heads/feature/b
-
-        """
-        // Each path returns a distinct timestamp
-        executor.commitTimestampsByPath = [
-            "/tmp/test-repo": "1700000100",       // 2023-11-14T22:48:20Z
-            "/tmp/worktrees/wt-a": "1700000200",  // 2023-11-14T22:50:00Z
-            "/tmp/worktrees/wt-b": "1700000300"   // 2023-11-14T22:51:40Z
-        ]
-        executor.logCallDelay = 0 // no delay needed for correctness test
+    func enrichment_mapsCorrectDatesToWorktrees() async throws {
+        let executor = ConcurrencyTrackingExecutor(
+            worktreeListOutput: threeWorktreesPorcelain,
+            commitTimestampsByPath: [
+                "/tmp/test-repo": "1700000100",
+                "/tmp/worktrees/wt-a": "1700000200",
+                "/tmp/worktrees/wt-b": "1700000300"
+            ],
+            logCallDelay: 0
+        )
 
         let vm = WorktreeListViewModel(
             worktreeManager: WorktreeManager(executor: executor),
@@ -126,6 +128,8 @@ struct WorktreeListViewModelEnrichmentTests {
         vm.repository = testRepo
 
         await vm.loadWorktrees()
+
+        try #require(vm.worktrees.count == 3, "enrichment requires exactly 3 worktrees")
 
         let dates = Dictionary(
             uniqueKeysWithValues: vm.worktrees.map { ($0.folderName, $0.lastActivityAt) }

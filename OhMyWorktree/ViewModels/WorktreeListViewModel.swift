@@ -234,7 +234,6 @@ final class WorktreeListViewModel: ObservableObject {
                 }
             }
             for await (index, commitDate) in group {
-                guard !Task.isCancelled else { return }
                 let metaActivity = metadata.first(where: { $0.folderName == result[index].folderName })?.lastActivityAt
                 switch (metaActivity, commitDate) {
                 case let (date1?, date2?): result[index].lastActivityAt = max(date1, date2)
