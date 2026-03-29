@@ -41,7 +41,6 @@ extension AppDelegate {
         }
 
         let sm = shortcutManager ?? ShortcutManager()
-        setupMainMenu()
         showOrCreateWindow(
             title: Self.mainWindowTitle,
             size: NSSize(width: 500, height: 400)
@@ -70,28 +69,4 @@ extension AppDelegate {
 
 extension AppDelegate {
 
-    /// Inserts a "Settings..." (Cmd+,) item into the existing application menu.
-    /// macOS auto-creates the app menu when switching to .regular policy,
-    /// and overwrites any NSApp.mainMenu we set. So we inject into its menu instead.
-    func setupMainMenu() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-            guard let self,
-                  let appMenu = NSApp.mainMenu?.item(at: 0)?.submenu else { return }
-
-            // Already injected
-            guard !appMenu.items.contains(where: { $0.keyEquivalent == "," }) else { return }
-
-            // Insert "Settings..." after "About" (index 1)
-            let separator = NSMenuItem.separator()
-            let settingsItem = NSMenuItem(
-                title: "Settings...",
-                action: #selector(self.settingsClicked(_:)),
-                keyEquivalent: ","
-            )
-            settingsItem.target = self
-            let insertIndex = min(1, appMenu.numberOfItems)
-            appMenu.insertItem(separator, at: insertIndex)
-            appMenu.insertItem(settingsItem, at: insertIndex)
-        }
-    }
 }

@@ -26,6 +26,14 @@ struct OhMyWorktreeApp: App {
         }
         .defaultSize(width: 500, height: 400)
         .windowResizability(.contentSize)
+        .commands {
+            CommandGroup(replacing: .appSettings) {
+                Button("Settings...") {
+                    appDelegate.showOrCreateSettingsWindow()
+                }
+                .keyboardShortcut(",", modifiers: .command)
+            }
+        }
     }
 
     private func connectAppDelegate() {
