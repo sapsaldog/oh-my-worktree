@@ -53,6 +53,7 @@ struct OhMyWorktreeApp: App {
         if appDelegate.shortcutManager !== shortcutManager {
             appDelegate.shortcutManager = shortcutManager
             appDelegate.observeShortcutChanges()
+            appDelegate.setupGlobalHotkey()
         }
     }
 }

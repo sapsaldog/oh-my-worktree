@@ -128,8 +128,8 @@ final class HotkeyManager {
 
     private(set) var isRegistered = false
 
-    private var hotKeyRef: EventHotKeyRef?
-    private var eventHandlerRef: EventHandlerRef?
+    private nonisolated(unsafe) var hotKeyRef: EventHotKeyRef?
+    private nonisolated(unsafe) var eventHandlerRef: EventHandlerRef?
     private var currentCombo: KeyCombo?
     private var action: (() -> Void)?
     private var enabled = true
@@ -193,7 +193,7 @@ final class HotkeyManager {
         )
 
         let callback: EventHandlerUPP = { _, _, _ in
-            DispatchQueue.main.async {
+            MainActor.assumeIsolated {
                 HotkeyManager.activeManager?.action?()
             }
             return noErr

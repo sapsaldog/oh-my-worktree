@@ -9,9 +9,9 @@ struct HotkeyRecorderViewModelTests {
     let defaults: UserDefaults
     let shortcutManager: ShortcutManager
 
-    init() {
+    init() throws {
         let suiteName = "HotkeyRecorderViewModelTests-\(UUID().uuidString)"
-        defaults = UserDefaults(suiteName: suiteName)!
+        defaults = try #require(UserDefaults(suiteName: suiteName))
         defaults.removePersistentDomain(forName: suiteName)
         shortcutManager = ShortcutManager(defaults: defaults)
     }
@@ -57,7 +57,7 @@ struct HotkeyRecorderViewModelTests {
         vm.startRecording()
 
         let consumed = vm.handleKey(keyCode: UInt16(kVK_ANSI_X), modifiers: [])
-        #expect(!consumed)
+        #expect(consumed == false)
         #expect(vm.state == .recording)
     }
 
@@ -149,7 +149,7 @@ struct HotkeyRecorderViewModelTests {
     @Test func handleKey_whenNotRecording_isIgnored() {
         let vm = HotkeyRecorderViewModel(action: .openSettings, shortcutManager: shortcutManager)
         let consumed = vm.handleKey(keyCode: UInt16(kVK_ANSI_X), modifiers: [.command, .shift])
-        #expect(!consumed)
+        #expect(consumed == false)
         #expect(vm.state == .idle)
     }
 

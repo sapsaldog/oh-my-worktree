@@ -9,9 +9,9 @@ struct ShortcutManagerTests {
     let defaults: UserDefaults
     let manager: ShortcutManager
 
-    init() {
+    init() throws {
         let suiteName = "ShortcutManagerTests-\(UUID().uuidString)"
-        defaults = UserDefaults(suiteName: suiteName)!
+        defaults = try #require(UserDefaults(suiteName: suiteName))
         defaults.removePersistentDomain(forName: suiteName)
         manager = ShortcutManager(defaults: defaults)
     }

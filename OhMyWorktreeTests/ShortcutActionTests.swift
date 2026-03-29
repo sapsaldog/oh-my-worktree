@@ -13,7 +13,7 @@ struct ShortcutActionTests {
 
     @Test(arguments: ShortcutAction.allCases)
     func allCases_haveNonEmptyDefaults(action: ShortcutAction) {
-        #expect(!action.defaultCombo.isEmpty, "\(action) has empty default combo")
+        #expect(action.defaultCombo.isEmpty == false, "\(action) has empty default combo")
     }
 
     @Test(arguments: ShortcutAction.allCases)
@@ -62,7 +62,7 @@ struct ShortcutActionTests {
     @Test func isGlobal_onlyGlobalHotkey() {
         #expect(ShortcutAction.globalHotkey.isGlobal)
         for action in ShortcutAction.allCases where action != .globalHotkey {
-            #expect(!action.isGlobal, "\(action) should not be global")
+            #expect(action.isGlobal == false, "\(action) should not be global")
         }
     }
 
@@ -70,6 +70,6 @@ struct ShortcutActionTests {
 
     @Test(arguments: ShortcutAction.allCases)
     func allCases_haveNonEmptyDisplayNames(action: ShortcutAction) {
-        #expect(!action.displayName.isEmpty, "\(action) has empty display name")
+        #expect(action.displayName.isEmpty == false, "\(action) has empty display name")
     }
 }

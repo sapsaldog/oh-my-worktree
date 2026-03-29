@@ -333,6 +333,7 @@ extension WorktreeListViewModelTests {
 
         XCTAssertTrue(sut.jobQueue.jobs.isEmpty)
     }
+
     // MARK: - PendingDelete
 
     func testPendingDelete_initiallyNil() {

@@ -23,8 +23,8 @@ struct HotkeyManagerTests {
         let combo = try #require(KeyCombo.from(string: "⌥⇧W"))
         #expect(combo.modifiers.contains(.option))
         #expect(combo.modifiers.contains(.shift))
-        #expect(!combo.modifiers.contains(.command))
-        #expect(!combo.modifiers.contains(.control))
+        #expect(combo.modifiers.contains(.command) == false)
+        #expect(combo.modifiers.contains(.control) == false)
     }
 
     @Test func parseKeyCombo_commandShiftK_modifiers() throws {
@@ -134,7 +134,7 @@ struct HotkeyManagerTests {
 
     @Test @MainActor func hotkeyManager_initialState_isNotRegistered() {
         let manager = HotkeyManager()
-        #expect(!manager.isRegistered)
+        #expect(manager.isRegistered == false)
     }
 
     @Test @MainActor func hotkeyManager_registerWithValidCombo_becomesRegistered() {
@@ -146,7 +146,7 @@ struct HotkeyManagerTests {
     @Test @MainActor func hotkeyManager_registerWithInvalidCombo_staysUnregistered() {
         let manager = HotkeyManager()
         manager.register(keyCombo: "") { }
-        #expect(!manager.isRegistered)
+        #expect(manager.isRegistered == false)
     }
 
     @Test @MainActor func hotkeyManager_unregister_becomesUnregistered() {
@@ -155,7 +155,7 @@ struct HotkeyManagerTests {
         #expect(manager.isRegistered)
 
         manager.unregister()
-        #expect(!manager.isRegistered)
+        #expect(manager.isRegistered == false)
     }
 
     @Test @MainActor func hotkeyManager_reRegister_updatesCombo() {
@@ -173,7 +173,7 @@ struct HotkeyManagerTests {
         #expect(manager.isRegistered)
 
         manager.setEnabled(false)
-        #expect(!manager.isRegistered)
+        #expect(manager.isRegistered == false)
 
         manager.setEnabled(true)
         #expect(manager.isRegistered)
@@ -182,10 +182,10 @@ struct HotkeyManagerTests {
     @Test @MainActor func hotkeyManager_disableWithoutPriorRegistration_staysUnregistered() {
         let manager = HotkeyManager()
         manager.setEnabled(false)
-        #expect(!manager.isRegistered)
+        #expect(manager.isRegistered == false)
 
         manager.setEnabled(true)
-        #expect(!manager.isRegistered)
+        #expect(manager.isRegistered == false)
     }
 
 }
