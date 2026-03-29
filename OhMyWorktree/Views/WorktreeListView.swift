@@ -6,6 +6,7 @@ struct WorktreeListView: View {
     @State private var renamingWorktreeID: UUID?
     @State private var forceRemoveTarget: ForceRemoveTarget?
     @State private var confirmBulkRemove = false
+    @State private var confirmBulkQuickRemove = false
 
     private enum ForceRemoveTarget {
         case single(Worktree)
@@ -99,6 +100,18 @@ struct WorktreeListView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Worktrees with uncommitted changes will not be removed.")
+        }
+        .confirmationDialog(
+            "Quick Remove \(viewModel.selectedWorktreeIDs.count) Worktrees?",
+            isPresented: $confirmBulkQuickRemove,
+            titleVisibility: .visible
+        ) {
+            Button("Quick Remove", role: .destructive) {
+                viewModel.quickRemoveSelectedWorktrees()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Directories will be moved to Trash. Git worktree registration will be removed immediately.")
         }
     }
 
@@ -221,7 +234,7 @@ struct WorktreeListView: View {
             if actions.canRemove {
                 Divider()
                 Button("Quick Remove Selected Worktrees") {
-                    viewModel.quickRemoveSelectedWorktrees()
+                    confirmBulkQuickRemove = true
                 }
                 Button("Remove Selected Worktrees", role: .destructive) {
                     confirmBulkRemove = true

@@ -92,8 +92,7 @@ final class BackgroundTaskQueue: ObservableObject {
     var currentJobDescription: String? {
         guard let job = jobs.first(where: { $0.state == .inProgress }) else { return nil }
         switch job.kind {
-        case .removeWorktree: return "Removing \(job.displayName)..."
-        case .quickRemove: return "Removing \(job.displayName)..."
+        case .removeWorktree, .quickRemove: return "Removing \(job.displayName)..."
         case .pull: return "Pulling \(job.displayName)..."
         case .addWorktreeFromPR(_, _, let prNumber):
             return "Importing PR #\(prNumber)..."

@@ -261,12 +261,17 @@ final class WorktreeManager: Sendable {
     /// Moves the worktree directory to macOS Trash, then runs `git worktree prune`
     /// to clean up git metadata. Much faster than `git worktree remove` for projects
     /// with large directories (e.g. node_modules).
+    ///
+    /// Unlike `git worktree remove`, this does **not** check for uncommitted changes.
+    /// The directory can be recovered from Trash, but the git worktree registration
+    /// will already be pruned — manual `git worktree add` is needed after restoration.
+    /// Prune errors are treated as non-fatal since the critical operation (trash) already succeeded.
     func quickRemoveWorktree(worktreePath: String, repositoryPath: String) async throws {
         if fileManager.fileExists(atPath: worktreePath) {
             let url = URL(fileURLWithPath: worktreePath)
             try fileManager.trashItem(at: url, resultingItemURL: nil)
         }
-        try await pruneWorktrees(repositoryPath: repositoryPath)
+        try? await pruneWorktrees(repositoryPath: repositoryPath)
     }
 
     /// Runs `git worktree prune` to remove administrative files for worktrees

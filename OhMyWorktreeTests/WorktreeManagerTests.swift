@@ -381,6 +381,22 @@ final class WorktreeManagerQuickRemoveTests: XCTestCase {
             "Prune should not run when trash fails"
         )
     }
+
+    func testQuickRemove_pruneFailure_doesNotThrowAfterSuccessfulTrash() async throws {
+        // Prune will fail (exitCode != 0)
+        mockExecutor.stubbedResult = CommandResult(stdout: "", stderr: "prune error", exitCode: 1)
+
+        // Should NOT throw — prune failure is non-fatal after successful trash
+        try await sut.quickRemoveWorktree(
+            worktreePath: "/tmp/worktree",
+            repositoryPath: "/tmp/repo"
+        )
+
+        // Trash was still called
+        XCTAssertEqual(mockFileManager.trashedURLs.count, 1)
+        // Prune was attempted
+        XCTAssertTrue(mockExecutor.executedCommands.contains(["worktree", "prune"]))
+    }
 }
 
 // MARK: - Async Assert Helper
