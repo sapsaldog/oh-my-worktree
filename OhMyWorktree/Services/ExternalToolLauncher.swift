@@ -224,12 +224,28 @@ final class ExternalToolLauncher: Sendable {
 
         try await withThrowingTaskGroup(of: Void.self) { group in
             group.addTask {
-                await withCheckedContinuation { continuation in
-                    let resumed = OSAllocatedUnfairLock(initialState: false)
-                    let source = DispatchSource.makeFileSystemObjectSource(
-                        fileDescriptor: fd, eventMask: .write, queue: .global()
-                    )
-                    source.setEventHandler {
+                let resumed = OSAllocatedUnfairLock(initialState: false)
+                let source = DispatchSource.makeFileSystemObjectSource(
+                    fileDescriptor: fd, eventMask: .write, queue: .global()
+                )
+                await withTaskCancellationHandler {
+                    await withCheckedContinuation { continuation in
+                        source.setEventHandler {
+                            if FileManager.default.fileExists(atPath: path) {
+                                source.cancel()
+                                if resumed.withLock({ let old = $0; $0 = true; return !old }) {
+                                    continuation.resume()
+                                }
+                            }
+                        }
+                        source.setCancelHandler {
+                            close(fd)
+                            if resumed.withLock({ let old = $0; $0 = true; return !old }) {
+                                continuation.resume()
+                            }
+                        }
+                        source.resume()
+
                         if FileManager.default.fileExists(atPath: path) {
                             source.cancel()
                             if resumed.withLock({ let old = $0; $0 = true; return !old }) {
@@ -237,24 +253,8 @@ final class ExternalToolLauncher: Sendable {
                             }
                         }
                     }
-                    source.setCancelHandler {
-                        close(fd)
-                        // Resume continuation on cancellation to prevent deadlock
-                        // when the timeout task fires and group.cancelAll() is called.
-                        if resumed.withLock({ let old = $0; $0 = true; return !old }) {
-                            continuation.resume()
-                        }
-                    }
-                    source.resume()
-
-                    // Check again after setting up the source in case the file appeared
-                    // between the initial check and source activation.
-                    if FileManager.default.fileExists(atPath: path) {
-                        source.cancel()
-                        if resumed.withLock({ let old = $0; $0 = true; return !old }) {
-                            continuation.resume()
-                        }
-                    }
+                } onCancel: {
+                    source.cancel()
                 }
             }
             group.addTask {
