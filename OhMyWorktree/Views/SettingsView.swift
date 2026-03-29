@@ -56,14 +56,21 @@ struct SettingsView: View {
             }
 
             Section("Advanced") {
-                Stepper(
-                    "Background task timeout: \(jobTimeoutSeconds)s",
-                    value: $jobTimeoutSeconds,
-                    in: 30...600,
-                    step: 10
-                )
+                HStack {
+                    Text("Background task timeout")
+                    Spacer()
+                    TextField("seconds", value: $jobTimeoutSeconds, format: .number)
+                        .frame(width: 60)
+                        .multilineTextAlignment(.trailing)
+                        .onSubmit { jobTimeoutSeconds = clampTimeout(jobTimeoutSeconds) }
+                        .onChange(of: jobTimeoutSeconds) { _, val in
+                            jobTimeoutSeconds = clampTimeout(val)
+                        }
+                    Text("s")
+                        .foregroundStyle(.secondary)
+                }
                 Text(
-                    "Maximum time allowed for Remove / Force Remove operations. " +
+                    "Maximum time allowed for Remove / Force Remove operations (30–600s). " +
                     "Quick Remove Worktree is not affected by this setting."
                 )
                     .font(.caption)
@@ -93,5 +100,9 @@ struct SettingsView: View {
             launchAtLogin = SMAppService.mainApp.status == .enabled
         }
         .padding()
+    }
+
+    private func clampTimeout(_ value: Int) -> Int {
+        min(max(value, 30), 600)
     }
 }

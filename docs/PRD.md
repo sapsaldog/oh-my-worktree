@@ -878,9 +878,9 @@ branch refs/heads/feature/new-feature
 
 **상세 요구사항**:
 - **Settings UI (Advanced 섹션)**:
-  - "Background task timeout" 라벨 + Stepper 또는 텍스트 필드 (초 단위)
-  - 기본값: 60초, 범위: 30~600초
-  - 캡션: "Maximum time allowed for Remove/Force Remove operations. Quick Remove Worktree is not affected by this setting."
+  - "Background task timeout" 라벨 + 숫자 직접 입력 가능한 TextField (초 단위, 우측 정렬, 60px 너비) + "s" 접미사
+  - 기본값: 60초, 범위: 30~600초 (범위 밖 입력 시 자동 clamp)
+  - 캡션: "Maximum time allowed for Remove / Force Remove operations (30–600s). Quick Remove Worktree is not affected by this setting."
 - **AppSettings 확장**:
   - `jobTimeoutSeconds: Int` 필드 추가 (기본값 60)
   - `@AppStorage("jobTimeoutSeconds")` 바인딩
