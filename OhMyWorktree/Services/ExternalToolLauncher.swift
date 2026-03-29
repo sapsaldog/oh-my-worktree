@@ -239,6 +239,11 @@ final class ExternalToolLauncher: Sendable {
                     }
                     source.setCancelHandler {
                         close(fd)
+                        // Resume continuation on cancellation to prevent deadlock
+                        // when the timeout task fires and group.cancelAll() is called.
+                        if resumed.withLock({ let old = $0; $0 = true; return !old }) {
+                            continuation.resume()
+                        }
                     }
                     source.resume()
 
