@@ -12,6 +12,7 @@ extension AppDelegate {
         styleMask: NSWindow.StyleMask = [.titled, .closable, .resizable, .miniaturizable],
         rootView: () -> some View
     ) {
+        NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
 
         for window in NSApp.windows where window.title == title {
