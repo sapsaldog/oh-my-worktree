@@ -75,7 +75,6 @@ struct SettingsView: View {
         .onAppear {
             launchAtLogin = SMAppService.mainApp.status == .enabled
         }
-        .frame(width: 400, height: 500)
         .padding()
     }
 }

@@ -25,6 +25,16 @@ final class AppDelegateColdStartTests: XCTestCase {
     }
 
     override func tearDown() async throws {
+        // Close any windows created during the test to prevent cross-test
+        // interference via title-based window lookup in showOrCreateWindow.
+        let testWindowTitles: Set<String> = [
+            AppDelegate.mainWindowTitle,
+            AppDelegate.settingsWindowTitle
+        ]
+        for window in NSApp.windows where testWindowTitles.contains(window.title) {
+            window.close()
+        }
+
         await RepositoryStore.shared.removeRepository(id: testRepo.id)
         try await super.tearDown()
     }
@@ -227,5 +237,49 @@ final class AppDelegateColdStartTests: XCTestCase {
         let mainWindows = NSApp.windows.filter { $0.title == AppDelegate.mainWindowTitle }
         XCTAssertEqual(mainWindows.count, 1,
                        "Main window title should match AppDelegate.mainWindowTitle")
+    }
+
+    // MARK: - Settings view does not impose a fixed size that conflicts with window
+
+    func testSettingsViewIntrinsicSizeIsNotFixedFramePlusPadding() async throws {
+        // The Settings window sets its own content size to 400x500.
+        // If SettingsView also has .frame(width: 400, height: 500).padding(),
+        // the padding adds ~16pt on each side OUTSIDE the frame, inflating
+        // the hosting view's intrinsic content size to exactly 432x532.
+        // This causes the view to overflow the 400x500 window.
+        let appDelegate = AppDelegate()
+        appDelegate.setupStatusItem()
+        appDelegate.updaterManager = UpdaterManager()
+
+        appDelegate.showOrCreateSettingsWindow()
+
+        guard let window = NSApp.windows.first(where: { $0.title == AppDelegate.settingsWindowTitle }),
+              let hostingView = window.contentView
+        else {
+            XCTFail("Settings window with hosting view should exist")
+            return
+        }
+
+        let intrinsicSize = hostingView.intrinsicContentSize
+
+        // With the redundant .frame(400,500).padding() pattern, intrinsic size
+        // would be exactly 432x532 (400+32, 500+32). After removing the redundant
+        // .frame(), the view flexibly fills the window and its intrinsic width
+        // should NOT be 432 (the telltale sign of the overflow bug).
+        let buggyWidth: CGFloat = 432
+        let buggyHeight: CGFloat = 532
+        let tolerance: CGFloat = 2
+
+        let hasRedundantFrame =
+            abs(intrinsicSize.width - buggyWidth) < tolerance &&
+            abs(intrinsicSize.height - buggyHeight) < tolerance
+
+        XCTAssertFalse(
+            hasRedundantFrame,
+            "SettingsView should not impose a fixed 400x500 frame; "
+            + "the NSWindow owns the sizing. Intrinsic size was "
+            + "\(intrinsicSize.width)x\(intrinsicSize.height), which matches "
+            + "the .frame(400,500).padding() overflow pattern."
+        )
     }
 }
