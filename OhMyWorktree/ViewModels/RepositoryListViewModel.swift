@@ -35,6 +35,7 @@ final class RepositoryListViewModel: ObservableObject {
                 selectedRepository = match
             } else if let first = repositories.first {
                 selectedRepository = first
+                userDefaults.set(first.id.uuidString, forKey: Self.lastSelectedRepositoryIDKey)
             }
         }
 
@@ -42,6 +43,11 @@ final class RepositoryListViewModel: ObservableObject {
         if let selected = selectedRepository,
            !repositories.contains(where: { $0.id == selected.id }) {
             selectedRepository = repositories.first
+            if let fallback = selectedRepository {
+                userDefaults.set(fallback.id.uuidString, forKey: Self.lastSelectedRepositoryIDKey)
+            } else {
+                userDefaults.removeObject(forKey: Self.lastSelectedRepositoryIDKey)
+            }
         }
     }
 
@@ -64,7 +70,9 @@ final class RepositoryListViewModel: ObservableObject {
         await loadRepositories()
 
         // Auto-select the newly added repository
-        selectedRepository = repositories.first { $0.path == path }
+        if let newRepo = repositories.first(where: { $0.path == path }) {
+            await selectRepository(newRepo)
+        }
     }
 
     // MARK: - Remove
@@ -74,6 +82,7 @@ final class RepositoryListViewModel: ObservableObject {
 
         if selectedRepository?.id == repository.id {
             selectedRepository = nil
+            userDefaults.removeObject(forKey: Self.lastSelectedRepositoryIDKey)
         }
 
         await loadRepositories()
