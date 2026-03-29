@@ -6,6 +6,11 @@ struct OhMyWorktreeApp: App {
     @StateObject private var repoViewModel = RepositoryListViewModel()
     @StateObject private var worktreeViewModel = WorktreeListViewModel()
     @StateObject private var updaterManager = UpdaterManager()
+    @StateObject private var shortcutManager = ShortcutManager()
+
+    init() {
+        ShortcutManager.migrateLegacyKeys()
+    }
 
     var body: some Scene {
         // Connect view models to AppDelegate during Scene body evaluation,
@@ -16,6 +21,7 @@ struct OhMyWorktreeApp: App {
 
         WindowGroup(id: "main") {
             ContentView(repoViewModel: repoViewModel, worktreeViewModel: worktreeViewModel)
+                .environmentObject(shortcutManager)
                 .frame(minWidth: 400, minHeight: 300)
         }
         .defaultSize(width: 500, height: 400)
@@ -26,5 +32,9 @@ struct OhMyWorktreeApp: App {
         appDelegate.repoViewModel = repoViewModel
         appDelegate.worktreeViewModel = worktreeViewModel
         appDelegate.updaterManager = updaterManager
+        if appDelegate.shortcutManager !== shortcutManager {
+            appDelegate.shortcutManager = shortcutManager
+            appDelegate.observeShortcutChanges()
+        }
     }
 }

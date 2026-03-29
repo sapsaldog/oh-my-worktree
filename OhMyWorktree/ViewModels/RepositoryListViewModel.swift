@@ -7,6 +7,7 @@ final class RepositoryListViewModel: ObservableObject {
     @Published var selectedRepository: Repository?
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var showingFileDialog = false
 
     let store: RepositoryStore
 

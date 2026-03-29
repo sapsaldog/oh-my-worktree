@@ -43,6 +43,37 @@ final class HotkeyManagerTests: XCTestCase {
         XCTAssertNil(KeyCombo.from(string: "⌥⇧!"))
     }
 
+    func testParseKeyCombo_commandComma() {
+        let combo = KeyCombo.from(string: "⌘,")
+        XCTAssertNotNil(combo)
+        XCTAssertEqual(combo?.keyCode, UInt16(kVK_ANSI_Comma))
+        XCTAssertTrue(combo?.modifiers.contains(.command) ?? false)
+    }
+
+    func testParseKeyCombo_commandBackspace() {
+        let combo = KeyCombo.from(string: "⌘⌫")
+        XCTAssertNotNil(combo)
+        XCTAssertEqual(combo?.keyCode, UInt16(kVK_Delete))
+        XCTAssertTrue(combo?.modifiers.contains(.command) ?? false)
+    }
+
+    // MARK: - KeyCombo Init from keyCode/modifiers
+
+    func testKeyCombo_initFromKeyCodeAndModifiers_displayStringRoundTrips() {
+        let combo = KeyCombo(keyCode: UInt16(kVK_ANSI_W), modifiers: [.option, .shift])
+        XCTAssertEqual(combo.displayString, "⌥⇧W")
+    }
+
+    func testKeyCombo_commaDisplayString_roundTrips() {
+        let combo = KeyCombo.from(string: "⌘,")
+        XCTAssertEqual(combo?.displayString, "⌘,")
+    }
+
+    func testKeyCombo_backspaceDisplayString_roundTrips() {
+        let combo = KeyCombo.from(string: "⌘⌫")
+        XCTAssertEqual(combo?.displayString, "⌘⌫")
+    }
+
     // MARK: - KeyCombo Display String
 
     func testKeyComboDisplayString_roundTrips() {
@@ -126,29 +157,11 @@ final class HotkeyManagerTests: XCTestCase {
         XCTAssertTrue(settings.globalHotkeyEnabled)
     }
 
-    func testAppSettings_defaultHotkeyCombo() {
-        let settings = AppSettings()
-        XCTAssertEqual(settings.globalHotkeyKeyCombo, "⌥⇧W")
-    }
-
-    func testAppSettings_hotkeySettingsDecodable() throws {
-        // Encode a full AppSettings first, then decode to ensure round-trip works
+    func testAppSettings_hotkeyEnabledRoundTrip() throws {
         var original = AppSettings()
         original.globalHotkeyEnabled = false
-        original.globalHotkeyKeyCombo = "⌘⇧K"
         let data = try JSONEncoder().encode(original)
-        let settings = try JSONDecoder().decode(AppSettings.self, from: data)
-        XCTAssertFalse(settings.globalHotkeyEnabled)
-        XCTAssertEqual(settings.globalHotkeyKeyCombo, "⌘⇧K")
-    }
-
-    func testAppSettings_hotkeySettingsEncodable() throws {
-        var settings = AppSettings()
-        settings.globalHotkeyEnabled = false
-        settings.globalHotkeyKeyCombo = "⌃⌥B"
-        let data = try JSONEncoder().encode(settings)
         let decoded = try JSONDecoder().decode(AppSettings.self, from: data)
         XCTAssertFalse(decoded.globalHotkeyEnabled)
-        XCTAssertEqual(decoded.globalHotkeyKeyCombo, "⌃⌥B")
     }
 }

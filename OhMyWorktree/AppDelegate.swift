@@ -32,10 +32,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
     var updaterManager: UpdaterManager?
+    var shortcutManager: ShortcutManager?
     let hotkeyManager = HotkeyManager()
 
     private var menuRefreshTask: Task<Void, Never>?
-    private var cancellables = Set<AnyCancellable>()
+    var cancellables = Set<AnyCancellable>()
     private var repoCancellables = Set<AnyCancellable>()
     private let headMonitor = GitHeadMonitor()
     private let windowObserver = WindowObserver()
@@ -159,9 +160,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func setupGlobalHotkey() {
         let enabled = UserDefaults.standard.object(forKey: "globalHotkeyEnabled") as? Bool ?? true
-        let combo = UserDefaults.standard.string(forKey: "globalHotkeyKeyCombo") ?? "⌥⇧W"
+        let combo = shortcutManager?.combo(for: .globalHotkey) ?? "⌥⇧W"
 
-        guard enabled else { return }
+        guard enabled else {
+            hotkeyManager.unregister()
+            return
+        }
 
         hotkeyManager.register(keyCombo: combo) { [weak self] in
             self?.toggleStatusItemMenu()
@@ -409,11 +413,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return
         }
 
+        let sm = shortcutManager ?? ShortcutManager()
         showOrCreateWindow(
             title: Self.mainWindowTitle,
             size: NSSize(width: 500, height: 400)
         ) {
             ContentView(repoViewModel: repoVM, worktreeViewModel: worktreeVM)
+                .environmentObject(sm)
                 .frame(minWidth: 400, minHeight: 300)
         }
     }
@@ -423,13 +429,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             appDelegateLogger.warning("Cannot show settings window: updaterManager not yet connected")
             return
         }
+        guard let shortcutManager else {
+            appDelegateLogger.warning("Cannot show settings window: shortcutManager not yet connected")
+            return
+        }
 
         showOrCreateWindow(
             title: Self.settingsWindowTitle,
-            size: NSSize(width: 400, height: 500),
+            size: NSSize(width: 500, height: 450),
             styleMask: [.titled, .closable]
         ) {
-            SettingsView(updaterManager: updaterManager)
+            SettingsView(updaterManager: updaterManager, shortcutManager: shortcutManager)
         }
     }
 

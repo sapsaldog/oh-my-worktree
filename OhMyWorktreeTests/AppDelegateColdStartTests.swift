@@ -109,6 +109,7 @@ final class AppDelegateColdStartTests: XCTestCase {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
         appDelegate.updaterManager = UpdaterManager()
+        appDelegate.shortcutManager = ShortcutManager()
 
         let menuItem = NSMenuItem(title: "Settings...", action: nil, keyEquivalent: "")
         appDelegate.settingsClicked(menuItem)
@@ -143,6 +144,7 @@ final class AppDelegateColdStartTests: XCTestCase {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
         appDelegate.updaterManager = UpdaterManager()
+        appDelegate.shortcutManager = ShortcutManager()
 
         let menuItem = NSMenuItem(title: "Settings...", action: nil, keyEquivalent: "")
         appDelegate.settingsClicked(menuItem)
@@ -218,6 +220,7 @@ final class AppDelegateColdStartTests: XCTestCase {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
         appDelegate.updaterManager = UpdaterManager()
+        appDelegate.shortcutManager = ShortcutManager()
 
         appDelegate.showOrCreateSettingsWindow()
 
@@ -306,6 +309,7 @@ final class AppDelegateColdStartTests: XCTestCase {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
         appDelegate.updaterManager = UpdaterManager()
+        appDelegate.shortcutManager = ShortcutManager()
 
         appDelegate.showOrCreateSettingsWindow()
 

@@ -1,17 +1,8 @@
-import os
-import ServiceManagement
 import SwiftUI
-
-private let logger = Logger(subsystem: "com.ohmyworktree", category: "Settings")
 
 struct SettingsView: View {
     @ObservedObject var updaterManager: UpdaterManager
-    @AppStorage("copyEnvFilesEnabled") private var copyEnvFilesEnabled = true
-    @AppStorage(BackgroundTaskQueue.jobTimeoutSecondsKey)
-    private var jobTimeoutSeconds = Int(BackgroundTaskQueue.defaultJobTimeoutSeconds)
-    @AppStorage("globalHotkeyEnabled") private var globalHotkeyEnabled = true
-    @AppStorage("globalHotkeyKeyCombo") private var globalHotkeyKeyCombo = "⌥⇧W"
-    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+    @ObservedObject var shortcutManager: ShortcutManager
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
@@ -26,111 +17,25 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        Form {
-            Section("General") {
-                Toggle("Launch at Login", isOn: $launchAtLogin)
-                    .onChange(of: launchAtLogin) { _, newValue in
-                        do {
-                            if newValue {
-                                try SMAppService.mainApp.register()
-                            } else {
-                                try SMAppService.mainApp.unregister()
-                            }
-                        } catch {
-                            let action = newValue ? "enable" : "disable"
-                            logger.error("Failed to \(action) launch at login: \(error.localizedDescription)")
-                            launchAtLogin = SMAppService.mainApp.status == .enabled
-                        }
-                    }
-                Text("Automatically start Oh My Worktree when you log in.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+        TabView {
+            GeneralSettingsView()
+                .tabItem { Label("General", systemImage: "gear") }
 
-            Section("Global Hotkey") {
-                Toggle("Enable global hotkey", isOn: $globalHotkeyEnabled)
-                    .onChange(of: globalHotkeyEnabled) { _, newValue in
-                        if let appDelegate = NSApp.delegate as? AppDelegate {
-                            appDelegate.hotkeyManager.setEnabled(newValue)
-                            if newValue {
-                                appDelegate.setupGlobalHotkey()
-                            }
-                        }
-                    }
-                HStack {
-                    Text("Shortcut")
-                    Spacer()
-                    Text(globalHotkeyKeyCombo)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.secondary.opacity(0.15))
-                        .cornerRadius(6)
-                        .font(.system(.body, design: .monospaced))
-                }
-                Text("Press the global hotkey to toggle the menu bar popup from anywhere.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+            ShortcutsSettingsView(shortcutManager: shortcutManager)
+                .tabItem { Label("Shortcuts", systemImage: "keyboard") }
 
-            Section("Worktree Creation") {
-                Toggle("Copy files to new worktrees", isOn: $copyEnvFilesEnabled)
-                Text(
-                    "When enabled, files matching .worktreeinclude patterns " +
-                    "(or .env files by default) are automatically copied into newly created worktrees."
-                )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+            AdvancedSettingsView()
+                .tabItem { Label("Advanced", systemImage: "wrench.adjustable") }
 
-            Section("Advanced") {
-                LabeledContent("Background task timeout") {
-                    HStack(spacing: 4) {
-                        TextField("", value: $jobTimeoutSeconds, format: .number)
-                            .frame(width: 50)
-                            .multilineTextAlignment(.trailing)
-                            .onSubmit { jobTimeoutSeconds = clampTimeout(jobTimeoutSeconds) }
-                            .onChange(of: jobTimeoutSeconds) { _, val in
-                                jobTimeoutSeconds = clampTimeout(val)
-                            }
-                        Text("sec")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                Text(
-                    "Maximum time allowed for Remove / Force Remove operations (30–600s). " +
-                    "Quick Remove Worktree is not affected by this setting."
-                )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Section("Updates") {
-                Toggle("Automatically check for updates", isOn: Binding(
-                    get: { updaterManager.automaticallyChecksForUpdates },
-                    set: { updaterManager.automaticallyChecksForUpdates = $0 }
-                ))
-                Button("Check for Updates Now") {
-                    updaterManager.checkForUpdates()
-                }
-                .disabled(!updaterManager.canCheckForUpdates)
-            }
-
-            Section {
-                Text("v\(appVersion) (\(buildNumber)) · \(commitHash)")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .frame(maxWidth: .infinity)
-            }
-            .listRowBackground(Color.clear)
+            UpdatesSettingsView(updaterManager: updaterManager)
+                .tabItem { Label("Updates", systemImage: "arrow.triangle.2.circlepath") }
         }
-        .formStyle(.grouped)
-        .onAppear {
-            launchAtLogin = SMAppService.mainApp.status == .enabled
+        .frame(minWidth: 450, minHeight: 350)
+        .overlay(alignment: .bottom) {
+            Text("v\(appVersion) (\(buildNumber)) · \(commitHash)")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .padding(.bottom, 8)
         }
-        .padding()
-    }
-
-    private func clampTimeout(_ value: Int) -> Int {
-        min(max(value, 30), 600)
     }
 }

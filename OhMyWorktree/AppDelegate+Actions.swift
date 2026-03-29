@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 
 // MARK: - WorktreeRef
 
@@ -153,5 +154,19 @@ extension AppDelegate {
 
     @objc func quitClicked(_ sender: NSMenuItem) {
         NSApplication.shared.terminate(nil)
+    }
+}
+
+// MARK: - Shortcut Manager Observation
+
+extension AppDelegate {
+
+    func observeShortcutChanges() {
+        shortcutManager?.$version
+            .dropFirst()
+            .sink { [weak self] _ in
+                self?.setupGlobalHotkey()
+            }
+            .store(in: &cancellables)
     }
 }

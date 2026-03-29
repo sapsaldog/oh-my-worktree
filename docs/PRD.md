@@ -1080,9 +1080,11 @@ Force Remove Worktree
 
 **상세 요구사항**:
 - macOS 표준 Settings 창 (`⌘,` 단축키)
-- General 섹션: Launch at Login 토글
-- Worktree 생성 섹션: .env 파일 복사 토글
-- Advanced 섹션 (FR-037): 백그라운드 작업 타임아웃 설정
+- **탭 기반 레이아웃** (macOS 표준 `TabView` with `.tabViewStyle(.automatic)`):
+  - **General 탭**: Launch at Login 토글, .env 파일 복사 토글
+  - **Shortcuts 탭**: 글로벌 핫키 설정, 인앱 단축키 설정 (모든 단축키 커스터마이징 가능, 키 레코더 UI)
+  - **Advanced 탭**: 백그라운드 작업 타임아웃 설정 (FR-037)
+  - **Updates 탭**: 자동 업데이트 확인 토글, 수동 업데이트 확인 버튼
 - 메뉴바에서 "Settings..." 항목으로 접근 가능
 - SwiftUI Settings Scene 사용
 
@@ -1149,26 +1151,44 @@ Force Remove Worktree
 
 **상세 요구사항**:
 
-**글로벌 핫키 (Phase 1)**:
+**글로벌 핫키**:
 - `⌥⇧W` (기본값): 메뉴 바 팝업 토글 (앱이 백그라운드에 있어도 동작)
-- Settings에서 글로벌 핫키 활성화/비활성화 토글
-- 핫키 조합은 `AppSettings`에 저장
+- Settings > Shortcuts 탭에서 활성화/비활성화 토글
 - `NSEvent.addGlobalMonitorForEvents` 기반 구현
 
-**인앱 단축키 (Phase 2, 미구현)**:
-- `Cmd+N`: Repository 셀렉터에서 '+ New Repository' 항목 선택
-- `Cmd+Shift+N`: Worktree 리스트에서 '+ New Worktree' 항목 선택
-- `Cmd+Backspace`: 선택 항목 삭제
-- `Cmd+T`: iTerm에서 열기
-- `Cmd+Shift+T`: Ghostty에서 열기
-- `Cmd+E`: VSCode에서 열기
-- `Cmd+R`: 목록 새로고침
-- `Cmd+,`: Settings 창 열기
+**인앱 단축키** (기본값):
+| 단축키 | 기능 |
+|--------|------|
+| `Cmd+,` | Settings 창 열기 |
+| `Cmd+N` | Repository 셀렉터에서 '+ New Repository' 선택 |
+| `Cmd+Shift+N` | Worktree 리스트에서 '+ New Worktree' 선택 |
+| `Cmd+Backspace` | 선택 항목 삭제 |
+| `Cmd+Shift+I` | iTerm에서 열기 |
+| `Cmd+Shift+G` | Ghostty에서 열기 |
+| `Cmd+Shift+V` | VSCode에서 열기 |
+| `Cmd+Shift+C` | Cursor에서 열기 |
+| `Cmd+Shift+M` | CMux에서 열기 |
+| `Cmd+R` | 목록 새로고침 |
 
-**인수 기준 (글로벌 핫키)**:
+**단축키 커스터마이징** (Settings > Shortcuts 탭):
+- 모든 단축키(글로벌 핫키 + 인앱 단축키) 변경 가능
+- 키 레코더 UI 제공:
+  - 단축키 입력 필드 클릭 시 "recording" 모드 진입
+  - 사용자가 새 키 조합 입력 시 즉시 반영
+  - ESC로 recording 취소, ⌫(Delete)로 기본값 복원
+  - 유효하지 않은 조합(modifier 없이 단일 키 등) 거부
+  - 다른 단축키와 충돌 시 경고 표시
+- 단축키 설정은 `AppStorage`에 저장
+
+**인수 기준**:
 - [ ] `⌥⇧W` 핫키로 메뉴 바 팝업이 토글되어야 함
-- [ ] Settings에서 글로벌 핫키를 활성화/비활성화할 수 있어야 함
-- [ ] 비활성화 시 글로벌 핫키가 동작하지 않아야 함
+- [ ] 메인 윈도우에서 `Cmd+,` 입력 시 Settings 창이 열려야 함
+- [ ] 모든 인앱 단축키가 해당 기능을 실행해야 함
+- [ ] Settings > Shortcuts 탭에서 모든 단축키를 변경할 수 있어야 함
+- [ ] 키 레코더가 modifier 없는 단일 키 입력을 거부해야 함
+- [ ] 단축키 충돌 시 경고가 표시되어야 함
+- [ ] ESC로 recording 취소, ⌫로 기본값 복원이 되어야 함
+- [ ] 변경된 단축키가 즉시 적용되어야 함
 - [ ] 앱 재시작 후에도 설정이 유지되어야 함
 
 ---

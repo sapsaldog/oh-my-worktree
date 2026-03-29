@@ -28,7 +28,8 @@ struct KeyCombo: Equatable {
         // Must have at least one modifier and exactly one key character left
         guard !flags.isEmpty, remaining.count == 1 else { return nil }
 
-        let keyChar = remaining.uppercased()
+        // Try the raw character first (for non-alpha keys like , . ⌫), then uppercased
+        let keyChar = Self.keyCodeMap[remaining] != nil ? remaining : remaining.uppercased()
         guard let code = Self.keyCodeMap[keyChar] else { return nil }
 
         return KeyCombo(keyCode: code, modifiers: flags)
@@ -49,14 +50,14 @@ struct KeyCombo: Equatable {
         return result
     }
 
-    private static let modifierMap: [Character: NSEvent.ModifierFlags] = [
+    static let modifierMap: [Character: NSEvent.ModifierFlags] = [
         "⌘": .command,
         "⌥": .option,
         "⇧": .shift,
         "⌃": .control
     ]
 
-    private static let keyCodeMap: [String: UInt16] = [
+    static let keyCodeMap: [String: UInt16] = [
         "A": UInt16(kVK_ANSI_A),
         "B": UInt16(kVK_ANSI_B),
         "C": UInt16(kVK_ANSI_C),
@@ -82,7 +83,11 @@ struct KeyCombo: Equatable {
         "W": UInt16(kVK_ANSI_W),
         "X": UInt16(kVK_ANSI_X),
         "Y": UInt16(kVK_ANSI_Y),
-        "Z": UInt16(kVK_ANSI_Z)
+        "Z": UInt16(kVK_ANSI_Z),
+        ",": UInt16(kVK_ANSI_Comma),
+        ".": UInt16(kVK_ANSI_Period),
+        "/": UInt16(kVK_ANSI_Slash),
+        "⌫": UInt16(kVK_Delete)
     ]
 }
 
