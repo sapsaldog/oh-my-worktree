@@ -71,41 +71,6 @@ struct WorktreeListView: View {
         .onChange(of: viewModel.selectedWorktreeIDs) { _, newIDs in
             if newIDs != selectedIDs { selectedIDs = newIDs }
         }
-        .onKeyPress(phases: .down, action: handleKeyPress)
-    }
-
-    // MARK: - Key Press Handler
-
-    private func handleKeyPress(_ press: KeyPress) -> KeyPress.Result {
-        switch press.key {
-        case .return:
-            guard renamingWorktreeID == nil,
-                  selectedIDs.count == 1,
-                  let id = selectedIDs.first,
-                  let worktree = viewModel.worktrees.first(where: { $0.id == id })
-            else { return .ignored }
-            renamingWorktreeID = worktree.id
-            return .handled
-
-        case .escape:
-            guard !selectedIDs.isEmpty else { return .ignored }
-            selectedIDs = []
-            return .handled
-
-        case .upArrow where press.modifiers.contains(.shift):
-            repoViewModel?.selectPreviousRepository()
-            return .handled
-
-        case .downArrow where press.modifiers.contains(.shift):
-            repoViewModel?.selectNextRepository()
-            return .handled
-
-        case .delete:
-            return handleDelete(modifiers: press.modifiers)
-
-        default:
-            return .ignored
-        }
     }
 
     // MARK: - Worktree Row
@@ -245,16 +210,19 @@ struct WorktreeListView: View {
                 viewModel.removeWorktree(worktree)
             }
             .disabled(!actions.canRemove)
+            .keyboardShortcut(.delete)
 
             Button("Force Remove Worktree", role: .destructive) {
                 forceRemoveTarget = .single(worktree)
             }
             .disabled(!actions.canForceRemove)
+            .keyboardShortcut(.delete, modifiers: .command)
 
             Button("Quick Remove Worktree", role: .destructive) {
                 quickRemoveTarget = worktree
             }
             .disabled(!actions.canQuickRemove)
+            .keyboardShortcut(.delete, modifiers: [.command, .shift])
         }
     }
 
@@ -269,124 +237,102 @@ private struct RemovalDialogsModifier: ViewModifier {
     @Binding var confirmBulkQuickRemove: Bool
     @Binding var quickRemoveTarget: Worktree?
 
-    // swiftlint:disable:next function_body_length
     func body(content: Content) -> some View {
         content
-            .confirmationDialog(
-                forceRemoveConfirmationTitle,
-                isPresented: Binding(
-                    get: { forceRemoveTarget != nil },
-                    set: { if !$0 { forceRemoveTarget = nil } }
-                ),
-                titleVisibility: .visible
-            ) {
-                Button("Force Remove", role: .destructive) {
-                    switch forceRemoveTarget {
-                    case .single(let worktree):
-                        viewModel.removeWorktree(worktree, force: true)
-                    case .selectedWorktrees:
-                        viewModel.removeSelectedWorktrees(force: true)
-                    case nil:
-                        break
-                    }
-                    forceRemoveTarget = nil
-                }
-                Button("Cancel", role: .cancel) { forceRemoveTarget = nil }
-            } message: {
-                Text("Uncommitted changes will be lost. This cannot be undone.")
-            }
-            .confirmationDialog(
-                "Remove \(viewModel.selectedWorktreeIDs.count) Worktrees?",
-                isPresented: $confirmBulkRemove,
-                titleVisibility: .visible
-            ) {
-                Button("Remove", role: .destructive) {
-                    viewModel.removeSelectedWorktrees(force: false)
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Worktrees with uncommitted changes will not be removed.")
-            }
-            .confirmationDialog(
-                "Quick Remove \(viewModel.selectedWorktreeIDs.count) Worktrees?",
-                isPresented: $confirmBulkQuickRemove,
-                titleVisibility: .visible
-            ) {
-                Button("Quick Remove", role: .destructive) {
-                    viewModel.quickRemoveSelectedWorktrees()
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                // swiftlint:disable:next line_length
-                Text("Directories will be moved to Trash. Uncommitted changes will not be checked. Git worktree registration will be removed immediately.")
-            }
-            .confirmationDialog(
-                "Quick Remove '\(quickRemoveTarget?.displayName ?? "")'?",
-                isPresented: Binding(
-                    get: { quickRemoveTarget != nil },
-                    set: { if !$0 { quickRemoveTarget = nil } }
-                ),
-                titleVisibility: .visible
-            ) {
-                Button("Quick Remove", role: .destructive) {
-                    if let worktree = quickRemoveTarget {
-                        viewModel.quickRemoveWorktree(worktree)
-                    }
-                    quickRemoveTarget = nil
-                }
-                Button("Cancel", role: .cancel) { quickRemoveTarget = nil }
-            } message: {
-                // swiftlint:disable:next line_length
-                Text("The directory will be moved to Trash. Uncommitted changes will not be checked. Git worktree registration will be removed immediately.")
-            }
+            .modifier(ForceRemoveDialog(viewModel: viewModel, target: $forceRemoveTarget))
+            .modifier(BulkRemoveDialog(viewModel: viewModel, isPresented: $confirmBulkRemove))
+            .modifier(BulkQuickRemoveDialog(viewModel: viewModel, isPresented: $confirmBulkQuickRemove))
+            .modifier(SingleQuickRemoveDialog(viewModel: viewModel, target: $quickRemoveTarget))
     }
 
-    private var forceRemoveConfirmationTitle: String {
-        switch forceRemoveTarget {
-        case .single(let worktree):
-            return "Force Remove '\(worktree.displayName)'?"
-        case .selectedWorktrees(let count):
-            return "Force Remove \(count) Worktree\(count == 1 ? "" : "s")?"
-        case nil:
-            return ""
+}
+
+private struct ForceRemoveDialog: ViewModifier {
+    @ObservedObject var viewModel: WorktreeListViewModel
+    @Binding var target: WorktreeListView.ForceRemoveTarget?
+
+    func body(content: Content) -> some View {
+        content.confirmationDialog(
+            title,
+            isPresented: Binding(get: { target != nil }, set: { if !$0 { target = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("Force Remove", role: .destructive) {
+                switch target {
+                case .single(let wt): viewModel.removeWorktree(wt, force: true)
+                case .selectedWorktrees: viewModel.removeSelectedWorktrees(force: true)
+                case nil: break
+                }
+                target = nil
+            }
+            Button("Cancel", role: .cancel) { target = nil }
+        } message: {
+            Text("Uncommitted changes will be lost. This cannot be undone.")
+        }
+    }
+
+    private var title: String {
+        switch target {
+        case .single(let wt): "Force Remove '\(wt.displayName)'?"
+        case .selectedWorktrees(let n): "Force Remove \(n) Worktree\(n == 1 ? "" : "s")?"
+        case nil: ""
         }
     }
 }
 
-// MARK: - Delete Key Handling
+private struct BulkRemoveDialog: ViewModifier {
+    @ObservedObject var viewModel: WorktreeListViewModel
+    @Binding var isPresented: Bool
 
-extension WorktreeListView {
-
-    /// Delete: remove, Cmd+Delete: force remove, Cmd+Shift+Delete: quick remove
-    func handleDelete(modifiers: SwiftUI.EventModifiers) -> KeyPress.Result {
-        guard !selectedIDs.isEmpty else { return .ignored }
-
-        let isMulti = selectedIDs.count >= 2
-
-        if modifiers.contains(.command) && modifiers.contains(.shift) {
-            // Cmd+Shift+Delete → Quick Remove
-            if isMulti {
-                confirmBulkQuickRemove = true
-            } else if let id = selectedIDs.first,
-                      let worktree = viewModel.worktrees.first(where: { $0.id == id }) {
-                quickRemoveTarget = worktree
-            }
-        } else if modifiers.contains(.command) {
-            // Cmd+Delete → Force Remove
-            if isMulti {
-                forceRemoveTarget = .selectedWorktrees(count: selectedIDs.count)
-            } else if let id = selectedIDs.first,
-                      let worktree = viewModel.worktrees.first(where: { $0.id == id }) {
-                forceRemoveTarget = .single(worktree)
-            }
-        } else {
-            // Delete → Normal Remove
-            if isMulti {
-                confirmBulkRemove = true
-            } else {
-                viewModel.removeSelectedWorktrees(force: false)
-            }
+    func body(content: Content) -> some View {
+        content.confirmationDialog(
+            "Remove \(viewModel.selectedWorktreeIDs.count) Worktrees?",
+            isPresented: $isPresented,
+            titleVisibility: .visible
+        ) {
+            Button("Remove", role: .destructive) { viewModel.removeSelectedWorktrees(force: false) }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Worktrees with uncommitted changes will not be removed.")
         }
-        return .handled
+    }
+}
+
+private struct BulkQuickRemoveDialog: ViewModifier {
+    @ObservedObject var viewModel: WorktreeListViewModel
+    @Binding var isPresented: Bool
+
+    func body(content: Content) -> some View {
+        content.confirmationDialog(
+            "Quick Remove \(viewModel.selectedWorktreeIDs.count) Worktrees?",
+            isPresented: $isPresented,
+            titleVisibility: .visible
+        ) {
+            Button("Quick Remove", role: .destructive) { viewModel.quickRemoveSelectedWorktrees() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Directories will be moved to Trash. Uncommitted changes will not be checked.")
+        }
+    }
+}
+
+private struct SingleQuickRemoveDialog: ViewModifier {
+    @ObservedObject var viewModel: WorktreeListViewModel
+    @Binding var target: Worktree?
+
+    func body(content: Content) -> some View {
+        content.confirmationDialog(
+            "Quick Remove '\(target?.displayName ?? "")'?",
+            isPresented: Binding(get: { target != nil }, set: { if !$0 { target = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("Quick Remove", role: .destructive) {
+                if let wt = target { viewModel.quickRemoveWorktree(wt) }
+                target = nil
+            }
+            Button("Cancel", role: .cancel) { target = nil }
+        } message: {
+            Text("Directory will be moved to Trash. Uncommitted changes will not be checked.")
+        }
     }
 }

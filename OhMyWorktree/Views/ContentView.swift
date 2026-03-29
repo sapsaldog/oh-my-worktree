@@ -78,6 +78,22 @@ struct ContentView: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
         }
+        .onKeyPress(phases: .down) { press in
+            handleMainKeyPress(press)
+        }
+    }
+
+    private func handleMainKeyPress(_ press: KeyPress) -> KeyPress.Result {
+        switch press.key {
+        case .upArrow where press.modifiers.contains(.shift):
+            repoViewModel.selectPreviousRepository()
+            return .handled
+        case .downArrow where press.modifiers.contains(.shift):
+            repoViewModel.selectNextRepository()
+            return .handled
+        default:
+            return .ignored
+        }
     }
 
     // MARK: - Keyboard Shortcut Buttons
