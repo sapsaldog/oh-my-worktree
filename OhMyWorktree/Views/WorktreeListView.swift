@@ -86,18 +86,6 @@ struct WorktreeListView: View {
             selectedIDs = []
             return .handled
         }
-        .onKeyPress(.delete, phases: .down) { press in
-            guard !selectedIDs.isEmpty else { return .ignored }
-            let mods = press.modifiers
-            if mods.contains(.command) && mods.contains(.shift) {
-                triggerQuickRemove()
-            } else if mods.contains(.command) {
-                triggerForceRemove()
-            } else {
-                triggerRemove()
-            }
-            return .handled
-        }
         .background(TableViewFocuser(worktreeCount: viewModel.worktrees.count))
     }
 
@@ -263,19 +251,19 @@ struct WorktreeListView: View {
         } else if let repository = viewModel.repository, !worktree.isRoot(of: repository) {
             Divider()
             Button("Remove Worktree", role: .destructive) {
-                confirmRemoveTarget = worktree
+                triggerRemove()
             }
             .disabled(!actions.canRemove)
             .keyboardShortcut(.delete, modifiers: [])
 
             Button("Force Remove Worktree", role: .destructive) {
-                forceRemoveTarget = .single(worktree)
+                triggerForceRemove()
             }
             .disabled(!actions.canForceRemove)
             .keyboardShortcut(.delete, modifiers: .command)
 
             Button("Quick Remove Worktree", role: .destructive) {
-                quickRemoveTarget = worktree
+                triggerQuickRemove()
             }
             .disabled(!actions.canQuickRemove)
             .keyboardShortcut(.delete, modifiers: [.command, .shift])
