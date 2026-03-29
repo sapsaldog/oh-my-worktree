@@ -91,12 +91,10 @@ struct HotkeyRecorderViewModelTests {
         let consumed = vm.handleKey(keyCode: UInt16(kVK_ANSI_N), modifiers: [.command])
         #expect(consumed)
 
-        guard case .conflict(let actionName, let combo) = vm.state else {
-            Issue.record("Expected conflict state, got \(vm.state)")
-            return
-        }
-        #expect(combo == "⌘N")
-        #expect(actionName == ShortcutAction.addWorktree.displayName)
+        #expect(vm.state == .conflict(
+            actionName: ShortcutAction.addWorktree.displayName,
+            combo: "⌘N"
+        ))
     }
 
     @Test func resolveConflict_override_savesCombo() {

@@ -181,7 +181,9 @@ struct KeyRecordingField: NSViewRepresentable {
     func makeNSView(context: Context) -> KeyCaptureView {
         let view = KeyCaptureView()
         view.onKeyEvent = { [weak viewModel] keyCode, modifiers in
-            _ = viewModel?.handleKey(keyCode: keyCode, modifiers: modifiers)
+            MainActor.assumeIsolated {
+                _ = viewModel?.handleKey(keyCode: keyCode, modifiers: modifiers)
+            }
         }
         return view
     }

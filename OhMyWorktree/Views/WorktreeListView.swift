@@ -231,13 +231,14 @@ struct WorktreeListView: View {
     private func contextMenuButton(
         _ title: String,
         action: ShortcutAction,
+        role: ButtonRole? = nil,
         perform: @escaping () -> Void
     ) -> some View {
         if let shortcut = shortcutManager.keyboardShortcut(for: action) {
-            Button(title, action: perform)
+            Button(title, role: role, action: perform)
                 .keyboardShortcut(shortcut.key, modifiers: shortcut.modifiers)
         } else {
-            Button(title, action: perform)
+            Button(title, role: role, action: perform)
         }
     }
 
@@ -258,17 +259,17 @@ struct WorktreeListView: View {
             }
         } else if let repository = viewModel.repository, !worktree.isRoot(of: repository) {
             Divider()
-            contextMenuButton("Remove Worktree", action: .removeWorktree) {
+            contextMenuButton("Remove Worktree", action: .removeWorktree, role: .destructive) {
                 triggerRemove()
             }
             .disabled(!actions.canRemove)
 
-            contextMenuButton("Force Remove Worktree", action: .forceRemoveWorktree) {
+            contextMenuButton("Force Remove Worktree", action: .forceRemoveWorktree, role: .destructive) {
                 triggerForceRemove()
             }
             .disabled(!actions.canForceRemove)
 
-            contextMenuButton("Quick Remove Worktree", action: .quickRemoveWorktree) {
+            contextMenuButton("Quick Remove Worktree", action: .quickRemoveWorktree, role: .destructive) {
                 triggerQuickRemove()
             }
             .disabled(!actions.canQuickRemove)
