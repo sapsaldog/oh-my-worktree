@@ -347,7 +347,7 @@ struct WorktreeManagerQuickRemoveTests {
         }
 
         #expect(
-            !mockExecutor.executedCommands.contains(["worktree", "prune"])
+            false == mockExecutor.executedCommands.contains(["worktree", "prune"])
         )
     }
 

@@ -72,10 +72,7 @@ final class AppDelegateColdStartTests {
 
         try await Task.sleep(for: .milliseconds(100))
 
-        guard let menu = appDelegate.statusItem?.menu else {
-            Issue.record("Status item menu should exist")
-            return
-        }
+        let menu = try #require(appDelegate.statusItem?.menu, "Status item menu should exist")
         let repoItem = menu.items.first(where: { $0.title == testRepo.name })
         #expect(repoItem != nil, "Menu should contain the repository after cold-start loading")
     }
@@ -172,10 +169,10 @@ final class AppDelegateColdStartTests {
 
         appDelegate.showOrCreateMainWindow()
 
-        guard let window = NSApp.windows.first(where: { $0.title == AppDelegate.mainWindowTitle }) else {
-            Issue.record("Main window should exist")
-            return
-        }
+        let window = try #require(
+            NSApp.windows.first(where: { $0.title == AppDelegate.mainWindowTitle }),
+            "Main window should exist"
+        )
 
         #expect(false == window.isReleasedWhenClosed,
                "Window must not be released on close to prevent crash in AppKit animations")
@@ -298,12 +295,11 @@ final class AppDelegateColdStartTests {
 
         appDelegate.showOrCreateSettingsWindow()
 
-        guard let window = NSApp.windows.first(where: { $0.title == AppDelegate.settingsWindowTitle }),
-              let hostingView = window.contentView
-        else {
-            Issue.record("Settings window with hosting view should exist")
-            return
-        }
+        let window = try #require(
+            NSApp.windows.first(where: { $0.title == AppDelegate.settingsWindowTitle }),
+            "Settings window should exist"
+        )
+        let hostingView = try #require(window.contentView, "Window should have a content view")
 
         let intrinsicSize = hostingView.intrinsicContentSize
         let buggyWidth: CGFloat = 432
