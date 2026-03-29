@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 
 // MARK: - WorktreeRef
 
@@ -137,18 +138,14 @@ extension AppDelegate {
     }
 
     @objc func importFromGitHubPRClicked(_ sender: NSMenuItem) {
-        NSApp.activate(ignoringOtherApps: true)
-        openImportPRWindow?()
+        showOrCreateMainWindow()
+        DispatchQueue.main.async { [weak self] in
+            self?.worktreeViewModel?.isShowingImportPR = true
+        }
     }
 
     @objc func settingsClicked(_ sender: NSMenuItem) {
-        NSApp.activate(ignoringOtherApps: true)
-        if let openSettings {
-            openSettings()
-        } else {
-            // Fallback when SwiftUI environment hasn't been captured yet (cold start)
-            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-        }
+        showOrCreateSettingsWindow()
     }
 
     @objc func checkForUpdatesClicked(_ sender: NSMenuItem) {

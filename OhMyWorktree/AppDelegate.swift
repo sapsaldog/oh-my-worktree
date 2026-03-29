@@ -20,10 +20,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             observeWorktreeChanges()
         }
     }
-    var openMainWindow: (() -> Void)?
-    var openImportPRWindow: (() -> Void)?
-    var openSettings: (() -> Void)?
     var updaterManager: UpdaterManager?
+
     private var menuRefreshTask: Task<Void, Never>?
     private var cancellables = Set<AnyCancellable>()
     private var repoCancellables = Set<AnyCancellable>()
@@ -72,9 +70,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         repoViewModel.$selectedRepository
             .dropFirst()
-            .sink { [weak self] _ in
-                self?.rebuildMenu()
-                self?.updateStatusItemTitle()
+            .sink { [weak self] newValue in
+                guard let self else { return }
+                // Sync worktreeViewModel so menu bar and windows show worktrees
+                self.worktreeViewModel?.repository = newValue
+                Task {
+                    await self.worktreeViewModel?.loadWorktrees()
+                }
+                self.rebuildMenu()
+                self.updateStatusItemTitle()
             }
             .store(in: &repoCancellables)
     }
@@ -330,22 +334,60 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    // MARK: - Helpers
+    // MARK: - Window Management
 
-    func showOrCreateMainWindow() {
+    /// Shows an existing window with the given title, or creates a new one.
+    private func showOrCreateWindow(
+        title: String,
+        size: NSSize,
+        styleMask: NSWindow.StyleMask = [.titled, .closable, .resizable, .miniaturizable],
+        rootView: () -> some View
+    ) {
         NSApp.activate(ignoringOtherApps: true)
 
-        // Try to show an existing window first
-        for window in NSApp.windows where window.canBecomeMain {
+        for window in NSApp.windows where window.title == title {
             window.makeKeyAndOrderFront(nil)
-            if window.isMiniaturized {
-                window.deminiaturize(nil)
-            }
+            if window.isMiniaturized { window.deminiaturize(nil) }
             return
         }
 
-        // No existing window - create a new one
-        openMainWindow?()
+        let window = NSWindow(
+            contentRect: .zero,
+            styleMask: styleMask,
+            backing: .buffered,
+            defer: false
+        )
+        window.isReleasedWhenClosed = false
+        window.contentView = NSHostingView(rootView: rootView())
+        window.title = title
+        window.setContentSize(size)
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+    }
+
+    func showOrCreateMainWindow() {
+        guard let repoVM = repoViewModel,
+              let worktreeVM = worktreeViewModel else { return }
+
+        showOrCreateWindow(
+            title: "Oh My Worktree",
+            size: NSSize(width: 500, height: 400)
+        ) {
+            ContentView(repoViewModel: repoVM, worktreeViewModel: worktreeVM)
+                .frame(minWidth: 400, minHeight: 300)
+        }
+    }
+
+    func showOrCreateSettingsWindow() {
+        guard let updaterManager else { return }
+
+        showOrCreateWindow(
+            title: "OhMyWorktree Settings",
+            size: NSSize(width: 400, height: 500),
+            styleMask: [.titled, .closable]
+        ) {
+            SettingsView(updaterManager: updaterManager)
+        }
     }
 
 }

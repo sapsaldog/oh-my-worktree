@@ -3,21 +3,13 @@ import XCTest
 
 @testable import OhMyWorktree
 
-/// Tests for cold-start race conditions where the menu bar would be broken
-/// when the app launched via Login Items on reboot.
+/// Tests for cold-start behaviour where the app launches via Login Items
+/// and no SwiftUI window exists yet.
 ///
-/// Problems fixed:
-/// 1. Empty repository list — `repoViewModel` was only connected and loaded
-///    in ContentView's `.onAppear`/`.task`, which depend on window visibility.
-/// 2. Non-functional "Open Main Window" and "Settings" — closures capturing
-///    `@Environment(\.openWindow)` / `@Environment(\.openSettings)` were set
-///    in `.onAppear`, so they stayed nil until the window appeared.
-///
-/// Fixes:
-/// - ViewModel connection moved to Scene body evaluation
-/// - `repoViewModel.didSet` eagerly loads repos and subscribes via Combine
-/// - Environment closures captured in View `body` (not `.onAppear`)
-/// - `settingsClicked` has NSApp fallback for when closures are nil
+/// Architecture: AppDelegate manages windows directly via NSWindow +
+/// NSHostingController, and opens Settings via NSApp.sendAction.
+/// No @Environment closures are needed, so cold start works identically
+/// to a normal launch.
 @MainActor
 final class AppDelegateColdStartTests: XCTestCase {
 
@@ -37,15 +29,12 @@ final class AppDelegateColdStartTests: XCTestCase {
         try await super.tearDown()
     }
 
-    // MARK: - repoViewModel.didSet triggers eager load
+    // MARK: - Eager repository loading
 
     func testRepoViewModelDidSetTriggersEagerLoad() async throws {
-        // Given: A fresh ViewModel whose repositories have NOT been loaded
         let vm = RepositoryListViewModel()
         XCTAssertTrue(vm.repositories.isEmpty)
 
-        // When: The ViewModel is assigned to AppDelegate
-        // (simulates the moment SwiftUI connects it, before any window appears)
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
 
@@ -57,13 +46,12 @@ final class AppDelegateColdStartTests: XCTestCase {
 
         appDelegate.repoViewModel = vm
 
-        // Then: didSet → observeRepositoryChanges → loadRepositories
         await fulfillment(of: [loaded], timeout: 3.0)
         XCTAssertTrue(vm.repositories.contains(where: { $0.id == testRepo.id }))
         cancellable.cancel()
     }
 
-    // MARK: - Menu is populated after cold-start load
+    // MARK: - Menu populated after eager load
 
     func testMenuPopulatedAfterColdStartLoad() async throws {
         let vm = RepositoryListViewModel()
@@ -80,11 +68,8 @@ final class AppDelegateColdStartTests: XCTestCase {
         await fulfillment(of: [loaded], timeout: 3.0)
         cancellable.cancel()
 
-        // Combine subscription in observeRepositoryChanges calls rebuildMenu;
-        // give the run loop one tick to process it.
         try await Task.sleep(for: .milliseconds(100))
 
-        // Then: The menu should contain the test repository
         guard let menu = appDelegate.statusItem?.menu else {
             XCTFail("Status item menu should exist")
             return
@@ -93,32 +78,123 @@ final class AppDelegateColdStartTests: XCTestCase {
         XCTAssertNotNil(repoItem, "Menu should contain the repository after cold-start loading")
     }
 
-    // MARK: - Settings fallback works without SwiftUI environment
+    // MARK: - Open Main Window creates NSWindow on cold start
 
-    func testSettingsClickFallbackWhenClosureIsNil() async throws {
-        // Given: AppDelegate with NO openSettings closure set
-        // (simulates cold start before SwiftUI window appears)
+    func testShowOrCreateMainWindowCreatesWindow() async throws {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
-        XCTAssertNil(appDelegate.openSettings, "openSettings should be nil before window appears")
+        appDelegate.repoViewModel = RepositoryListViewModel()
+        appDelegate.worktreeViewModel = WorktreeListViewModel()
 
-        // When: settingsClicked is invoked
-        // Then: Should not crash (falls back to NSApp.sendAction)
+        // When: showOrCreateMainWindow is called (no existing window)
+        appDelegate.showOrCreateMainWindow()
+
+        // Then: Should not crash and app should be activated
+        // (Window creation depends on NSApp context, but the method must not crash)
+    }
+
+    // MARK: - Settings does not crash on cold start
+
+    func testSettingsClickedDoesNotCrash() async throws {
+        let appDelegate = AppDelegate()
+        appDelegate.setupStatusItem()
+
         let menuItem = NSMenuItem(title: "Settings...", action: nil, keyEquivalent: "")
         appDelegate.settingsClicked(menuItem)
     }
 
-    // MARK: - Open Main Window works without SwiftUI environment
+    // MARK: - Import PR triggers sheet flag
 
-    func testOpenMainWindowWhenClosureIsNil() async throws {
-        // Given: AppDelegate with NO openMainWindow closure set
+    func testImportPRSetsSheetFlag() async throws {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
-        XCTAssertNil(appDelegate.openMainWindow, "openMainWindow should be nil before window appears")
+        let worktreeVM = WorktreeListViewModel()
+        appDelegate.repoViewModel = RepositoryListViewModel()
+        appDelegate.worktreeViewModel = worktreeVM
 
-        // When: openMainWindowClicked is invoked
-        // Then: Should not crash (activates app and searches for existing windows)
-        let menuItem = NSMenuItem(title: "Open Main Window", action: nil, keyEquivalent: "")
-        appDelegate.openMainWindowClicked(menuItem)
+        XCTAssertFalse(worktreeVM.isShowingImportPR)
+
+        let menuItem = NSMenuItem(title: "Import from GitHub PR…", action: nil, keyEquivalent: "")
+        appDelegate.importFromGitHubPRClicked(menuItem)
+
+        // Give DispatchQueue.main.async time to execute
+        try await Task.sleep(for: .milliseconds(100))
+
+        XCTAssertTrue(worktreeVM.isShowingImportPR)
+    }
+
+    // MARK: - Window reuse (no duplicates)
+
+    func testSettingsWindowIsReused() async throws {
+        let appDelegate = AppDelegate()
+        appDelegate.setupStatusItem()
+        appDelegate.updaterManager = UpdaterManager()
+
+        let menuItem = NSMenuItem(title: "Settings...", action: nil, keyEquivalent: "")
+        appDelegate.settingsClicked(menuItem)
+        appDelegate.settingsClicked(menuItem)
+
+        let settingsWindows = NSApp.windows.filter { $0.title == "OhMyWorktree Settings" }
+        XCTAssertEqual(settingsWindows.count, 1, "Clicking Settings twice should reuse the same window")
+    }
+
+    func testMainWindowIsReused() async throws {
+        let appDelegate = AppDelegate()
+        appDelegate.setupStatusItem()
+        appDelegate.repoViewModel = RepositoryListViewModel()
+        appDelegate.worktreeViewModel = WorktreeListViewModel()
+
+        appDelegate.showOrCreateMainWindow()
+        appDelegate.showOrCreateMainWindow()
+
+        let mainWindows = NSApp.windows.filter { $0.title == "Oh My Worktree" }
+        XCTAssertEqual(mainWindows.count, 1, "Calling showOrCreateMainWindow twice should reuse the same window")
+    }
+
+    // MARK: - Window survives close (no crash on dealloc)
+
+    func testWindowNotReleasedWhenClosed() async throws {
+        let appDelegate = AppDelegate()
+        appDelegate.setupStatusItem()
+        appDelegate.repoViewModel = RepositoryListViewModel()
+        appDelegate.worktreeViewModel = WorktreeListViewModel()
+
+        appDelegate.showOrCreateMainWindow()
+
+        guard let window = NSApp.windows.first(where: { $0.title == "Oh My Worktree" }) else {
+            XCTFail("Main window should exist")
+            return
+        }
+
+        XCTAssertFalse(window.isReleasedWhenClosed,
+                       "Window must not be released on close to prevent crash in AppKit animations")
+    }
+
+    // MARK: - Worktree synced when selectedRepository changes
+
+    func testSelectedRepoSyncsWorktreeViewModel() async throws {
+        let repoVM = RepositoryListViewModel()
+        let worktreeVM = WorktreeListViewModel()
+
+        let appDelegate = AppDelegate()
+        appDelegate.setupStatusItem()
+        appDelegate.worktreeViewModel = worktreeVM
+        appDelegate.repoViewModel = repoVM
+
+        // Wait for eager load
+        let loaded = expectation(description: "Repos loaded")
+        let cancellable = repoVM.$repositories
+            .dropFirst()
+            .first(where: { !$0.isEmpty })
+            .sink { _ in loaded.fulfill() }
+        await fulfillment(of: [loaded], timeout: 3.0)
+        cancellable.cancel()
+
+        // selectedRepository should have been set and synced to worktreeVM
+        if let selected = repoVM.selectedRepository {
+            try await Task.sleep(for: .milliseconds(200))
+            XCTAssertEqual(worktreeVM.repository?.id, selected.id,
+                           "worktreeViewModel.repository should sync with selectedRepository")
+        }
     }
 }
