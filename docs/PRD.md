@@ -1173,7 +1173,7 @@ Force Remove Worktree
 **키보드 네비게이션**:
 - 메인 윈도우 포커스 시 Worktree 리스트가 자동으로 포커스를 받아야 함
 - `↑` / `↓`: Worktree 리스트 항목 탐색
-- `Shift+↑` / `Shift+↓`: Repository 전환 (이전/다음 repository 선택)
+- `Cmd+Shift+↑` / `Cmd+Shift+↓`: Repository 전환 (이전/다음 repository 선택)
 - `Delete`: 선택된 worktree 일반 삭제
 - `Cmd+Delete`: 선택된 worktree 강제 삭제 (Force Remove)
 - `Cmd+Shift+Delete`: 선택된 worktree 빠른 삭제 (Quick Remove)
@@ -1208,7 +1208,7 @@ Force Remove Worktree
 - [ ] 컨텍스트 메뉴 항목에 단축키 조합이 표시되어야 함
 - [ ] 단축키 변경 시 컨텍스트 메뉴 표기가 즉시 업데이트되어야 함
 - [ ] 메인 윈도우 포커스 시 화살표 키로 Worktree 리스트를 탐색할 수 있어야 함
-- [ ] `Shift+↑`/`Shift+↓`로 Repository를 전환할 수 있어야 함
+- [ ] `Cmd+Shift+↑`/`Cmd+Shift+↓`로 Repository를 전환할 수 있어야 함
 - [ ] `Delete`/`Cmd+Delete`/`Cmd+Shift+Delete`로 각각 일반/강제/빠른 삭제가 되어야 함
 
 ---

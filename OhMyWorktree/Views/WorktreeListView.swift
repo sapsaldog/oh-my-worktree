@@ -2,7 +2,6 @@ import SwiftUI
 
 struct WorktreeListView: View {
     @ObservedObject var viewModel: WorktreeListViewModel
-    var repoViewModel: RepositoryListViewModel?
     @EnvironmentObject var shortcutManager: ShortcutManager
     @State private var selectedIDs: Set<UUID> = []
     @State private var renamingWorktreeID: UUID?
@@ -210,7 +209,7 @@ struct WorktreeListView: View {
                 viewModel.removeWorktree(worktree)
             }
             .disabled(!actions.canRemove)
-            .keyboardShortcut(.delete)
+            .keyboardShortcut(.delete, modifiers: [])
 
             Button("Force Remove Worktree", role: .destructive) {
                 forceRemoveTarget = .single(worktree)

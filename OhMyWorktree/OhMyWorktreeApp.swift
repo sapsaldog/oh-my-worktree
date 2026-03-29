@@ -33,6 +33,16 @@ struct OhMyWorktreeApp: App {
                 }
                 .keyboardShortcut(",", modifiers: .command)
             }
+            CommandMenu("Navigate") {
+                Button("Previous Repository") {
+                    Task { @MainActor in repoViewModel.selectPreviousRepository() }
+                }
+                .keyboardShortcut(.upArrow, modifiers: [.command, .shift])
+                Button("Next Repository") {
+                    Task { @MainActor in repoViewModel.selectNextRepository() }
+                }
+                .keyboardShortcut(.downArrow, modifiers: [.command, .shift])
+            }
         }
     }
 

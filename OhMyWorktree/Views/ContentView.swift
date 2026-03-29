@@ -69,7 +69,7 @@ struct ContentView: View {
 
             Divider()
 
-            WorktreeListView(viewModel: worktreeViewModel, repoViewModel: repoViewModel)
+            WorktreeListView(viewModel: worktreeViewModel)
                 .frame(maxHeight: .infinity)
 
             Divider()
@@ -77,22 +77,6 @@ struct ContentView: View {
             QueueStatusBarView(viewModel: worktreeViewModel)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-        }
-        .onKeyPress(phases: .down) { press in
-            handleMainKeyPress(press)
-        }
-    }
-
-    private func handleMainKeyPress(_ press: KeyPress) -> KeyPress.Result {
-        switch press.key {
-        case .upArrow where press.modifiers.contains(.shift):
-            repoViewModel.selectPreviousRepository()
-            return .handled
-        case .downArrow where press.modifiers.contains(.shift):
-            repoViewModel.selectNextRepository()
-            return .handled
-        default:
-            return .ignored
         }
     }
 
