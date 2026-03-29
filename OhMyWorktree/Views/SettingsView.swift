@@ -87,15 +87,16 @@ struct SettingsView: View {
                 }
                 .disabled(!updaterManager.canCheckForUpdates)
             }
+
+            Section {
+                Text("v\(appVersion) (\(buildNumber)) · \(commitHash)")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity)
+            }
+            .listRowBackground(Color.clear)
         }
         .formStyle(.grouped)
-        .safeAreaInset(edge: .bottom) {
-            Text("v\(appVersion) (\(buildNumber)) · \(commitHash)")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-                .frame(maxWidth: .infinity)
-                .padding(.bottom, 8)
-        }
         .onAppear {
             launchAtLogin = SMAppService.mainApp.status == .enabled
         }
