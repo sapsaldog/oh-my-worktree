@@ -39,7 +39,7 @@ struct BackgroundTaskQueueTests {
     private func waitForIdle(timeout: TimeInterval = 2) async {
         let deadline = Date().addingTimeInterval(timeout)
         while sut.hasActiveJobs && Date() < deadline {
-            await Task.yield()
+            try? await Task.sleep(for: .milliseconds(10))
         }
     }
 
@@ -227,48 +227,50 @@ struct BackgroundTaskQueueTests {
     // MARK: - onJobStateChange
 
     @Test func onJobStateChange_completedCalledOnSuccess() async {
-        var completedIDs: [UUID] = []
-        sut.onJobStateChange = { job in
-            if job.state == .completed { completedIDs.append(job.id) }
-        }
-
         let job = makeJob(kind: .pull)
-        sut.enqueue(job)
-        await waitForIdle()
 
-        #expect(completedIDs.contains(job.id))
+        await confirmation { completed in
+            sut.onJobStateChange = { changedJob in
+                if changedJob.id == job.id && changedJob.state == .completed {
+                    completed()
+                }
+            }
+            sut.enqueue(job)
+            await waitForIdle()
+        }
     }
 
     @Test func onJobStateChange_failedCalledOnGitError() async {
         mockExecutor.shouldFail = true
-
-        var failedJobs: [BackgroundJob] = []
-        sut.onJobStateChange = { job in
-            if case .failed = job.state { failedJobs.append(job) }
-        }
-
         let job = makeJob(kind: .pull)
-        sut.enqueue(job)
-        await waitForIdle()
 
-        #expect(failedJobs.count == 1)
-        #expect(failedJobs.first?.id == job.id)
+        await confirmation { failed in
+            sut.onJobStateChange = { changedJob in
+                if changedJob.id == job.id, case .failed = changedJob.state {
+                    failed()
+                }
+            }
+            sut.enqueue(job)
+            await waitForIdle()
+        }
     }
 
     @Test func onJobStateChange_receivesCorrectJobID() async {
-        var receivedIDs: [UUID] = []
         let jobs = (0..<3).map { _ in makeJob(kind: .pull) }
-
-        sut.onJobStateChange = { job in
-            receivedIDs.append(job.id)
-        }
-        sut.enqueue(jobs)
-        await waitForIdle()
-
         let enqueuedIDs = Set(jobs.map { $0.id })
-        let callbackIDs = Set(receivedIDs)
-        #expect(enqueuedIDs.isSubset(of: callbackIDs),
-               "All enqueued job IDs should appear in callbacks")
+
+        await confirmation(expectedCount: 3) { received in
+            var seen: Set<UUID> = []
+            sut.onJobStateChange = { changedJob in
+                if changedJob.state == .completed && enqueuedIDs.contains(changedJob.id) {
+                    if seen.insert(changedJob.id).inserted {
+                        received()
+                    }
+                }
+            }
+            sut.enqueue(jobs)
+            await waitForIdle()
+        }
     }
 
     // MARK: - Stress Tests
