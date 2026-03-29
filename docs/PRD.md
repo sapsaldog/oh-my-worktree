@@ -2,7 +2,7 @@
 
 **버전**: 1.2.2
 **작성일**: 2026-03-09
-**대상 플랫폼**: macOS 14+ (Sonoma 이상)
+**대상 플랫폼**: macOS 15+ (Sequoia 이상)
 **상태**: Draft
 
 ---
@@ -904,6 +904,36 @@ branch refs/heads/feature/new-feature
 
 ---
 
+#### FR-038: Help 메뉴 및 사용자 문서 (P2)
+
+**설명**: 메인 메뉴바의 Help 메뉴에서 온라인 사용자 문서와 이슈 트래커에 접근할 수 있도록 함. 별도의 Apple Help Book 없이 GitHub 호스팅 문서로 연결.
+
+**배경**:
+- 기존에 Help 메뉴 클릭 시 "Help isn't available for OhMyWorktree" 다이얼로그가 표시됨
+- 오픈소스 프로젝트로서 사용자 문서(Getting Started, User Guide, FAQ 등)가 필요
+- Apple Help Book은 구현 비용 대비 효과가 낮아, GitHub docs로 대체
+
+**상세 요구사항**:
+- **메인 메뉴바 Help 메뉴**:
+  - `CommandGroup(replacing: .help)`로 시스템 기본 Help 메뉴 교체
+  - "Oh My Worktree Help" → `https://github.com/sapsaldog/oh-my-worktree/tree/main/docs#readme` 열기
+  - "Report Issue..." → `https://github.com/sapsaldog/oh-my-worktree/issues` 열기
+  - `NSWorkspace.shared.open()` 사용하여 기본 브라우저에서 열기
+- **Status item 드롭다운 메뉴**: Help 항목 미포함 (드롭다운은 worktree 작업에 집중)
+- **사용자 문서 (`docs/` 폴더)**:
+  - `docs/README.md` — 문서 인덱스 (GitHub에서 docs/ 폴더 진입 시 표시)
+  - `docs/getting-started.md` — 설치, 첫 실행, 초기 설정
+  - `docs/user-guide.md` — 전체 기능 사용법
+  - `docs/keyboard-shortcuts.md` — 단축키 전체 목록 및 커스터마이즈 방법
+  - `docs/faq.md` — FAQ 및 트러블슈팅
+
+**영향받는 컴포넌트**:
+- `OhMyWorktreeApp` (`CommandGroup(replacing: .help)` 추가)
+- `docs/` 폴더 (사용자 문서 파일 추가)
+- `README.md` (Documentation 섹션 추가)
+
+---
+
 #### FR-030: Worktree 이름 변경 (Rename) (P1)
 
 **설명**: Worktree에 사용자 지정 이름(customName)을 설정하여 표시 이름을 변경할 수 있음. 이름을 비우면 기존 표기 룰(브랜치명 또는 Detached)로 복귀.
@@ -1101,7 +1131,7 @@ Force Remove Worktree
 
 **상세 요구사항**:
 - `SMAppService.mainApp` (ServiceManagement 프레임워크) 사용
-- macOS 13+ API, 앱 대상 macOS 14+이므로 완전 지원
+- macOS 13+ API, 앱 대상 macOS 15+이므로 완전 지원
 - 별도 Helper App 불필요
 - Settings 창 General 섹션에 "Launch at Login" 토글 제공
 - 토글 on: `SMAppService.mainApp.register()` 호출
@@ -1403,8 +1433,7 @@ let nouns = ["ocean", "river", "mountain", "forest", "sky", "lunch", "pizza", ..
 ### 6.4 호환성 요구사항
 
 **NFR-008: macOS 버전 (P0)**
-- 최소 지원: macOS 14 (Sonoma)
-- 권장: macOS 15 (Sequoia)
+- 최소 지원: macOS 15 (Sequoia)
 - Apple Silicon (M1/M2/M3) 및 Intel 모두 지원
 
 **NFR-009: Git 버전 (P0)**
@@ -1634,7 +1663,7 @@ flowchart TD
 |--------|------|
 | UI 프레임워크 | SwiftUI |
 | 언어 | Swift 5.9+ |
-| 최소 OS | macOS 14 (Sonoma) |
+| 최소 OS | macOS 15 (Sequoia) |
 | 아키텍처 패턴 | MVVM (Model-View-ViewModel) |
 | Git 통합 | Process / NSTask (Git CLI) |
 | 데이터 영속성 | Codable + FileManager + UserDefaults |

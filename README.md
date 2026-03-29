@@ -12,11 +12,16 @@ A native macOS menu bar app for managing Git worktrees with speed and elegance.
 - **Worktree Management** — List, create, and delete worktrees with a clean interface
 - **Smart Naming** — Automatic random name generation (e.g., `tokyo-lunch`, `bright-ocean`) to keep branch names organized
 - **GitHub PR Integration** — Shows PR status badges (#number) next to branch names; click to open PR in browser (requires [`gh` CLI](https://cli.github.com/))
+- **Import from GitHub PR** — Create a worktree directly from an open pull request with automatic branch setup
 - **External Tool Integration** — Open worktrees directly in iTerm, Ghostty, cmux, VSCode, or Cursor with one click
 - **Menu Bar Mode** — Lives in the menu bar with quick-access dropdown for repositories, worktrees, and tool launching
+- **Global Hotkey** — Toggle the menu bar dropdown from anywhere with ⌥⇧W (customizable)
 - **`.worktreeinclude` Patterns** — Flexible glob-based file copying when creating new worktrees; compatible with [Claude Code](https://claude.ai/code) worktree patterns
 - **Activity Tracking** — View relative last activity time per worktree (e.g., "2h ago", "7d ago", "just now")
+- **Quick Remove** — Move worktrees to Trash for safe, recoverable deletion (⇧⌘⌫)
 - **Git Pull** — Pull latest changes for any worktree with result summary and conflict detection
+- **Full Keyboard Navigation** — 13+ customizable shortcuts for all worktree and repository actions
+- **System Notifications** — macOS notifications for background job completion and errors
 - **Real-Time Branch Detection** — Menu bar title updates instantly when branches change externally
 - **Launch at Login** — Start automatically when you log in, configurable in Settings
 - **Auto-Update** — Built-in Sparkle update framework, configurable in Settings
@@ -24,9 +29,9 @@ A native macOS menu bar app for managing Git worktrees with speed and elegance.
 
 ## Requirements
 
-- **macOS 14.0** (Sonoma) or later
+- **macOS 15.0** (Sequoia) or later
 - **Git 2.30** or later
-- **Xcode 15** or later (for building from source)
+- **Xcode 16** or later (for building from source)
 
 ## Installation
 
@@ -170,6 +175,15 @@ Oh My Worktree uses a clean MVVM architecture with clear separation of concerns:
 - **GitHeadMonitor** — `DispatchSource` file watcher on `.git/HEAD` for real-time branch detection
 - **WindowObserver** — Dynamic activation policy toggling for proper window focus management
 - **UpdaterManager** — Sparkle auto-update controller wrapper
+
+## Documentation
+
+For detailed guides, see the [docs](docs/) folder:
+
+- [Getting Started](docs/getting-started.md) — Installation and first launch
+- [User Guide](docs/user-guide.md) — Complete feature walkthrough
+- [Keyboard Shortcuts](docs/keyboard-shortcuts.md) — Full shortcut list
+- [FAQ](docs/faq.md) — Troubleshooting and common questions
 
 ## Contributing
 

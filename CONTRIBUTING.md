@@ -5,8 +5,8 @@ Thank you for your interest in contributing! This guide will help you get starte
 ## Development Environment Setup
 
 ### Requirements
-- **Xcode 15+** (with Command Line Tools)
-- **macOS 14+** (Sonoma or later)
+- **Xcode 16+** (with Command Line Tools)
+- **macOS 15+** (Sequoia or later)
 - **Git 2.30+**
 - **Swift 5.9+**
 
