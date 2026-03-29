@@ -169,6 +169,7 @@ struct WorktreeListView: View {
 
         Button("Rename") { renamingWorktreeID = worktree.id }
             .disabled(!actions.canRename)
+            .keyboardShortcut(.return, modifiers: [])
 
         Divider()
 
@@ -241,20 +242,23 @@ struct WorktreeListView: View {
             }
         } else if let repository = viewModel.repository, !worktree.isRoot(of: repository) {
             Divider()
-            Button("Remove Worktree  ⌫", role: .destructive) {
+            Button("Remove Worktree", role: .destructive) {
                 viewModel.removeWorktree(worktree)
             }
             .disabled(!actions.canRemove)
+            .keyboardShortcut(.delete, modifiers: [])
 
-            Button("Force Remove Worktree  ⌘⌫", role: .destructive) {
+            Button("Force Remove Worktree", role: .destructive) {
                 forceRemoveTarget = .single(worktree)
             }
             .disabled(!actions.canForceRemove)
+            .keyboardShortcut(.delete, modifiers: .command)
 
-            Button("Quick Remove Worktree  ⇧⌘⌫", role: .destructive) {
+            Button("Quick Remove Worktree", role: .destructive) {
                 quickRemoveTarget = worktree
             }
             .disabled(!actions.canQuickRemove)
+            .keyboardShortcut(.delete, modifiers: [.command, .shift])
         }
     }
 
