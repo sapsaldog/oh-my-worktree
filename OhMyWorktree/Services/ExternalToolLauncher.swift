@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 final class ExternalToolLauncher: Sendable {
 
@@ -224,14 +225,16 @@ final class ExternalToolLauncher: Sendable {
         try await withThrowingTaskGroup(of: Void.self) { group in
             group.addTask {
                 await withCheckedContinuation { continuation in
+                    let resumed = OSAllocatedUnfairLock(initialState: false)
                     let source = DispatchSource.makeFileSystemObjectSource(
                         fileDescriptor: fd, eventMask: .write, queue: .global()
                     )
                     source.setEventHandler {
                         if FileManager.default.fileExists(atPath: path) {
                             source.cancel()
-                            close(fd)
-                            continuation.resume()
+                            if resumed.withLock({ let old = $0; $0 = true; return !old }) {
+                                continuation.resume()
+                            }
                         }
                     }
                     source.setCancelHandler {
@@ -243,13 +246,15 @@ final class ExternalToolLauncher: Sendable {
                     // between the initial check and source activation.
                     if FileManager.default.fileExists(atPath: path) {
                         source.cancel()
-                        continuation.resume()
+                        if resumed.withLock({ let old = $0; $0 = true; return !old }) {
+                            continuation.resume()
+                        }
                     }
                 }
             }
             group.addTask {
                 // swiftlint:disable:next no_arbitrary_delay
-                try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+                try await Task.sleep(for: .seconds(timeout))
                 throw OhMyWorktreeError.commandExecutionFailed(
                     command: "waitForFile",
                     stderr: "File did not appear within \(Int(timeout)) seconds: \(path)"
