@@ -10,9 +10,13 @@ final class RepositoryListViewModel: ObservableObject {
     @Published var showingFileDialog = false
 
     let store: RepositoryStore
+    private let userDefaults: UserDefaults
 
-    init(store: RepositoryStore = .shared) {
+    static let lastSelectedRepositoryIDKey = "lastSelectedRepositoryID"
+
+    init(store: RepositoryStore = .shared, userDefaults: UserDefaults = .standard) {
         self.store = store
+        self.userDefaults = userDefaults
     }
 
     // MARK: - Load
@@ -23,9 +27,15 @@ final class RepositoryListViewModel: ObservableObject {
 
         repositories = await store.getRepositories()
 
-        // Restore last selected repository
-        if selectedRepository == nil, let first = repositories.first {
-            selectedRepository = first
+        // Restore last selected repository from UserDefaults
+        if selectedRepository == nil {
+            if let savedIDString = userDefaults.string(forKey: Self.lastSelectedRepositoryIDKey),
+               let savedID = UUID(uuidString: savedIDString),
+               let match = repositories.first(where: { $0.id == savedID }) {
+                selectedRepository = match
+            } else if let first = repositories.first {
+                selectedRepository = first
+            }
         }
 
         // If selected repository no longer exists in list, reset
@@ -78,6 +88,7 @@ final class RepositoryListViewModel: ObservableObject {
 
     func selectRepository(_ repository: Repository) async {
         selectedRepository = repository
+        userDefaults.set(repository.id.uuidString, forKey: Self.lastSelectedRepositoryIDKey)
         await store.updateLastAccessed(id: repository.id)
     }
 

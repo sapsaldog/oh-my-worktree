@@ -16,6 +16,7 @@
 		14E42FFD99B49D00630EA203 /* WorktreeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BD25714038218BA848A16DA /* WorktreeTests.swift */; };
 		150BA7D5A0121054A1307FF1 /* WorktreeMetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E37907BD97EF1278CAD9A1B /* WorktreeMetadataTests.swift */; };
 		156C6EB8ECDE30DC56C50A6B /* Repository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C1B43B188C597C61F1DC2EA /* Repository.swift */; };
+		15E1631F96D1D18F037888FE /* RepositoryListViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81C4077AB44A985FC65272E4 /* RepositoryListViewModelTests.swift */; };
 		1C1FE0AA00CDDC453D7CD3C9 /* WorktreeManager+Parsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 480F07AB9D151580E4392F2C /* WorktreeManager+Parsing.swift */; };
 		1D280B90168CDB181DC5FAE4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 73CCA7E1C1ACBAF4E4291EA8 /* Assets.xcassets */; };
 		1D5329DDE42009E76C2650C5 /* ExternalToolLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 155B3645306233DD226910E8 /* ExternalToolLauncher.swift */; };
@@ -133,6 +134,7 @@
 		71C73C1DDF96F9DBDBE34C9D /* Date+RelativeTime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+RelativeTime.swift"; sourceTree = "<group>"; };
 		73CCA7E1C1ACBAF4E4291EA8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		811A9D3615B46E7D12735276 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
+		81C4077AB44A985FC65272E4 /* RepositoryListViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryListViewModelTests.swift; sourceTree = "<group>"; };
 		881A1BB15AE24772D0F82EC4 /* HotkeyRecorderViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRecorderViewModelTests.swift; sourceTree = "<group>"; };
 		8C48E8BD55146561E170E91A /* WorktreeRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeRowView.swift; sourceTree = "<group>"; };
 		8D0B554A7A3F05F099599D36 /* GitHeadMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHeadMonitor.swift; sourceTree = "<group>"; };
@@ -243,6 +245,7 @@
 				C9F3D7DAE61099FF17488E05 /* PullRequestInfoTests.swift */,
 				038E188FA5528808D1BCFCC7 /* PullRequestServiceTests.swift */,
 				BF799E855838610F7B5E4345 /* RepositoryListViewModelNavigationTests.swift */,
+				81C4077AB44A985FC65272E4 /* RepositoryListViewModelTests.swift */,
 				13A81FF314A143B73B1AB7C8 /* RepositoryStoreRenameTests.swift */,
 				C09FB0B270C86599025ECB8C /* ShortcutActionTests.swift */,
 				2A9067CC38D79C1B97FBAEAA /* ShortcutManagerTests.swift */,
@@ -485,6 +488,7 @@
 				A04EF872B11EC64861D1931F /* PullRequestInfoTests.swift in Sources */,
 				38723E3C67DD58A9D57EAD4B /* PullRequestServiceTests.swift in Sources */,
 				5A71C946790D3FAAC3B2AF80 /* RepositoryListViewModelNavigationTests.swift in Sources */,
+				15E1631F96D1D18F037888FE /* RepositoryListViewModelTests.swift in Sources */,
 				A00DF8B5591361457887300F /* RepositoryStoreRenameTests.swift in Sources */,
 				EC99BC3CAE5790CBD5D6D26E /* ShortcutActionTests.swift in Sources */,
 				FB3FF8FDBBFB2838013C6FC4 /* ShortcutManagerTests.swift in Sources */,

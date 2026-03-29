@@ -61,7 +61,7 @@ targets:
         CFBundleIdentifier: com.ohmyworktree.app
         CFBundleInfoDictionaryVersion: "6.0"
         CFBundlePackageType: APPL
-        CFBundleShortVersionString: "1.2.3"
+        CFBundleShortVersionString: "1.2.4"
         CFBundleVersion: "9"
         LSApplicationCategoryType: public.app-category.developer-tools
         NSHumanReadableCopyright: ""
