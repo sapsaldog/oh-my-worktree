@@ -1152,7 +1152,7 @@ Force Remove Worktree
 **상세 요구사항**:
 
 **글로벌 핫키**:
-- `⌥⇧W` (기본값): 메뉴 바 팝업 토글 (앱이 백그라운드에 있어도 동작)
+- `⌥⇧W` (기본값): 메인 윈도우 열기/포커스 (앱이 백그라운드에 있어도 동작)
 - Settings > Shortcuts 탭에서 활성화/비활성화 토글
 - `NSEvent.addGlobalMonitorForEvents` 기반 구현
 
@@ -1170,6 +1170,11 @@ Force Remove Worktree
 | `Cmd+Shift+M` | CMux에서 열기 |
 | `Cmd+R` | 목록 새로고침 |
 
+**컨텍스트 메뉴 단축키 표기**:
+- Worktree 컨텍스트 메뉴(우클릭)의 각 항목 옆에 해당 단축키 조합 표시
+- 사용자가 Settings에서 단축키를 변경하면 컨텍스트 메뉴 표기도 즉시 반영
+- 대상 항목: Open in iTerm/Ghostty/VSCode/Cursor/cmux, Remove Worktree 등
+
 **단축키 커스터마이징** (Settings > Shortcuts 탭):
 - 모든 단축키(글로벌 핫키 + 인앱 단축키) 변경 가능
 - 키 레코더 UI 제공:
@@ -1181,7 +1186,7 @@ Force Remove Worktree
 - 단축키 설정은 `AppStorage`에 저장
 
 **인수 기준**:
-- [ ] `⌥⇧W` 핫키로 메뉴 바 팝업이 토글되어야 함
+- [ ] `⌥⇧W` 핫키로 메인 윈도우가 열리거나 포커스되어야 함
 - [ ] 메인 윈도우에서 `Cmd+,` 입력 시 Settings 창이 열려야 함
 - [ ] 모든 인앱 단축키가 해당 기능을 실행해야 함
 - [ ] Settings > Shortcuts 탭에서 모든 단축키를 변경할 수 있어야 함
@@ -1190,6 +1195,8 @@ Force Remove Worktree
 - [ ] ESC로 recording 취소, ⌫로 기본값 복원이 되어야 함
 - [ ] 변경된 단축키가 즉시 적용되어야 함
 - [ ] 앱 재시작 후에도 설정이 유지되어야 함
+- [ ] 컨텍스트 메뉴 항목에 단축키 조합이 표시되어야 함
+- [ ] 단축키 변경 시 컨텍스트 메뉴 표기가 즉시 업데이트되어야 함
 
 ---
 
