@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WorktreeListView: View {
     @ObservedObject var viewModel: WorktreeListViewModel
+    var repoViewModel: RepositoryListViewModel?
     @EnvironmentObject var shortcutManager: ShortcutManager
     @State private var selectedIDs: Set<UUID> = []
     @State private var renamingWorktreeID: UUID?
@@ -10,141 +11,100 @@ struct WorktreeListView: View {
     @State private var confirmBulkQuickRemove = false
     @State private var quickRemoveTarget: Worktree?
 
-    private enum ForceRemoveTarget {
+    enum ForceRemoveTarget {
         case single(Worktree)
         case selectedWorktrees(count: Int)
     }
 
     var body: some View {
-        Group {
-            if viewModel.repository == nil {
-                emptyStateView(
-                    icon: "folder.badge.questionmark",
-                    title: "No Repository Selected",
-                    subtitle: "Add a repository to get started"
-                )
-            } else if viewModel.isLoading && viewModel.worktrees.isEmpty {
-                ProgressView("Loading worktrees...")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if viewModel.worktrees.isEmpty && !viewModel.jobQueue.hasActiveJobs {
-                emptyStateView(
-                    icon: "tray",
-                    title: "No Worktrees",
-                    subtitle: "Click + to create a new worktree"
-                )
-            } else {
-                let jobStates = jobStateByWorktreeID
-                List(selection: $selectedIDs) {
-                    ForEach(viewModel.worktrees) { worktree in
-                        worktreeRow(for: worktree, jobStates: jobStates)
-                            .tag(worktree.id)
-                            .contextMenu {
-                                contextMenuItems(for: worktree)
-                            }
-                    }
-                }
-                .listStyle(.inset)
-                .onChange(of: selectedIDs) { _, newIDs in
-                    guard newIDs != viewModel.selectedWorktreeIDs else { return }
-                    let vm = viewModel
-                    Task { @MainActor in vm.selectedWorktreeIDs = newIDs }
-                }
-                .onChange(of: viewModel.selectedWorktreeIDs) { _, newIDs in
-                    if newIDs != selectedIDs { selectedIDs = newIDs }
-                }
-                .onKeyPress(.return) {
-                    guard renamingWorktreeID == nil,
-                          selectedIDs.count == 1,
-                          let id = selectedIDs.first,
-                          let worktree = viewModel.worktrees.first(where: { $0.id == id })
-                    else { return .ignored }
-                    renamingWorktreeID = worktree.id
-                    return .handled
-                }
-                .onKeyPress(.escape) {
-                    guard !selectedIDs.isEmpty else { return .ignored }
-                    selectedIDs = []
-                    return .handled
-                }
-            }
-        }
-        .confirmationDialog(
-            forceRemoveConfirmationTitle,
-            isPresented: Binding(
-                get: { forceRemoveTarget != nil },
-                set: { if !$0 { forceRemoveTarget = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button("Force Remove", role: .destructive) {
-                switch forceRemoveTarget {
-                case .single(let worktree):
-                    viewModel.removeWorktree(worktree, force: true)
-                case .selectedWorktrees:
-                    viewModel.removeSelectedWorktrees(force: true)
-                case nil:
-                    break
-                }
-                forceRemoveTarget = nil
-            }
-            Button("Cancel", role: .cancel) { forceRemoveTarget = nil }
-        } message: {
-            Text("Uncommitted changes will be lost. This cannot be undone.")
-        }
-        .confirmationDialog(
-            "Remove \(viewModel.selectedWorktreeIDs.count) Worktrees?",
-            isPresented: $confirmBulkRemove,
-            titleVisibility: .visible
-        ) {
-            Button("Remove", role: .destructive) {
-                viewModel.removeSelectedWorktrees(force: false)
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Worktrees with uncommitted changes will not be removed.")
-        }
-        .confirmationDialog(
-            "Quick Remove \(viewModel.selectedWorktreeIDs.count) Worktrees?",
-            isPresented: $confirmBulkQuickRemove,
-            titleVisibility: .visible
-        ) {
-            Button("Quick Remove", role: .destructive) {
-                viewModel.quickRemoveSelectedWorktrees()
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            // swiftlint:disable:next line_length
-            Text("Directories will be moved to Trash. Uncommitted changes will not be checked. Git worktree registration will be removed immediately.")
-        }
-        .confirmationDialog(
-            "Quick Remove '\(quickRemoveTarget?.displayName ?? "")'?",
-            isPresented: Binding(
-                get: { quickRemoveTarget != nil },
-                set: { if !$0 { quickRemoveTarget = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button("Quick Remove", role: .destructive) {
-                if let worktree = quickRemoveTarget {
-                    viewModel.quickRemoveWorktree(worktree)
-                }
-                quickRemoveTarget = nil
-            }
-            Button("Cancel", role: .cancel) { quickRemoveTarget = nil }
-        } message: {
-            // swiftlint:disable:next line_length
-            Text("The directory will be moved to Trash. Uncommitted changes will not be checked. Git worktree registration will be removed immediately.")
+        listContent
+            .modifier(RemovalDialogsModifier(
+                viewModel: viewModel,
+                forceRemoveTarget: $forceRemoveTarget,
+                confirmBulkRemove: $confirmBulkRemove,
+                confirmBulkQuickRemove: $confirmBulkQuickRemove,
+                quickRemoveTarget: $quickRemoveTarget
+            ))
+    }
+
+    @ViewBuilder
+    private var listContent: some View {
+        if viewModel.repository == nil {
+            emptyStateView(
+                icon: "folder.badge.questionmark",
+                title: "No Repository Selected",
+                subtitle: "Add a repository to get started"
+            )
+        } else if viewModel.isLoading && viewModel.worktrees.isEmpty {
+            ProgressView("Loading worktrees...")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if viewModel.worktrees.isEmpty && !viewModel.jobQueue.hasActiveJobs {
+            emptyStateView(
+                icon: "tray",
+                title: "No Worktrees",
+                subtitle: "Click + to create a new worktree"
+            )
+        } else {
+            worktreeList
         }
     }
 
-    private var forceRemoveConfirmationTitle: String {
-        switch forceRemoveTarget {
-        case .single(let worktree):
-            return "Force Remove '\(worktree.displayName)'?"
-        case .selectedWorktrees(let count):
-            return "Force Remove \(count) Worktree\(count == 1 ? "" : "s")?"
-        case nil:
-            return ""
+    // MARK: - Worktree List
+
+    private var worktreeList: some View {
+        let jobStates = jobStateByWorktreeID
+        return List(selection: $selectedIDs) {
+            ForEach(viewModel.worktrees) { worktree in
+                worktreeRow(for: worktree, jobStates: jobStates)
+                    .tag(worktree.id)
+                    .contextMenu {
+                        contextMenuItems(for: worktree)
+                    }
+            }
+        }
+        .listStyle(.inset)
+        .onChange(of: selectedIDs) { _, newIDs in
+            guard newIDs != viewModel.selectedWorktreeIDs else { return }
+            let vm = viewModel
+            Task { @MainActor in vm.selectedWorktreeIDs = newIDs }
+        }
+        .onChange(of: viewModel.selectedWorktreeIDs) { _, newIDs in
+            if newIDs != selectedIDs { selectedIDs = newIDs }
+        }
+        .onKeyPress(phases: .down, action: handleKeyPress)
+    }
+
+    // MARK: - Key Press Handler
+
+    private func handleKeyPress(_ press: KeyPress) -> KeyPress.Result {
+        switch press.key {
+        case .return:
+            guard renamingWorktreeID == nil,
+                  selectedIDs.count == 1,
+                  let id = selectedIDs.first,
+                  let worktree = viewModel.worktrees.first(where: { $0.id == id })
+            else { return .ignored }
+            renamingWorktreeID = worktree.id
+            return .handled
+
+        case .escape:
+            guard !selectedIDs.isEmpty else { return .ignored }
+            selectedIDs = []
+            return .handled
+
+        case .upArrow where press.modifiers.contains(.shift):
+            repoViewModel?.selectPreviousRepository()
+            return .handled
+
+        case .downArrow where press.modifiers.contains(.shift):
+            repoViewModel?.selectNextRepository()
+            return .handled
+
+        case .delete:
+            return handleDelete(modifiers: press.modifiers)
+
+        default:
+            return .ignored
         }
     }
 
@@ -296,5 +256,137 @@ struct WorktreeListView: View {
             }
             .disabled(!actions.canQuickRemove)
         }
+    }
+
+}
+
+// MARK: - Removal Confirmation Dialogs
+
+private struct RemovalDialogsModifier: ViewModifier {
+    @ObservedObject var viewModel: WorktreeListViewModel
+    @Binding var forceRemoveTarget: WorktreeListView.ForceRemoveTarget?
+    @Binding var confirmBulkRemove: Bool
+    @Binding var confirmBulkQuickRemove: Bool
+    @Binding var quickRemoveTarget: Worktree?
+
+    // swiftlint:disable:next function_body_length
+    func body(content: Content) -> some View {
+        content
+            .confirmationDialog(
+                forceRemoveConfirmationTitle,
+                isPresented: Binding(
+                    get: { forceRemoveTarget != nil },
+                    set: { if !$0 { forceRemoveTarget = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                Button("Force Remove", role: .destructive) {
+                    switch forceRemoveTarget {
+                    case .single(let worktree):
+                        viewModel.removeWorktree(worktree, force: true)
+                    case .selectedWorktrees:
+                        viewModel.removeSelectedWorktrees(force: true)
+                    case nil:
+                        break
+                    }
+                    forceRemoveTarget = nil
+                }
+                Button("Cancel", role: .cancel) { forceRemoveTarget = nil }
+            } message: {
+                Text("Uncommitted changes will be lost. This cannot be undone.")
+            }
+            .confirmationDialog(
+                "Remove \(viewModel.selectedWorktreeIDs.count) Worktrees?",
+                isPresented: $confirmBulkRemove,
+                titleVisibility: .visible
+            ) {
+                Button("Remove", role: .destructive) {
+                    viewModel.removeSelectedWorktrees(force: false)
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Worktrees with uncommitted changes will not be removed.")
+            }
+            .confirmationDialog(
+                "Quick Remove \(viewModel.selectedWorktreeIDs.count) Worktrees?",
+                isPresented: $confirmBulkQuickRemove,
+                titleVisibility: .visible
+            ) {
+                Button("Quick Remove", role: .destructive) {
+                    viewModel.quickRemoveSelectedWorktrees()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                // swiftlint:disable:next line_length
+                Text("Directories will be moved to Trash. Uncommitted changes will not be checked. Git worktree registration will be removed immediately.")
+            }
+            .confirmationDialog(
+                "Quick Remove '\(quickRemoveTarget?.displayName ?? "")'?",
+                isPresented: Binding(
+                    get: { quickRemoveTarget != nil },
+                    set: { if !$0 { quickRemoveTarget = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                Button("Quick Remove", role: .destructive) {
+                    if let worktree = quickRemoveTarget {
+                        viewModel.quickRemoveWorktree(worktree)
+                    }
+                    quickRemoveTarget = nil
+                }
+                Button("Cancel", role: .cancel) { quickRemoveTarget = nil }
+            } message: {
+                // swiftlint:disable:next line_length
+                Text("The directory will be moved to Trash. Uncommitted changes will not be checked. Git worktree registration will be removed immediately.")
+            }
+    }
+
+    private var forceRemoveConfirmationTitle: String {
+        switch forceRemoveTarget {
+        case .single(let worktree):
+            return "Force Remove '\(worktree.displayName)'?"
+        case .selectedWorktrees(let count):
+            return "Force Remove \(count) Worktree\(count == 1 ? "" : "s")?"
+        case nil:
+            return ""
+        }
+    }
+}
+
+// MARK: - Delete Key Handling
+
+extension WorktreeListView {
+
+    /// Delete: remove, Cmd+Delete: force remove, Cmd+Shift+Delete: quick remove
+    func handleDelete(modifiers: SwiftUI.EventModifiers) -> KeyPress.Result {
+        guard !selectedIDs.isEmpty else { return .ignored }
+
+        let isMulti = selectedIDs.count >= 2
+
+        if modifiers.contains(.command) && modifiers.contains(.shift) {
+            // Cmd+Shift+Delete → Quick Remove
+            if isMulti {
+                confirmBulkQuickRemove = true
+            } else if let id = selectedIDs.first,
+                      let worktree = viewModel.worktrees.first(where: { $0.id == id }) {
+                quickRemoveTarget = worktree
+            }
+        } else if modifiers.contains(.command) {
+            // Cmd+Delete → Force Remove
+            if isMulti {
+                forceRemoveTarget = .selectedWorktrees(count: selectedIDs.count)
+            } else if let id = selectedIDs.first,
+                      let worktree = viewModel.worktrees.first(where: { $0.id == id }) {
+                forceRemoveTarget = .single(worktree)
+            }
+        } else {
+            // Delete → Normal Remove
+            if isMulti {
+                confirmBulkRemove = true
+            } else {
+                viewModel.removeSelectedWorktrees(force: false)
+            }
+        }
+        return .handled
     }
 }

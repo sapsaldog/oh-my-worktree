@@ -69,7 +69,7 @@ struct ContentView: View {
 
             Divider()
 
-            WorktreeListView(viewModel: worktreeViewModel)
+            WorktreeListView(viewModel: worktreeViewModel, repoViewModel: repoViewModel)
                 .frame(maxHeight: .infinity)
 
             Divider()

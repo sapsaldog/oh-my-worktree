@@ -81,6 +81,32 @@ final class RepositoryListViewModel: ObservableObject {
         await store.updateLastAccessed(id: repository.id)
     }
 
+    // MARK: - Navigation
+
+    func selectNextRepository() {
+        guard !repositories.isEmpty else { return }
+        guard let current = selectedRepository,
+              let index = repositories.firstIndex(where: { $0.id == current.id }) else {
+            selectedRepository = repositories.first
+            return
+        }
+        let nextIndex = index + 1
+        guard nextIndex < repositories.count else { return }
+        selectedRepository = repositories[nextIndex]
+    }
+
+    func selectPreviousRepository() {
+        guard !repositories.isEmpty else { return }
+        guard let current = selectedRepository,
+              let index = repositories.firstIndex(where: { $0.id == current.id }) else {
+            selectedRepository = repositories.first
+            return
+        }
+        let prevIndex = index - 1
+        guard prevIndex >= 0 else { return }
+        selectedRepository = repositories[prevIndex]
+    }
+
     // MARK: - Error Handling
 
     func clearError() {

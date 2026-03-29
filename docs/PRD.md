@@ -1170,6 +1170,16 @@ Force Remove Worktree
 | `Cmd+Shift+M` | CMux에서 열기 |
 | `Cmd+R` | 목록 새로고침 |
 
+**키보드 네비게이션**:
+- 메인 윈도우 포커스 시 Worktree 리스트가 자동으로 포커스를 받아야 함
+- `↑` / `↓`: Worktree 리스트 항목 탐색
+- `Shift+↑` / `Shift+↓`: Repository 전환 (이전/다음 repository 선택)
+- `Delete`: 선택된 worktree 일반 삭제
+- `Cmd+Delete`: 선택된 worktree 강제 삭제 (Force Remove)
+- `Cmd+Shift+Delete`: 선택된 worktree 빠른 삭제 (Quick Remove)
+- `Enter`: 선택된 worktree 이름 변경 (기존 동작 유지)
+- `Escape`: 선택 해제 (기존 동작 유지)
+
 **컨텍스트 메뉴 단축키 표기**:
 - Worktree 컨텍스트 메뉴(우클릭)의 각 항목 옆에 해당 단축키 조합 표시
 - 사용자가 Settings에서 단축키를 변경하면 컨텍스트 메뉴 표기도 즉시 반영
@@ -1197,6 +1207,9 @@ Force Remove Worktree
 - [ ] 앱 재시작 후에도 설정이 유지되어야 함
 - [ ] 컨텍스트 메뉴 항목에 단축키 조합이 표시되어야 함
 - [ ] 단축키 변경 시 컨텍스트 메뉴 표기가 즉시 업데이트되어야 함
+- [ ] 메인 윈도우 포커스 시 화살표 키로 Worktree 리스트를 탐색할 수 있어야 함
+- [ ] `Shift+↑`/`Shift+↓`로 Repository를 전환할 수 있어야 함
+- [ ] `Delete`/`Cmd+Delete`/`Cmd+Shift+Delete`로 각각 일반/강제/빠른 삭제가 되어야 함
 
 ---
 
