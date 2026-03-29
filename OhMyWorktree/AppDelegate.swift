@@ -1,6 +1,9 @@
 import AppKit
 import Combine
+import os
 import SwiftUI
+
+private let appDelegateLogger = Logger(subsystem: "com.ohmyworktree", category: "AppDelegate")
 
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
@@ -85,11 +88,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             .dropFirst()
             .sink { [weak self] newValue in
                 guard let self else { return }
-                // Sync worktreeViewModel so menu bar and windows show worktrees
+                // Sync worktreeViewModel so menu bar and windows show worktrees.
+                // Worktree loading is handled by ContentView (.onChange) and
+                // menuWillOpen — no need to duplicate it here.
                 self.worktreeViewModel?.repository = newValue
-                Task {
-                    await self.worktreeViewModel?.loadWorktrees()
-                }
                 self.rebuildMenu()
                 self.updateStatusItemTitle()
             }
@@ -382,7 +384,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func showOrCreateMainWindow() {
         guard let repoVM = repoViewModel,
-              let worktreeVM = worktreeViewModel else { return }
+              let worktreeVM = worktreeViewModel else {
+            appDelegateLogger.warning("Cannot show main window: view models not yet connected")
+            return
+        }
 
         showOrCreateWindow(
             title: Self.mainWindowTitle,
@@ -394,7 +399,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func showOrCreateSettingsWindow() {
-        guard let updaterManager else { return }
+        guard let updaterManager else {
+            appDelegateLogger.warning("Cannot show settings window: updaterManager not yet connected")
+            return
+        }
 
         showOrCreateWindow(
             title: Self.settingsWindowTitle,

@@ -252,23 +252,18 @@ struct WorktreeListView: View {
         if isMultiSelected {
             if actions.canRemove {
                 Divider()
-                Button("Quick Remove Selected Worktrees") {
-                    confirmBulkQuickRemove = true
-                }
                 Button("Remove Selected Worktrees", role: .destructive) {
                     confirmBulkRemove = true
                 }
                 Button("Force Remove Selected Worktrees", role: .destructive) {
                     forceRemoveTarget = .selectedWorktrees(count: viewModel.selectedWorktreeIDs.count)
                 }
+                Button("Quick Remove Selected Worktrees") {
+                    confirmBulkQuickRemove = true
+                }
             }
         } else if let repository = viewModel.repository, !worktree.isRoot(of: repository) {
             Divider()
-            Button("Quick Remove Worktree") {
-                quickRemoveTarget = worktree
-            }
-            .disabled(!actions.canQuickRemove)
-
             Button("Remove Worktree", role: .destructive) {
                 viewModel.removeWorktree(worktree)
             }
@@ -278,6 +273,11 @@ struct WorktreeListView: View {
                 forceRemoveTarget = .single(worktree)
             }
             .disabled(!actions.canForceRemove)
+
+            Button("Quick Remove Worktree") {
+                quickRemoveTarget = worktree
+            }
+            .disabled(!actions.canQuickRemove)
         }
     }
 }
