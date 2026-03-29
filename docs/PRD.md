@@ -1154,7 +1154,7 @@ Force Remove Worktree
 **글로벌 핫키**:
 - `⌥⇧W` (기본값): 메인 윈도우 열기/포커스 (앱이 백그라운드에 있어도 동작)
 - Settings > Shortcuts 탭에서 활성화/비활성화 토글
-- `NSEvent.addGlobalMonitorForEvents` 기반 구현
+- Carbon `RegisterEventHotKey` 기반 구현 (접근성/입력 모니터링 권한 불필요)
 
 **인앱 단축키** (기본값):
 | 단축키 | 기능 |

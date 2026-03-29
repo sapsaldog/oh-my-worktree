@@ -93,9 +93,9 @@ struct KeyCombo: Equatable {
 
 // MARK: - HotkeyManager
 
-/// Manages a global keyboard shortcut that triggers an action when pressed.
-/// Uses `NSEvent.addGlobalMonitorForEvents` for global key detection
-/// and `NSEvent.addLocalMonitorForEvents` for when the app itself is active.
+/// Manages a global keyboard shortcut using Carbon `RegisterEventHotKey`.
+/// Unlike `NSEvent.addGlobalMonitorForEvents`, the Carbon API does NOT
+/// require accessibility permissions, making it reliable for unsigned debug builds.
 @MainActor
 final class HotkeyManager {
 
@@ -103,11 +103,14 @@ final class HotkeyManager {
 
     private(set) var isRegistered = false
 
-    private var globalMonitor: Any?
-    private var localMonitor: Any?
+    private var hotKeyRef: EventHotKeyRef?
+    private var eventHandlerRef: EventHandlerRef?
     private var currentCombo: KeyCombo?
     private var action: (() -> Void)?
     private var enabled = true
+
+    /// Shared instance map for routing Carbon callbacks back to the right manager.
+    private static var activeManager: HotkeyManager?
 
     // MARK: - Public API
 
@@ -119,88 +122,114 @@ final class HotkeyManager {
             return
         }
 
-        // Clean up any previous registration
         unregister()
 
         currentCombo = combo
         action = handler
         enabled = true
+        Self.activeManager = self
 
-        installMonitors(for: combo)
+        installHotKey(for: combo)
         isRegistered = true
         logger.info("Registered global hotkey: \(combo.displayString)")
     }
 
     /// Removes the current global hotkey registration.
     func unregister() {
-        removeMonitors()
+        removeHotKey()
         isRegistered = false
     }
 
     /// Enables or disables the hotkey without losing the configured combo.
-    /// When re-enabled, the previously configured combo is restored.
     func setEnabled(_ enabled: Bool) {
         self.enabled = enabled
         if enabled {
             guard let combo = currentCombo else { return }
-            installMonitors(for: combo)
+            Self.activeManager = self
+            installHotKey(for: combo)
             isRegistered = true
             logger.info("Re-enabled global hotkey: \(combo.displayString)")
         } else {
-            removeMonitors()
+            removeHotKey()
             isRegistered = false
             logger.info("Disabled global hotkey")
         }
     }
 
-    // MARK: - Private
+    // MARK: - Carbon Hot Key Registration
 
-    private func installMonitors(for combo: KeyCombo) {
-        removeMonitors()
+    private func installHotKey(for combo: KeyCombo) {
+        removeHotKey()
 
-        let requiredModifiers: NSEvent.ModifierFlags = [.command, .option, .shift, .control]
-        let expectedFlags = combo.modifiers.intersection(requiredModifiers)
+        // Install Carbon event handler for kEventHotKeyPressed
+        var eventType = EventTypeSpec(
+            eventClass: OSType(kEventClassKeyboard),
+            eventKind: UInt32(kEventHotKeyPressed)
+        )
 
-        // Global monitor: fires when our app is NOT the active app
-        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            let eventFlags = event.modifierFlags.intersection(requiredModifiers)
-            if event.keyCode == combo.keyCode && eventFlags == expectedFlags {
-                DispatchQueue.main.async { [weak self] in
-                    self?.action?()
-                }
+        let callback: EventHandlerUPP = { _, _, _ in
+            DispatchQueue.main.async {
+                HotkeyManager.activeManager?.action?()
             }
+            return noErr
         }
 
-        // Local monitor: fires when our app IS the active app
-        localMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            let eventFlags = event.modifierFlags.intersection(requiredModifiers)
-            if event.keyCode == combo.keyCode && eventFlags == expectedFlags {
-                DispatchQueue.main.async { [weak self] in
-                    self?.action?()
-                }
-                return nil  // consume the event
-            }
-            return event
+        InstallEventHandler(
+            GetApplicationEventTarget(),
+            callback,
+            1,
+            &eventType,
+            nil,
+            &eventHandlerRef
+        )
+
+        // Register the hotkey with a unique signature "OMWT"
+        let hotKeyID = EventHotKeyID(
+            signature: OSType(0x4F4D_5754),  // "OMWT"
+            id: 1
+        )
+        let carbonMods = Self.carbonModifiers(from: combo.modifiers)
+
+        let status = RegisterEventHotKey(
+            UInt32(combo.keyCode),
+            carbonMods,
+            hotKeyID,
+            GetApplicationEventTarget(),
+            0,
+            &hotKeyRef
+        )
+
+        if status != noErr {
+            logger.error("RegisterEventHotKey failed with status: \(status)")
         }
     }
 
-    private func removeMonitors() {
-        if let globalMonitor {
-            NSEvent.removeMonitor(globalMonitor)
-            self.globalMonitor = nil
+    private func removeHotKey() {
+        if let hotKeyRef {
+            UnregisterEventHotKey(hotKeyRef)
+            self.hotKeyRef = nil
         }
-        if let localMonitor {
-            NSEvent.removeMonitor(localMonitor)
-            self.localMonitor = nil
+        if let eventHandlerRef {
+            RemoveEventHandler(eventHandlerRef)
+            self.eventHandlerRef = nil
         }
+    }
+
+    private static func carbonModifiers(from flags: NSEvent.ModifierFlags) -> UInt32 {
+        var mods: UInt32 = 0
+        if flags.contains(.command) { mods |= UInt32(cmdKey) }
+        if flags.contains(.option) { mods |= UInt32(optionKey) }
+        if flags.contains(.shift) { mods |= UInt32(shiftKey) }
+        if flags.contains(.control) { mods |= UInt32(controlKey) }
+        return mods
     }
 
     deinit {
-        if let globalMonitor {
-            NSEvent.removeMonitor(globalMonitor)
+        if let hotKeyRef {
+            UnregisterEventHotKey(hotKeyRef)
         }
-        if let localMonitor {
-            NSEvent.removeMonitor(localMonitor)
+        if let eventHandlerRef {
+            RemoveEventHandler(eventHandlerRef)
         }
     }
 }

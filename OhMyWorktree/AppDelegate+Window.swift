@@ -36,8 +36,10 @@ extension AppDelegate {
     }
 
     func showOrCreateMainWindow() {
+        appDelegateLogger.info("showOrCreateMainWindow called")
         guard let repoVM = repoViewModel,
               let worktreeVM = worktreeViewModel else {
+            appDelegateLogger.warning("showOrCreateMainWindow: view models not connected")
             return
         }
 

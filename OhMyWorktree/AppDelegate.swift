@@ -47,6 +47,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         setupStatusItem()
+
         setupGlobalHotkey()
         if !Self.isRunningTests {
             windowObserver.startObserving()
