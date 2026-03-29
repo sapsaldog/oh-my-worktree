@@ -70,6 +70,20 @@ struct WorktreeListView: View {
         .onChange(of: viewModel.selectedWorktreeIDs) { _, newIDs in
             if newIDs != selectedIDs { selectedIDs = newIDs }
         }
+        .onKeyPress(.return) {
+            guard renamingWorktreeID == nil,
+                  selectedIDs.count == 1,
+                  let id = selectedIDs.first,
+                  let worktree = viewModel.worktrees.first(where: { $0.id == id })
+            else { return .ignored }
+            renamingWorktreeID = worktree.id
+            return .handled
+        }
+        .onKeyPress(.escape) {
+            guard !selectedIDs.isEmpty else { return .ignored }
+            selectedIDs = []
+            return .handled
+        }
         .onDeleteCommand {
             viewModel.removeSelectedWorktrees(force: false)
         }

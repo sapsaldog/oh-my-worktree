@@ -205,6 +205,14 @@ extension AppDelegate {
               let worktree = vm.selectedWorktree else { return }
         Task { await action(vm, worktree) }
     }
+
+    func forceRemoveSelectedWorktree() {
+        worktreeViewModel?.removeSelectedWorktrees(force: true)
+    }
+
+    func quickRemoveSelectedWorktree() {
+        worktreeViewModel?.quickRemoveSelectedWorktrees()
+    }
 }
 
 // MARK: - Shortcut Manager Observation
