@@ -56,18 +56,18 @@ struct SettingsView: View {
             }
 
             Section("Advanced") {
-                HStack {
-                    Text("Background task timeout")
-                    Spacer()
-                    TextField("seconds", value: $jobTimeoutSeconds, format: .number)
-                        .frame(width: 60)
-                        .multilineTextAlignment(.trailing)
-                        .onSubmit { jobTimeoutSeconds = clampTimeout(jobTimeoutSeconds) }
-                        .onChange(of: jobTimeoutSeconds) { _, val in
-                            jobTimeoutSeconds = clampTimeout(val)
-                        }
-                    Text("s")
-                        .foregroundStyle(.secondary)
+                LabeledContent("Background task timeout") {
+                    HStack(spacing: 4) {
+                        TextField("", value: $jobTimeoutSeconds, format: .number)
+                            .frame(width: 50)
+                            .multilineTextAlignment(.trailing)
+                            .onSubmit { jobTimeoutSeconds = clampTimeout(jobTimeoutSeconds) }
+                            .onChange(of: jobTimeoutSeconds) { _, val in
+                                jobTimeoutSeconds = clampTimeout(val)
+                            }
+                        Text("sec")
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 Text(
                     "Maximum time allowed for Remove / Force Remove operations (30–600s). " +
