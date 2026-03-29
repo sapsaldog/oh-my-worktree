@@ -1283,6 +1283,7 @@ Force Remove Worktree
   - VSCode 열기 방식 (새 윈도우/현재 윈도우)
   - 윈도우 크기 및 위치
   - 선택된 repository (마지막 선택)
+    - `lastSelectedRepositoryID`를 UserDefaults에 저장하여 앱 재시작 시 마지막 선택된 repository를 자동 복원 (v1.2.4)
   - .env 파일 복사 글로벌 설정 (`@AppStorage("copyEnvFilesEnabled")`)
 
 ---

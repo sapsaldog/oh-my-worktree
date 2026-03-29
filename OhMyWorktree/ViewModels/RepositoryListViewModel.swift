@@ -10,9 +10,13 @@ final class RepositoryListViewModel: ObservableObject {
     @Published var showingFileDialog = false
 
     let store: RepositoryStore
+    private let userDefaults: UserDefaults
 
-    init(store: RepositoryStore = .shared) {
+    static let lastSelectedRepositoryIDKey = "lastSelectedRepositoryID"
+
+    init(store: RepositoryStore = .shared, userDefaults: UserDefaults = .standard) {
         self.store = store
+        self.userDefaults = userDefaults
     }
 
     // MARK: - Load
@@ -23,15 +27,27 @@ final class RepositoryListViewModel: ObservableObject {
 
         repositories = await store.getRepositories()
 
-        // Restore last selected repository
-        if selectedRepository == nil, let first = repositories.first {
-            selectedRepository = first
+        // Restore last selected repository from UserDefaults
+        if selectedRepository == nil {
+            if let savedIDString = userDefaults.string(forKey: Self.lastSelectedRepositoryIDKey),
+               let savedID = UUID(uuidString: savedIDString),
+               let match = repositories.first(where: { $0.id == savedID }) {
+                selectedRepository = match
+            } else if let first = repositories.first {
+                selectedRepository = first
+                userDefaults.set(first.id.uuidString, forKey: Self.lastSelectedRepositoryIDKey)
+            }
         }
 
         // If selected repository no longer exists in list, reset
         if let selected = selectedRepository,
            !repositories.contains(where: { $0.id == selected.id }) {
             selectedRepository = repositories.first
+            if let fallback = selectedRepository {
+                userDefaults.set(fallback.id.uuidString, forKey: Self.lastSelectedRepositoryIDKey)
+            } else {
+                userDefaults.removeObject(forKey: Self.lastSelectedRepositoryIDKey)
+            }
         }
     }
 
@@ -54,7 +70,9 @@ final class RepositoryListViewModel: ObservableObject {
         await loadRepositories()
 
         // Auto-select the newly added repository
-        selectedRepository = repositories.first { $0.path == path }
+        if let newRepo = repositories.first(where: { $0.path == path }) {
+            await selectRepository(newRepo)
+        }
     }
 
     // MARK: - Remove
@@ -64,6 +82,7 @@ final class RepositoryListViewModel: ObservableObject {
 
         if selectedRepository?.id == repository.id {
             selectedRepository = nil
+            userDefaults.removeObject(forKey: Self.lastSelectedRepositoryIDKey)
         }
 
         await loadRepositories()
@@ -78,33 +97,38 @@ final class RepositoryListViewModel: ObservableObject {
 
     func selectRepository(_ repository: Repository) async {
         selectedRepository = repository
+        userDefaults.set(repository.id.uuidString, forKey: Self.lastSelectedRepositoryIDKey)
         await store.updateLastAccessed(id: repository.id)
     }
 
     // MARK: - Navigation
 
-    func selectNextRepository() {
+    func selectNextRepository() async {
         guard !repositories.isEmpty else { return }
         guard let current = selectedRepository,
               let index = repositories.firstIndex(where: { $0.id == current.id }) else {
-            selectedRepository = repositories.first
+            if let first = repositories.first {
+                await selectRepository(first)
+            }
             return
         }
         let nextIndex = index + 1
         guard nextIndex < repositories.count else { return }
-        selectedRepository = repositories[nextIndex]
+        await selectRepository(repositories[nextIndex])
     }
 
-    func selectPreviousRepository() {
+    func selectPreviousRepository() async {
         guard !repositories.isEmpty else { return }
         guard let current = selectedRepository,
               let index = repositories.firstIndex(where: { $0.id == current.id }) else {
-            selectedRepository = repositories.first
+            if let first = repositories.first {
+                await selectRepository(first)
+            }
             return
         }
         let prevIndex = index - 1
         guard prevIndex >= 0 else { return }
-        selectedRepository = repositories[prevIndex]
+        await selectRepository(repositories[prevIndex])
     }
 
     // MARK: - Error Handling
