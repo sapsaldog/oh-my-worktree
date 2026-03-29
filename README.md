@@ -24,7 +24,7 @@ A native macOS menu bar app for managing Git worktrees with speed and elegance.
 
 ## Requirements
 
-- **macOS 14.0** (Sonoma) or later
+- **macOS 15.0** (Sequoia) or later
 - **Git 2.30** or later
 - **Xcode 15** or later (for building from source)
 
@@ -170,6 +170,15 @@ Oh My Worktree uses a clean MVVM architecture with clear separation of concerns:
 - **GitHeadMonitor** — `DispatchSource` file watcher on `.git/HEAD` for real-time branch detection
 - **WindowObserver** — Dynamic activation policy toggling for proper window focus management
 - **UpdaterManager** — Sparkle auto-update controller wrapper
+
+## Documentation
+
+For detailed guides, see the [docs](docs/) folder:
+
+- [Getting Started](docs/getting-started.md) — Installation and first launch
+- [User Guide](docs/user-guide.md) — Complete feature walkthrough
+- [Keyboard Shortcuts](docs/keyboard-shortcuts.md) — Full shortcut list
+- [FAQ](docs/faq.md) — Troubleshooting and common questions
 
 ## Contributing
 

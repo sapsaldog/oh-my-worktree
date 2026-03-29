@@ -2,7 +2,7 @@
 
 **버전**: 1.2.2
 **작성일**: 2026-03-09
-**대상 플랫폼**: macOS 14+ (Sonoma 이상)
+**대상 플랫폼**: macOS 15+ (Sequoia 이상)
 **상태**: Draft
 
 ---
@@ -1101,7 +1101,7 @@ Force Remove Worktree
 
 **상세 요구사항**:
 - `SMAppService.mainApp` (ServiceManagement 프레임워크) 사용
-- macOS 13+ API, 앱 대상 macOS 14+이므로 완전 지원
+- macOS 13+ API, 앱 대상 macOS 15+이므로 완전 지원
 - 별도 Helper App 불필요
 - Settings 창 General 섹션에 "Launch at Login" 토글 제공
 - 토글 on: `SMAppService.mainApp.register()` 호출
@@ -1403,8 +1403,7 @@ let nouns = ["ocean", "river", "mountain", "forest", "sky", "lunch", "pizza", ..
 ### 6.4 호환성 요구사항
 
 **NFR-008: macOS 버전 (P0)**
-- 최소 지원: macOS 14 (Sonoma)
-- 권장: macOS 15 (Sequoia)
+- 최소 지원: macOS 15 (Sequoia)
 - Apple Silicon (M1/M2/M3) 및 Intel 모두 지원
 
 **NFR-009: Git 버전 (P0)**
@@ -1634,7 +1633,7 @@ flowchart TD
 |--------|------|
 | UI 프레임워크 | SwiftUI |
 | 언어 | Swift 5.9+ |
-| 최소 OS | macOS 14 (Sonoma) |
+| 최소 OS | macOS 15 (Sequoia) |
 | 아키텍처 패턴 | MVVM (Model-View-ViewModel) |
 | Git 통합 | Process / NSTask (Git CLI) |
 | 데이터 영속성 | Codable + FileManager + UserDefaults |
