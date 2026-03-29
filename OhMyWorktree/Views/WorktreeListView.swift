@@ -3,7 +3,6 @@ import SwiftUI
 struct WorktreeListView: View {
     @ObservedObject var viewModel: WorktreeListViewModel
     @EnvironmentObject var shortcutManager: ShortcutManager
-    @FocusState private var isListFocused: Bool
     @State private var selectedIDs: Set<UUID> = []
     @State private var renamingWorktreeID: UUID?
     @State private var forceRemoveTarget: ForceRemoveTarget?
@@ -71,20 +70,10 @@ struct WorktreeListView: View {
         .onChange(of: viewModel.selectedWorktreeIDs) { _, newIDs in
             if newIDs != selectedIDs { selectedIDs = newIDs }
         }
-        .focused($isListFocused)
-        .defaultFocus($isListFocused, true)
-        .onKeyPress(.delete, phases: .down) { press in
-            guard !selectedIDs.isEmpty else { return .ignored }
-            let mods = press.modifiers
-            if mods.contains(.command) && mods.contains(.shift) {
-                triggerQuickRemove()
-            } else if mods.contains(.command) {
-                triggerForceRemove()
-            } else {
-                viewModel.removeSelectedWorktrees(force: false)
-            }
-            return .handled
+        .onDeleteCommand {
+            viewModel.removeSelectedWorktrees(force: false)
         }
+        .background(TableViewFocuser(worktreeCount: viewModel.worktrees.count))
     }
 
     private func triggerForceRemove() {
@@ -366,3 +355,39 @@ private struct SingleQuickRemoveDialog: ViewModifier {
     }
 }
 
+// MARK: - NSTableView Auto-Focus
+
+/// Finds the NSTableView backing a SwiftUI List and makes it the first responder
+/// so arrow keys and delete work without requiring a click first.
+private struct TableViewFocuser: NSViewRepresentable {
+    let worktreeCount: Int
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        view.setAccessibilityElement(false)
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        guard worktreeCount > 0 else { return }
+        DispatchQueue.main.async {
+            guard let window = nsView.window,
+                  let tableView = Self.findTableView(in: window.contentView)
+            else { return }
+            // Only focus if nothing else is currently the first responder
+            // (e.g., user is typing in a text field)
+            if window.firstResponder === window || window.firstResponder === window.contentView {
+                window.makeFirstResponder(tableView)
+            }
+        }
+    }
+
+    private static func findTableView(in view: NSView?) -> NSTableView? {
+        guard let view else { return nil }
+        if let tableView = view as? NSTableView { return tableView }
+        for subview in view.subviews {
+            if let found = findTableView(in: subview) { return found }
+        }
+        return nil
+    }
+}
