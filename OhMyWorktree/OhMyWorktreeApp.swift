@@ -43,16 +43,6 @@ struct OhMyWorktreeApp: App {
                 }
                 .keyboardShortcut(.downArrow, modifiers: [.command, .shift])
             }
-            CommandMenu("Worktree") {
-                Button("Force Remove") {
-                    appDelegate.forceRemoveSelectedWorktree()
-                }
-                .keyboardShortcut(.delete, modifiers: .command)
-                Button("Quick Remove") {
-                    appDelegate.quickRemoveSelectedWorktree()
-                }
-                .keyboardShortcut(.delete, modifiers: [.command, .shift])
-            }
         }
     }
 

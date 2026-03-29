@@ -6,6 +6,7 @@ struct WorktreeListView: View {
     @State private var selectedIDs: Set<UUID> = []
     @State private var renamingWorktreeID: UUID?
     @State private var forceRemoveTarget: ForceRemoveTarget?
+    @State private var confirmRemoveTarget: Worktree?
     @State private var confirmBulkRemove = false
     @State private var confirmBulkQuickRemove = false
     @State private var quickRemoveTarget: Worktree?
@@ -19,6 +20,7 @@ struct WorktreeListView: View {
         listContent
             .modifier(RemovalDialogsModifier(
                 viewModel: viewModel,
+                confirmRemoveTarget: $confirmRemoveTarget,
                 forceRemoveTarget: $forceRemoveTarget,
                 confirmBulkRemove: $confirmBulkRemove,
                 confirmBulkQuickRemove: $confirmBulkQuickRemove,
@@ -84,10 +86,28 @@ struct WorktreeListView: View {
             selectedIDs = []
             return .handled
         }
-        .onDeleteCommand {
-            viewModel.removeSelectedWorktrees(force: false)
+        .onKeyPress(.delete, phases: .down) { press in
+            guard !selectedIDs.isEmpty else { return .ignored }
+            let mods = press.modifiers
+            if mods.contains(.command) && mods.contains(.shift) {
+                triggerQuickRemove()
+            } else if mods.contains(.command) {
+                triggerForceRemove()
+            } else {
+                triggerRemove()
+            }
+            return .handled
         }
         .background(TableViewFocuser(worktreeCount: viewModel.worktrees.count))
+    }
+
+    private func triggerRemove() {
+        if selectedIDs.count >= 2 {
+            confirmBulkRemove = true
+        } else if let id = selectedIDs.first,
+                  let wt = viewModel.worktrees.first(where: { $0.id == id }) {
+            confirmRemoveTarget = wt
+        }
     }
 
     private func triggerForceRemove() {
@@ -243,7 +263,7 @@ struct WorktreeListView: View {
         } else if let repository = viewModel.repository, !worktree.isRoot(of: repository) {
             Divider()
             Button("Remove Worktree", role: .destructive) {
-                viewModel.removeWorktree(worktree)
+                confirmRemoveTarget = worktree
             }
             .disabled(!actions.canRemove)
             .keyboardShortcut(.delete, modifiers: [])
@@ -268,6 +288,7 @@ struct WorktreeListView: View {
 
 private struct RemovalDialogsModifier: ViewModifier {
     @ObservedObject var viewModel: WorktreeListViewModel
+    @Binding var confirmRemoveTarget: Worktree?
     @Binding var forceRemoveTarget: WorktreeListView.ForceRemoveTarget?
     @Binding var confirmBulkRemove: Bool
     @Binding var confirmBulkQuickRemove: Bool
@@ -275,12 +296,33 @@ private struct RemovalDialogsModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            .modifier(SingleRemoveDialog(viewModel: viewModel, target: $confirmRemoveTarget))
             .modifier(ForceRemoveDialog(viewModel: viewModel, target: $forceRemoveTarget))
             .modifier(BulkRemoveDialog(viewModel: viewModel, isPresented: $confirmBulkRemove))
             .modifier(BulkQuickRemoveDialog(viewModel: viewModel, isPresented: $confirmBulkQuickRemove))
             .modifier(SingleQuickRemoveDialog(viewModel: viewModel, target: $quickRemoveTarget))
     }
+}
 
+private struct SingleRemoveDialog: ViewModifier {
+    @ObservedObject var viewModel: WorktreeListViewModel
+    @Binding var target: Worktree?
+
+    func body(content: Content) -> some View {
+        content.confirmationDialog(
+            "Remove '\(target?.displayName ?? "")'?",
+            isPresented: Binding(get: { target != nil }, set: { if !$0 { target = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("Remove", role: .destructive) {
+                if let wt = target { viewModel.removeWorktree(wt) }
+                target = nil
+            }
+            Button("Cancel", role: .cancel) { target = nil }
+        } message: {
+            Text("Worktrees with uncommitted changes will not be removed.")
+        }
+    }
 }
 
 private struct ForceRemoveDialog: ViewModifier {
