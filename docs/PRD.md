@@ -810,6 +810,11 @@ branch refs/heads/feature/new-feature
   - 동일 PR 브랜치가 이미 checkout된 경우 버전 접미사 자동 생성 (예: `feature/foo-v2`, `-v3`)
   - 기존 worktree 브랜치 + 큐에 대기 중인 작업 브랜치 모두 충돌 검사
   - 충돌 검사 스코프: 리포지토리별 (`repositoryID`)
+- **고아 로컬 브랜치 처리** (Bug Fix — GitHub #23):
+  - Worktree 삭제 후 남아있는 고아 로컬 브랜치로 인한 PR Import 실패 해결
+  - `addWorktreeFromRemoteBranch`에서 `git worktree add -b`가 "already exists" 에러로 실패 시, `-b` 없이 기존 로컬 브랜치를 체크아웃하는 방식으로 폴백
+  - 폴백 시 `git worktree add <path> <existing-branch>` 사용 (기존 브랜치 포인터 유지)
+  - `-b` 이외의 에러는 기존과 동일하게 전파
 - **PR 배지 연동**:
   - Import된 worktree의 메타데이터에 `prRemoteBranch` 저장
   - PR 배지 매칭 시 `worktree.branch` → `worktree.prRemoteBranch` 폴백 (FR-028)
