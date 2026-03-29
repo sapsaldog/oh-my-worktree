@@ -13,7 +13,7 @@ extension AppDelegate {
         rootView: () -> some View
     ) {
         NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
 
         for window in NSApp.windows where window.title == title {
             window.makeKeyAndOrderFront(nil)
@@ -43,7 +43,10 @@ extension AppDelegate {
             return
         }
 
-        let sm = shortcutManager ?? ShortcutManager()
+        guard let sm = shortcutManager else {
+            appDelegateLogger.warning("showOrCreateMainWindow: shortcutManager not connected")
+            return
+        }
         showOrCreateWindow(
             title: Self.mainWindowTitle,
             size: NSSize(width: 500, height: 400)

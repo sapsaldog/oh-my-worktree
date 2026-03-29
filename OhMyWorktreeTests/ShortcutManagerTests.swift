@@ -1,205 +1,171 @@
 import SwiftUI
-import XCTest
+import Testing
 
 @testable import OhMyWorktree
 
-final class ShortcutManagerTests: XCTestCase {
+@MainActor
+struct ShortcutManagerTests {
 
-    private var defaults: UserDefaults!
-    private var manager: ShortcutManager!
+    let defaults: UserDefaults
+    let manager: ShortcutManager
 
-    @MainActor
-    override func setUp() {
-        super.setUp()
-        defaults = UserDefaults(suiteName: "ShortcutManagerTests")!
-        defaults.removePersistentDomain(forName: "ShortcutManagerTests")
+    init() {
+        let suiteName = "ShortcutManagerTests-\(UUID().uuidString)"
+        defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
         manager = ShortcutManager(defaults: defaults)
-    }
-
-    override func tearDown() {
-        defaults.removePersistentDomain(forName: "ShortcutManagerTests")
-        defaults = nil
-        manager = nil
-        super.tearDown()
     }
 
     // MARK: - Defaults and Storage
 
-    @MainActor
-    func testComboForAction_noCustomization_returnsDefault() {
-        XCTAssertEqual(manager.combo(for: .openSettings), "⌘,")
-        XCTAssertEqual(manager.combo(for: .globalHotkey), "⌥⇧W")
+    @Test func comboForAction_noCustomization_returnsDefault() {
+        #expect(manager.combo(for: .openSettings) == "⌘,")
+        #expect(manager.combo(for: .globalHotkey) == "⌥⇧W")
     }
 
-    @MainActor
-    func testSetCombo_persistsToUserDefaults() {
+    @Test func setCombo_persistsToUserDefaults() {
         manager.setCombo("⌘⇧X", for: .openSettings)
-        XCTAssertEqual(
-            defaults.string(forKey: ShortcutAction.openSettings.userDefaultsKey),
-            "⌘⇧X"
+        #expect(
+            defaults.string(forKey: ShortcutAction.openSettings.userDefaultsKey) == "⌘⇧X"
         )
     }
 
-    @MainActor
-    func testSetCombo_updatesReturnedValue() {
+    @Test func setCombo_updatesReturnedValue() {
         manager.setCombo("⌘⇧X", for: .openSettings)
-        XCTAssertEqual(manager.combo(for: .openSettings), "⌘⇧X")
+        #expect(manager.combo(for: .openSettings) == "⌘⇧X")
     }
 
-    @MainActor
-    func testResetToDefault_clearsSingleShortcut() {
+    @Test func resetToDefault_clearsSingleShortcut() {
         manager.setCombo("⌘⇧X", for: .openSettings)
         manager.resetToDefault(.openSettings)
-        XCTAssertEqual(manager.combo(for: .openSettings), "⌘,")
-        XCTAssertNil(defaults.string(forKey: ShortcutAction.openSettings.userDefaultsKey))
+        #expect(manager.combo(for: .openSettings) == "⌘,")
+        #expect(defaults.string(forKey: ShortcutAction.openSettings.userDefaultsKey) == nil)
     }
 
-    @MainActor
-    func testResetAllToDefaults_clearsAllCustomizations() {
+    @Test func resetAllToDefaults_clearsAllCustomizations() {
         manager.setCombo("⌘⇧X", for: .openSettings)
         manager.setCombo("⌘⇧Y", for: .addRepository)
         manager.resetAllToDefaults()
-        XCTAssertEqual(manager.combo(for: .openSettings), "⌘,")
-        XCTAssertEqual(manager.combo(for: .addRepository), "⌘⇧N")
+        #expect(manager.combo(for: .openSettings) == "⌘,")
+        #expect(manager.combo(for: .addRepository) == "⌘⇧N")
     }
 
     // MARK: - Conflict Detection
 
-    @MainActor
-    func testConflict_detectsSameComboOnDifferentActions() {
-        // addWorktree default is "⌘N", so assigning "⌘N" to refreshWorktrees should conflict
+    @Test func conflict_detectsSameComboOnDifferentActions() {
         manager.setCombo("⌘N", for: .refreshWorktrees)
         let conflict = manager.conflictingAction(for: "⌘N", excluding: .refreshWorktrees)
-        XCTAssertEqual(conflict, .addWorktree)
+        #expect(conflict == .addWorktree)
     }
 
-    @MainActor
-    func testConflict_noConflictForUniqueCombo() {
+    @Test func conflict_noConflictForUniqueCombo() {
         let conflict = manager.conflictingAction(for: "⌘⇧Z", excluding: .openSettings)
-        XCTAssertNil(conflict)
+        #expect(conflict == nil)
     }
 
-    @MainActor
-    func testConflict_emptyCombo_neverConflicts() {
+    @Test func conflict_emptyCombo_neverConflicts() {
         let conflict = manager.conflictingAction(for: "", excluding: .openSettings)
-        XCTAssertNil(conflict)
+        #expect(conflict == nil)
     }
 
-    @MainActor
-    func testConflict_globalVsInApp_areSeparateNamespaces() {
-        // Global hotkey default is "⌥⇧W". Assigning same to in-app should NOT conflict.
+    @Test func conflict_globalVsInApp_areSeparateNamespaces() {
         manager.setCombo("⌥⇧W", for: .openSettings)
         let conflict = manager.conflictingAction(for: "⌥⇧W", excluding: .openSettings)
-        XCTAssertNil(conflict)
+        #expect(conflict == nil)
     }
 
     // MARK: - KeyboardShortcut Helper
 
-    @MainActor
-    func testKeyboardShortcutForAction_commandComma() {
-        let shortcut = manager.keyboardShortcut(for: .openSettings)
-        XCTAssertNotNil(shortcut)
-        XCTAssertEqual(shortcut?.key, ",")
-        XCTAssertEqual(shortcut?.modifiers, .command)
+    @Test func keyboardShortcutForAction_commandComma() throws {
+        let shortcut = try #require(manager.keyboardShortcut(for: .openSettings))
+        #expect(shortcut.key == ",")
+        #expect(shortcut.modifiers == .command)
     }
 
-    @MainActor
-    func testKeyboardShortcutForAction_commandN() {
-        let shortcut = manager.keyboardShortcut(for: .addWorktree)
-        XCTAssertNotNil(shortcut)
-        XCTAssertEqual(shortcut?.key, "n")
-        XCTAssertEqual(shortcut?.modifiers, .command)
+    @Test func keyboardShortcutForAction_commandN() throws {
+        let shortcut = try #require(manager.keyboardShortcut(for: .addWorktree))
+        #expect(shortcut.key == "n")
+        #expect(shortcut.modifiers == .command)
     }
 
-    @MainActor
-    func testKeyboardShortcutForAction_disabledReturnsNil() {
+    @Test func keyboardShortcutForAction_disabledReturnsNil() {
         manager.setCombo("", for: .openSettings)
         let shortcut = manager.keyboardShortcut(for: .openSettings)
-        XCTAssertNil(shortcut)
+        #expect(shortcut == nil)
     }
 
     // MARK: - KeyboardShortcut Helper (Delete Key Variants)
 
-    @MainActor
-    func testKeyboardShortcutForAction_deleteWithoutModifiers() {
-        // removeWorktree default is "⌫" (delete with no modifiers)
-        let shortcut = manager.keyboardShortcut(for: .removeWorktree)
-        XCTAssertNotNil(shortcut, "Delete key without modifiers should produce a valid shortcut")
-        XCTAssertEqual(shortcut?.key, KeyEquivalent.delete)
-        XCTAssertEqual(shortcut?.modifiers, [])
+    @Test func keyboardShortcutForAction_deleteWithoutModifiers() throws {
+        let shortcut = try #require(
+            manager.keyboardShortcut(for: .removeWorktree),
+            "Delete key without modifiers should produce a valid shortcut"
+        )
+        #expect(shortcut.key == KeyEquivalent.delete)
+        #expect(shortcut.modifiers == [])
     }
 
-    @MainActor
-    func testKeyboardShortcutForAction_commandDelete() {
-        // forceRemoveWorktree default is "⌘⌫"
-        let shortcut = manager.keyboardShortcut(for: .forceRemoveWorktree)
-        XCTAssertNotNil(shortcut)
-        XCTAssertEqual(shortcut?.key, KeyEquivalent.delete)
-        XCTAssertEqual(shortcut?.modifiers, .command)
+    @Test func keyboardShortcutForAction_commandDelete() throws {
+        let shortcut = try #require(manager.keyboardShortcut(for: .forceRemoveWorktree))
+        #expect(shortcut.key == KeyEquivalent.delete)
+        #expect(shortcut.modifiers == .command)
     }
 
-    @MainActor
-    func testKeyboardShortcutForAction_shiftCommandDelete() {
-        // quickRemoveWorktree default is "⇧⌘⌫"
-        let shortcut = manager.keyboardShortcut(for: .quickRemoveWorktree)
-        XCTAssertNotNil(shortcut)
-        XCTAssertEqual(shortcut?.key, KeyEquivalent.delete)
-        XCTAssertEqual(shortcut?.modifiers, [.shift, .command])
+    @Test func keyboardShortcutForAction_shiftCommandDelete() throws {
+        let shortcut = try #require(manager.keyboardShortcut(for: .quickRemoveWorktree))
+        #expect(shortcut.key == KeyEquivalent.delete)
+        #expect(shortcut.modifiers == [.shift, .command])
     }
 
     // MARK: - Version Counter
 
-    @MainActor
-    func testSetCombo_incrementsVersion() {
+    @Test func setCombo_incrementsVersion() {
         let before = manager.version
         manager.setCombo("⌘⇧X", for: .openSettings)
-        XCTAssertGreaterThan(manager.version, before)
+        #expect(manager.version > before)
     }
 
-    @MainActor
-    func testResetToDefault_incrementsVersion() {
+    @Test func resetToDefault_incrementsVersion() {
         manager.setCombo("⌘⇧X", for: .openSettings)
         let before = manager.version
         manager.resetToDefault(.openSettings)
-        XCTAssertGreaterThan(manager.version, before)
+        #expect(manager.version > before)
+    }
+
+    @Test func notifySettingsChanged_incrementsVersion() {
+        let before = manager.version
+        manager.notifySettingsChanged()
+        #expect(manager.version > before)
     }
 
     // MARK: - KeyboardShortcut Coverage
 
-    @MainActor
-    func testKeyboardShortcut_allDefaultCombos_areConvertible() {
-        // Every non-global action's default combo should produce a valid KeyboardShortcut.
-        for action in ShortcutAction.allCases where !action.isGlobal {
-            let shortcut = manager.keyboardShortcut(for: action)
-            XCTAssertNotNil(
-                shortcut,
-                "\(action) default combo '\(action.defaultCombo)' failed to convert to KeyboardShortcut"
-            )
-        }
+    @Test(arguments: ShortcutAction.allCases.filter { !$0.isGlobal })
+    func keyboardShortcut_allDefaultCombos_areConvertible(action: ShortcutAction) {
+        let shortcut = manager.keyboardShortcut(for: action)
+        #expect(
+            shortcut != nil,
+            "\(action) default combo '\(action.defaultCombo)' failed to convert to KeyboardShortcut"
+        )
     }
 
     // MARK: - Migration
 
-    @MainActor
-    func testMigration_copiesLegacyGlobalHotkeyKeyCombo() {
+    @Test func migration_copiesLegacyGlobalHotkeyKeyCombo() {
         defaults.set("⌘⇧K", forKey: "globalHotkeyKeyCombo")
         ShortcutManager.migrateLegacyKeys(defaults: defaults)
-        XCTAssertEqual(
-            defaults.string(forKey: ShortcutAction.globalHotkey.userDefaultsKey),
-            "⌘⇧K"
+        #expect(
+            defaults.string(forKey: ShortcutAction.globalHotkey.userDefaultsKey) == "⌘⇧K"
         )
-        XCTAssertNil(defaults.string(forKey: "globalHotkeyKeyCombo"))
+        #expect(defaults.string(forKey: "globalHotkeyKeyCombo") == nil)
     }
 
-    @MainActor
-    func testMigration_doesNotOverrideExistingNewKey() {
+    @Test func migration_doesNotOverrideExistingNewKey() {
         defaults.set("⌘⇧K", forKey: "globalHotkeyKeyCombo")
         defaults.set("⌃⌥B", forKey: ShortcutAction.globalHotkey.userDefaultsKey)
         ShortcutManager.migrateLegacyKeys(defaults: defaults)
-        // Existing new key should not be overwritten
-        XCTAssertEqual(
-            defaults.string(forKey: ShortcutAction.globalHotkey.userDefaultsKey),
-            "⌃⌥B"
+        #expect(
+            defaults.string(forKey: ShortcutAction.globalHotkey.userDefaultsKey) == "⌃⌥B"
         )
     }
 }

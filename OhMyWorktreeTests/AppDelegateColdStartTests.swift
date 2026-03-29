@@ -95,6 +95,7 @@ final class AppDelegateColdStartTests: XCTestCase {
         appDelegate.setupStatusItem()
         appDelegate.repoViewModel = RepositoryListViewModel()
         appDelegate.worktreeViewModel = WorktreeListViewModel()
+        appDelegate.shortcutManager = ShortcutManager()
 
         // When: showOrCreateMainWindow is called (no existing window)
         appDelegate.showOrCreateMainWindow()
@@ -159,6 +160,7 @@ final class AppDelegateColdStartTests: XCTestCase {
         appDelegate.setupStatusItem()
         appDelegate.repoViewModel = RepositoryListViewModel()
         appDelegate.worktreeViewModel = WorktreeListViewModel()
+        appDelegate.shortcutManager = ShortcutManager()
 
         appDelegate.showOrCreateMainWindow()
         appDelegate.showOrCreateMainWindow()
@@ -174,6 +176,7 @@ final class AppDelegateColdStartTests: XCTestCase {
         appDelegate.setupStatusItem()
         appDelegate.repoViewModel = RepositoryListViewModel()
         appDelegate.worktreeViewModel = WorktreeListViewModel()
+        appDelegate.shortcutManager = ShortcutManager()
 
         appDelegate.showOrCreateMainWindow()
 
@@ -234,6 +237,7 @@ final class AppDelegateColdStartTests: XCTestCase {
         appDelegate.setupStatusItem()
         appDelegate.repoViewModel = RepositoryListViewModel()
         appDelegate.worktreeViewModel = WorktreeListViewModel()
+        appDelegate.shortcutManager = ShortcutManager()
 
         appDelegate.showOrCreateMainWindow()
 

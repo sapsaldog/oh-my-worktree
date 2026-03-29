@@ -1,111 +1,75 @@
-import XCTest
+import Testing
 
 @testable import OhMyWorktree
 
-final class ShortcutActionTests: XCTestCase {
+struct ShortcutActionTests {
 
     // MARK: - Enum Integrity
 
-    func testAllCases_haveUniqueRawValues() {
+    @Test func allCases_haveUniqueRawValues() {
         let rawValues = ShortcutAction.allCases.map(\.rawValue)
-        XCTAssertEqual(rawValues.count, Set(rawValues).count, "Duplicate raw values found")
+        #expect(rawValues.count == Set(rawValues).count, "Duplicate raw values found")
     }
 
-    func testAllCases_haveNonEmptyDefaults() {
-        for action in ShortcutAction.allCases {
-            XCTAssertFalse(action.defaultCombo.isEmpty, "\(action) has empty default combo")
-        }
+    @Test(arguments: ShortcutAction.allCases)
+    func allCases_haveNonEmptyDefaults(action: ShortcutAction) {
+        #expect(!action.defaultCombo.isEmpty, "\(action) has empty default combo")
     }
 
-    func testAllCases_defaultsAreParseable() {
-        for action in ShortcutAction.allCases {
-            XCTAssertNotNil(
-                KeyCombo.from(string: action.defaultCombo),
-                "\(action) default combo '\(action.defaultCombo)' is not parseable"
-            )
-        }
+    @Test(arguments: ShortcutAction.allCases)
+    func allCases_defaultsAreParseable(action: ShortcutAction) {
+        #expect(
+            KeyCombo.from(string: action.defaultCombo) != nil,
+            "\(action) default combo '\(action.defaultCombo)' is not parseable"
+        )
     }
 
-    func testAllCases_haveUniqueDefaults() {
+    @Test func allCases_haveUniqueDefaults() {
         let defaults = ShortcutAction.allCases.map(\.defaultCombo)
-        XCTAssertEqual(defaults.count, Set(defaults).count, "Duplicate default combos found")
+        #expect(defaults.count == Set(defaults).count, "Duplicate default combos found")
     }
 
-    // MARK: - Specific Defaults
+    // MARK: - Specific Defaults (parameterized)
 
-    func testGlobalHotkeyDefault_isOptionShiftW() {
-        XCTAssertEqual(ShortcutAction.globalHotkey.defaultCombo, "⌥⇧W")
-    }
-
-    func testOpenSettingsDefault_isCommandComma() {
-        XCTAssertEqual(ShortcutAction.openSettings.defaultCombo, "⌘,")
-    }
-
-    func testAddRepositoryDefault_isCommandShiftN() {
-        XCTAssertEqual(ShortcutAction.addRepository.defaultCombo, "⌘⇧N")
-    }
-
-    func testAddWorktreeDefault_isCommandN() {
-        XCTAssertEqual(ShortcutAction.addWorktree.defaultCombo, "⌘N")
-    }
-
-    func testRemoveWorktreeDefault_isBackspace() {
-        XCTAssertEqual(ShortcutAction.removeWorktree.defaultCombo, "⌫")
-    }
-
-    func testForceRemoveWorktreeDefault() {
-        XCTAssertEqual(ShortcutAction.forceRemoveWorktree.defaultCombo, "⌘⌫")
-    }
-
-    func testQuickRemoveWorktreeDefault() {
-        XCTAssertEqual(ShortcutAction.quickRemoveWorktree.defaultCombo, "⇧⌘⌫")
-    }
-
-    func testOpenITermDefault() {
-        XCTAssertEqual(ShortcutAction.openITerm.defaultCombo, "⌘⇧I")
-    }
-
-    func testOpenGhosttyDefault() {
-        XCTAssertEqual(ShortcutAction.openGhostty.defaultCombo, "⌘⇧G")
-    }
-
-    func testOpenVSCodeDefault() {
-        XCTAssertEqual(ShortcutAction.openVSCode.defaultCombo, "⌘⇧V")
-    }
-
-    func testOpenCursorDefault() {
-        XCTAssertEqual(ShortcutAction.openCursor.defaultCombo, "⌘⇧C")
-    }
-
-    func testOpenCmuxDefault() {
-        XCTAssertEqual(ShortcutAction.openCmux.defaultCombo, "⌘⇧M")
-    }
-
-    func testRefreshWorktreesDefault() {
-        XCTAssertEqual(ShortcutAction.refreshWorktrees.defaultCombo, "⌘R")
+    @Test(arguments: [
+        (ShortcutAction.globalHotkey, "⌥⇧W"),
+        (.openSettings, "⌘,"),
+        (.addRepository, "⌘⇧N"),
+        (.addWorktree, "⌘N"),
+        (.removeWorktree, "⌫"),
+        (.forceRemoveWorktree, "⌘⌫"),
+        (.quickRemoveWorktree, "⇧⌘⌫"),
+        (.openITerm, "⌘⇧I"),
+        (.openGhostty, "⌘⇧G"),
+        (.openVSCode, "⌘⇧V"),
+        (.openCursor, "⌘⇧C"),
+        (.openCmux, "⌘⇧M"),
+        (.refreshWorktrees, "⌘R")
+    ])
+    func specificDefaults(action: ShortcutAction, expectedCombo: String) {
+        #expect(action.defaultCombo == expectedCombo)
     }
 
     // MARK: - UserDefaults Key
 
-    func testUserDefaultsKey_format() {
-        XCTAssertEqual(ShortcutAction.openSettings.userDefaultsKey, "shortcut.openSettings")
-        XCTAssertEqual(ShortcutAction.globalHotkey.userDefaultsKey, "shortcut.globalHotkey")
+    @Test func userDefaultsKey_format() {
+        #expect(ShortcutAction.openSettings.userDefaultsKey == "shortcut.openSettings")
+        #expect(ShortcutAction.globalHotkey.userDefaultsKey == "shortcut.globalHotkey")
     }
 
     // MARK: - Global Flag
 
-    func testIsGlobal_onlyGlobalHotkey() {
-        XCTAssertTrue(ShortcutAction.globalHotkey.isGlobal)
+    @Test func isGlobal_onlyGlobalHotkey() {
+        #expect(ShortcutAction.globalHotkey.isGlobal)
         for action in ShortcutAction.allCases where action != .globalHotkey {
-            XCTAssertFalse(action.isGlobal, "\(action) should not be global")
+            #expect(!action.isGlobal, "\(action) should not be global")
         }
     }
 
     // MARK: - Display Name
 
-    func testAllCases_haveNonEmptyDisplayNames() {
-        for action in ShortcutAction.allCases {
-            XCTAssertFalse(action.displayName.isEmpty, "\(action) has empty display name")
-        }
+    @Test(arguments: ShortcutAction.allCases)
+    func allCases_haveNonEmptyDisplayNames(action: ShortcutAction) {
+        #expect(!action.displayName.isEmpty, "\(action) has empty display name")
     }
 }

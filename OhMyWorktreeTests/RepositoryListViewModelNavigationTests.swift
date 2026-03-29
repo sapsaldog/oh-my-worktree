@@ -1,9 +1,9 @@
-import XCTest
+import Testing
 
 @testable import OhMyWorktree
 
 @MainActor
-final class RepositoryListViewModelNavigationTests: XCTestCase {
+struct RepositoryListViewModelNavigationTests {
 
     private func makeViewModel(repoCount: Int) -> RepositoryListViewModel {
         let vm = RepositoryListViewModel()
@@ -15,75 +15,75 @@ final class RepositoryListViewModelNavigationTests: XCTestCase {
 
     // MARK: - selectNextRepository
 
-    func testSelectNextRepository_noSelection_selectsFirst() {
+    @Test func selectNextRepository_noSelection_selectsFirst() {
         let vm = makeViewModel(repoCount: 3)
         vm.selectedRepository = nil
 
         vm.selectNextRepository()
 
-        XCTAssertEqual(vm.selectedRepository?.name, "repo-0")
+        #expect(vm.selectedRepository?.name == "repo-0")
     }
 
-    func testSelectNextRepository_firstSelected_selectsSecond() {
+    @Test func selectNextRepository_firstSelected_selectsSecond() {
         let vm = makeViewModel(repoCount: 3)
         vm.selectedRepository = vm.repositories[0]
 
         vm.selectNextRepository()
 
-        XCTAssertEqual(vm.selectedRepository?.name, "repo-1")
+        #expect(vm.selectedRepository?.name == "repo-1")
     }
 
-    func testSelectNextRepository_lastSelected_staysOnLast() {
+    @Test func selectNextRepository_lastSelected_staysOnLast() {
         let vm = makeViewModel(repoCount: 3)
         vm.selectedRepository = vm.repositories[2]
 
         vm.selectNextRepository()
 
-        XCTAssertEqual(vm.selectedRepository?.name, "repo-2")
+        #expect(vm.selectedRepository?.name == "repo-2")
     }
 
-    func testSelectNextRepository_emptyList_doesNothing() {
+    @Test func selectNextRepository_emptyList_doesNothing() {
         let vm = makeViewModel(repoCount: 0)
 
         vm.selectNextRepository()
 
-        XCTAssertNil(vm.selectedRepository)
+        #expect(vm.selectedRepository == nil)
     }
 
     // MARK: - selectPreviousRepository
 
-    func testSelectPreviousRepository_noSelection_selectsFirst() {
+    @Test func selectPreviousRepository_noSelection_selectsFirst() {
         let vm = makeViewModel(repoCount: 3)
         vm.selectedRepository = nil
 
         vm.selectPreviousRepository()
 
-        XCTAssertEqual(vm.selectedRepository?.name, "repo-0")
+        #expect(vm.selectedRepository?.name == "repo-0")
     }
 
-    func testSelectPreviousRepository_secondSelected_selectsFirst() {
+    @Test func selectPreviousRepository_secondSelected_selectsFirst() {
         let vm = makeViewModel(repoCount: 3)
         vm.selectedRepository = vm.repositories[1]
 
         vm.selectPreviousRepository()
 
-        XCTAssertEqual(vm.selectedRepository?.name, "repo-0")
+        #expect(vm.selectedRepository?.name == "repo-0")
     }
 
-    func testSelectPreviousRepository_firstSelected_staysOnFirst() {
+    @Test func selectPreviousRepository_firstSelected_staysOnFirst() {
         let vm = makeViewModel(repoCount: 3)
         vm.selectedRepository = vm.repositories[0]
 
         vm.selectPreviousRepository()
 
-        XCTAssertEqual(vm.selectedRepository?.name, "repo-0")
+        #expect(vm.selectedRepository?.name == "repo-0")
     }
 
-    func testSelectPreviousRepository_emptyList_doesNothing() {
+    @Test func selectPreviousRepository_emptyList_doesNothing() {
         let vm = makeViewModel(repoCount: 0)
 
         vm.selectPreviousRepository()
 
-        XCTAssertNil(vm.selectedRepository)
+        #expect(vm.selectedRepository == nil)
     }
 }

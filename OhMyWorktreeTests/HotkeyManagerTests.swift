@@ -1,218 +1,191 @@
 import Carbon.HIToolbox
-import XCTest
+import Testing
 
 @testable import OhMyWorktree
 
-final class HotkeyManagerTests: XCTestCase {
+struct HotkeyManagerTests {
 
-    // MARK: - KeyCombo Parsing
+    // MARK: - KeyCombo Parsing (parameterized)
 
-    func testParseKeyCombo_optionShiftW() {
-        let combo = KeyCombo.from(string: "⌥⇧W")
-        XCTAssertNotNil(combo)
-        XCTAssertEqual(combo?.keyCode, UInt16(kVK_ANSI_W))
-        XCTAssertTrue(combo?.modifiers.contains(.option) ?? false)
-        XCTAssertTrue(combo?.modifiers.contains(.shift) ?? false)
-        XCTAssertFalse(combo?.modifiers.contains(.command) ?? true)
-        XCTAssertFalse(combo?.modifiers.contains(.control) ?? true)
+    @Test(arguments: [
+        ("⌥⇧W", UInt16(kVK_ANSI_W)),
+        ("⌘⇧K", UInt16(kVK_ANSI_K)),
+        ("⌃⌥B", UInt16(kVK_ANSI_B)),
+        ("⌘,", UInt16(kVK_ANSI_Comma)),
+        ("⌘⌫", UInt16(kVK_Delete))
+    ])
+    func parseKeyCombo_validInputs(input: String, expectedKeyCode: UInt16) throws {
+        let combo = try #require(KeyCombo.from(string: input))
+        #expect(combo.keyCode == expectedKeyCode)
     }
 
-    func testParseKeyCombo_commandShiftK() {
-        let combo = KeyCombo.from(string: "⌘⇧K")
-        XCTAssertNotNil(combo)
-        XCTAssertEqual(combo?.keyCode, UInt16(kVK_ANSI_K))
-        XCTAssertTrue(combo?.modifiers.contains(.command) ?? false)
-        XCTAssertTrue(combo?.modifiers.contains(.shift) ?? false)
+    @Test func parseKeyCombo_optionShiftW_modifiers() throws {
+        let combo = try #require(KeyCombo.from(string: "⌥⇧W"))
+        #expect(combo.modifiers.contains(.option))
+        #expect(combo.modifiers.contains(.shift))
+        #expect(!combo.modifiers.contains(.command))
+        #expect(!combo.modifiers.contains(.control))
     }
 
-    func testParseKeyCombo_controlOptionB() {
-        let combo = KeyCombo.from(string: "⌃⌥B")
-        XCTAssertNotNil(combo)
-        XCTAssertEqual(combo?.keyCode, UInt16(kVK_ANSI_B))
-        XCTAssertTrue(combo?.modifiers.contains(.control) ?? false)
-        XCTAssertTrue(combo?.modifiers.contains(.option) ?? false)
+    @Test func parseKeyCombo_commandShiftK_modifiers() throws {
+        let combo = try #require(KeyCombo.from(string: "⌘⇧K"))
+        #expect(combo.modifiers.contains(.command))
+        #expect(combo.modifiers.contains(.shift))
     }
 
-    func testParseKeyCombo_invalidString_returnsNil() {
-        XCTAssertNil(KeyCombo.from(string: ""))
-        XCTAssertNil(KeyCombo.from(string: "⌥"))
+    @Test func parseKeyCombo_controlOptionB_modifiers() throws {
+        let combo = try #require(KeyCombo.from(string: "⌃⌥B"))
+        #expect(combo.modifiers.contains(.control))
+        #expect(combo.modifiers.contains(.option))
     }
 
-    func testParseKeyCombo_singleKeyWithoutModifier_parsesSuccessfully() {
-        // modifier-less single key is allowed (e.g. "⌫" for delete)
-        let combo = KeyCombo.from(string: "W")
-        XCTAssertNotNil(combo)
-        XCTAssertEqual(combo?.keyCode, UInt16(kVK_ANSI_W))
-        XCTAssertTrue(combo?.modifiers.isEmpty ?? false)
+    @Test(arguments: ["", "⌥"])
+    func parseKeyCombo_invalidString_returnsNil(input: String) {
+        #expect(KeyCombo.from(string: input) == nil)
     }
 
-    func testParseKeyCombo_unknownKey_returnsNil() {
-        XCTAssertNil(KeyCombo.from(string: "⌥⇧!"))
+    @Test func parseKeyCombo_singleKeyWithoutModifier_parsesSuccessfully() throws {
+        let combo = try #require(KeyCombo.from(string: "W"))
+        #expect(combo.keyCode == UInt16(kVK_ANSI_W))
+        #expect(combo.modifiers.isEmpty)
     }
 
-    func testParseKeyCombo_commandComma() {
-        let combo = KeyCombo.from(string: "⌘,")
-        XCTAssertNotNil(combo)
-        XCTAssertEqual(combo?.keyCode, UInt16(kVK_ANSI_Comma))
-        XCTAssertTrue(combo?.modifiers.contains(.command) ?? false)
-    }
-
-    func testParseKeyCombo_commandBackspace() {
-        let combo = KeyCombo.from(string: "⌘⌫")
-        XCTAssertNotNil(combo)
-        XCTAssertEqual(combo?.keyCode, UInt16(kVK_Delete))
-        XCTAssertTrue(combo?.modifiers.contains(.command) ?? false)
+    @Test func parseKeyCombo_unknownKey_returnsNil() {
+        #expect(KeyCombo.from(string: "⌥⇧!") == nil)
     }
 
     // MARK: - KeyCombo Init from keyCode/modifiers
 
-    func testKeyCombo_initFromKeyCodeAndModifiers_displayStringRoundTrips() {
+    @Test func keyCombo_initFromKeyCodeAndModifiers_displayStringRoundTrips() {
         let combo = KeyCombo(keyCode: UInt16(kVK_ANSI_W), modifiers: [.option, .shift])
-        XCTAssertEqual(combo.displayString, "⌥⇧W")
+        #expect(combo.displayString == "⌥⇧W")
     }
 
-    func testKeyCombo_commaDisplayString_roundTrips() {
-        let combo = KeyCombo.from(string: "⌘,")
-        XCTAssertEqual(combo?.displayString, "⌘,")
+    @Test func keyCombo_commaDisplayString_roundTrips() throws {
+        let combo = try #require(KeyCombo.from(string: "⌘,"))
+        #expect(combo.displayString == "⌘,")
     }
 
-    func testKeyCombo_backspaceDisplayString_roundTrips() {
-        let combo = KeyCombo.from(string: "⌘⌫")
-        XCTAssertEqual(combo?.displayString, "⌘⌫")
+    @Test func keyCombo_backspaceDisplayString_roundTrips() throws {
+        let combo = try #require(KeyCombo.from(string: "⌘⌫"))
+        #expect(combo.displayString == "⌘⌫")
     }
 
     // MARK: - KeyCombo Display String
 
-    func testKeyComboDisplayString_roundTrips() {
+    @Test func keyComboDisplayString_roundTrips() throws {
         let original = "⌥⇧W"
-        let combo = KeyCombo.from(string: original)
-        XCTAssertNotNil(combo)
-        XCTAssertEqual(combo?.displayString, original)
+        let combo = try #require(KeyCombo.from(string: original))
+        #expect(combo.displayString == original)
     }
 
-    func testKeyComboDisplayString_allFourModifiers_roundTrips() {
-        // Canonical order is ⌃⌥⇧⌘ (Control, Option, Shift, Command)
+    @Test func keyComboDisplayString_allFourModifiers_roundTrips() throws {
         let original = "⌃⌥⇧⌘W"
-        let combo = KeyCombo.from(string: original)
-        XCTAssertNotNil(combo)
-        XCTAssertTrue(combo?.modifiers.contains(.control) ?? false)
-        XCTAssertTrue(combo?.modifiers.contains(.option) ?? false)
-        XCTAssertTrue(combo?.modifiers.contains(.shift) ?? false)
-        XCTAssertTrue(combo?.modifiers.contains(.command) ?? false)
-        XCTAssertEqual(combo?.displayString, original)
+        let combo = try #require(KeyCombo.from(string: original))
+        #expect(combo.modifiers.contains(.control))
+        #expect(combo.modifiers.contains(.option))
+        #expect(combo.modifiers.contains(.shift))
+        #expect(combo.modifiers.contains(.command))
+        #expect(combo.displayString == original)
     }
 
-    func testKeyComboDisplayString_modifierOrder_isCanonical() {
-        // Even if parsed from a non-canonical order, displayString should produce canonical order
-        let combo = KeyCombo.from(string: "⌘⌃⇧⌥A")
-        XCTAssertNotNil(combo)
-        XCTAssertEqual(combo?.displayString, "⌃⌥⇧⌘A")
+    @Test func keyComboDisplayString_modifierOrder_isCanonical() throws {
+        let combo = try #require(KeyCombo.from(string: "⌘⌃⇧⌥A"))
+        #expect(combo.displayString == "⌃⌥⇧⌘A")
     }
 
     // MARK: - KeyMapping Single Source of Truth
 
-    func testKeyMapping_allKeys_coversAllKeyCodeMapEntries() {
-        // Every entry in the derived keyCodeMap must originate from allKeys
+    @Test func keyMapping_allKeys_coversAllKeyCodeMapEntries() {
         let derivedMap = KeyCombo.keyCodeMap
         let allKeyDisplayChars = Set(KeyCombo.allKeys.map(\.displayChar))
         for key in derivedMap.keys {
-            XCTAssertTrue(allKeyDisplayChars.contains(key), "keyCodeMap key '\(key)' not in allKeys")
+            #expect(allKeyDisplayChars.contains(key), "keyCodeMap key '\(key)' not in allKeys")
         }
-        XCTAssertEqual(derivedMap.count, KeyCombo.allKeys.count)
+        #expect(derivedMap.count == KeyCombo.allKeys.count)
     }
 
-    func testKeyMapping_allKeys_coversAllSwiftUICharacterMapEntries() {
-        // Every entry in the derived swiftUI map must originate from allKeys
+    @Test func keyMapping_allKeys_coversAllSwiftUICharacterMapEntries() {
         let derivedMap = KeyCombo.keyCodeToSwiftUICharacter
         let allKeyCodes = Set(KeyCombo.allKeys.map(\.keyCode))
         for keyCode in derivedMap.keys {
-            XCTAssertTrue(allKeyCodes.contains(keyCode), "keyCodeToSwiftUICharacter code \(keyCode) not in allKeys")
+            #expect(allKeyCodes.contains(keyCode), "keyCodeToSwiftUICharacter code \(keyCode) not in allKeys")
         }
-        XCTAssertEqual(derivedMap.count, KeyCombo.allKeys.count)
+        #expect(derivedMap.count == KeyCombo.allKeys.count)
     }
 
-    func testKeyMapping_allKeys_noDuplicateKeyCodes() {
+    @Test func keyMapping_allKeys_noDuplicateKeyCodes() {
         let keyCodes = KeyCombo.allKeys.map(\.keyCode)
-        XCTAssertEqual(keyCodes.count, Set(keyCodes).count, "Duplicate key codes in allKeys")
+        #expect(keyCodes.count == Set(keyCodes).count, "Duplicate key codes in allKeys")
     }
 
-    func testKeyMapping_allKeys_noDuplicateDisplayChars() {
+    @Test func keyMapping_allKeys_noDuplicateDisplayChars() {
         let displayChars = KeyCombo.allKeys.map(\.displayChar)
-        XCTAssertEqual(displayChars.count, Set(displayChars).count, "Duplicate display chars in allKeys")
+        #expect(displayChars.count == Set(displayChars).count, "Duplicate display chars in allKeys")
     }
 
-    func testKeyMapping_derivedMaps_coverSameKeyCodes() {
-        // Both derived maps should cover exactly the same set of key codes
+    @Test func keyMapping_derivedMaps_coverSameKeyCodes() {
         let fromKeyCodeMap = Set(KeyCombo.keyCodeMap.values)
         let fromCharacterMap = Set(KeyCombo.keyCodeToSwiftUICharacter.keys)
-        XCTAssertEqual(fromKeyCodeMap, fromCharacterMap)
+        #expect(fromKeyCodeMap == fromCharacterMap)
     }
 
     // MARK: - HotkeyManager Lifecycle
 
-    @MainActor
-    func testHotkeyManager_initialState_isNotRegistered() {
+    @Test @MainActor func hotkeyManager_initialState_isNotRegistered() {
         let manager = HotkeyManager()
-        XCTAssertFalse(manager.isRegistered)
+        #expect(!manager.isRegistered)
     }
 
-    @MainActor
-    func testHotkeyManager_registerWithValidCombo_becomesRegistered() {
+    @Test @MainActor func hotkeyManager_registerWithValidCombo_becomesRegistered() {
         let manager = HotkeyManager()
         manager.register(keyCombo: "⌥⇧W") { }
-        XCTAssertTrue(manager.isRegistered)
+        #expect(manager.isRegistered)
     }
 
-    @MainActor
-    func testHotkeyManager_registerWithInvalidCombo_staysUnregistered() {
+    @Test @MainActor func hotkeyManager_registerWithInvalidCombo_staysUnregistered() {
         let manager = HotkeyManager()
         manager.register(keyCombo: "") { }
-        XCTAssertFalse(manager.isRegistered)
+        #expect(!manager.isRegistered)
     }
 
-    @MainActor
-    func testHotkeyManager_unregister_becomesUnregistered() {
+    @Test @MainActor func hotkeyManager_unregister_becomesUnregistered() {
         let manager = HotkeyManager()
         manager.register(keyCombo: "⌥⇧W") { }
-        XCTAssertTrue(manager.isRegistered)
+        #expect(manager.isRegistered)
 
         manager.unregister()
-        XCTAssertFalse(manager.isRegistered)
+        #expect(!manager.isRegistered)
     }
 
-    @MainActor
-    func testHotkeyManager_reRegister_updatesCombo() {
+    @Test @MainActor func hotkeyManager_reRegister_updatesCombo() {
         let manager = HotkeyManager()
         manager.register(keyCombo: "⌥⇧W") { }
-        XCTAssertTrue(manager.isRegistered)
+        #expect(manager.isRegistered)
 
-        // Re-register with a different combo
         manager.register(keyCombo: "⌘⇧K") { }
-        XCTAssertTrue(manager.isRegistered)
+        #expect(manager.isRegistered)
     }
 
-    @MainActor
-    func testHotkeyManager_enableDisable() {
+    @Test @MainActor func hotkeyManager_enableDisable() {
         let manager = HotkeyManager()
         manager.register(keyCombo: "⌥⇧W") { }
-        XCTAssertTrue(manager.isRegistered)
+        #expect(manager.isRegistered)
 
         manager.setEnabled(false)
-        XCTAssertFalse(manager.isRegistered)
+        #expect(!manager.isRegistered)
 
         manager.setEnabled(true)
-        XCTAssertTrue(manager.isRegistered)
+        #expect(manager.isRegistered)
     }
 
-    @MainActor
-    func testHotkeyManager_disableWithoutPriorRegistration_staysUnregistered() {
+    @Test @MainActor func hotkeyManager_disableWithoutPriorRegistration_staysUnregistered() {
         let manager = HotkeyManager()
         manager.setEnabled(false)
-        XCTAssertFalse(manager.isRegistered)
+        #expect(!manager.isRegistered)
 
-        // Enabling without a combo should not register
         manager.setEnabled(true)
-        XCTAssertFalse(manager.isRegistered)
+        #expect(!manager.isRegistered)
     }
 
 }

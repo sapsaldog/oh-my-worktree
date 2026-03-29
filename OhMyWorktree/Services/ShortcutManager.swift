@@ -32,6 +32,12 @@ final class ShortcutManager: ObservableObject {
         version += 1
     }
 
+    /// Notifies observers that a shortcut-related setting has changed.
+    /// Used by ShortcutsSettingsView when the global hotkey toggle changes.
+    func notifySettingsChanged() {
+        version += 1
+    }
+
     /// Restores all shortcuts to their defaults.
     func resetAllToDefaults() {
         for action in ShortcutAction.allCases {

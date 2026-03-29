@@ -21,10 +21,8 @@ struct ContentView: View {
                 get: { repoViewModel.errorMessage != nil || worktreeViewModel.errorMessage != nil },
                 set: { newValue in
                     if !newValue {
-                        Task { @MainActor in
-                            repoViewModel.clearError()
-                            worktreeViewModel.clearError()
-                        }
+                        repoViewModel.clearError()
+                        worktreeViewModel.clearError()
                     }
                 }
             )
@@ -134,7 +132,7 @@ struct ContentView: View {
     @ViewBuilder
     private func shortcutButton(for action: ShortcutAction, perform: @escaping () -> Void) -> some View {
         if let shortcut = shortcutManager.keyboardShortcut(for: action) {
-            Button("", action: perform)
+            Button(action.displayName, action: perform)
                 .keyboardShortcut(shortcut.key, modifiers: shortcut.modifiers)
         }
     }

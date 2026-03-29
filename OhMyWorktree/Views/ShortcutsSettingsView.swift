@@ -8,13 +8,8 @@ struct ShortcutsSettingsView: View {
         Form {
             Section("Global Hotkey") {
                 Toggle("Enable global hotkey", isOn: $globalHotkeyEnabled)
-                    .onChange(of: globalHotkeyEnabled) { _, newValue in
-                        if let appDelegate = NSApp.delegate as? AppDelegate {
-                            appDelegate.hotkeyManager.setEnabled(newValue)
-                            if newValue {
-                                appDelegate.setupGlobalHotkey()
-                            }
-                        }
+                    .onChange(of: globalHotkeyEnabled) { _, _ in
+                        shortcutManager.notifySettingsChanged()
                     }
 
                 HotkeyRecorderView(action: .globalHotkey, shortcutManager: shortcutManager)
@@ -25,7 +20,7 @@ struct ShortcutsSettingsView: View {
             }
 
             Section("In-App Shortcuts") {
-                ForEach(inAppActions, id: \.self) { action in
+                ForEach(Self.inAppActions, id: \.self) { action in
                     HotkeyRecorderView(action: action, shortcutManager: shortcutManager)
                 }
             }
@@ -39,7 +34,5 @@ struct ShortcutsSettingsView: View {
         .formStyle(.grouped)
     }
 
-    private var inAppActions: [ShortcutAction] {
-        ShortcutAction.allCases.filter { !$0.isGlobal }
-    }
+    private static let inAppActions = ShortcutAction.allCases.filter { !$0.isGlobal }
 }
