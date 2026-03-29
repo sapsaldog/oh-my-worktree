@@ -26,14 +26,14 @@ private final class ConcurrencyTrackingExecutor: GitCommandExecuting, @unchecked
     let worktreeListOutput: String
     let commitTimestampsByPath: [String: String]
     let defaultTimestamp: String
-    let logCallDelay: UInt64
+    let logCallDelay: Duration
     let tracker = ConcurrencyTracker()
 
     init(
         worktreeListOutput: String = "",
         commitTimestampsByPath: [String: String] = [:],
         defaultTimestamp: String = "1700000000",
-        logCallDelay: UInt64 = 50_000_000
+        logCallDelay: Duration = .milliseconds(50)
     ) {
         self.worktreeListOutput = worktreeListOutput
         self.commitTimestampsByPath = commitTimestampsByPath
@@ -51,7 +51,7 @@ private final class ConcurrencyTrackingExecutor: GitCommandExecuting, @unchecked
         }
         if arguments.first == "log" {
             await tracker.enter()
-            try? await Task.sleep(nanoseconds: logCallDelay)
+            try? await Task.sleep(for: logCallDelay)
             await tracker.exit()
             let ts = commitTimestampsByPath[workingDirectory ?? ""] ?? defaultTimestamp
             return CommandResult(stdout: ts, stderr: "", exitCode: 0)
@@ -117,7 +117,7 @@ struct WorktreeListViewModelEnrichmentTests {
                 "/tmp/worktrees/wt-a": "1700000200",
                 "/tmp/worktrees/wt-b": "1700000300"
             ],
-            logCallDelay: 0
+            logCallDelay: .zero
         )
 
         let vm = WorktreeListViewModel(
@@ -131,12 +131,16 @@ struct WorktreeListViewModelEnrichmentTests {
 
         try #require(vm.worktrees.count == 3, "enrichment requires exactly 3 worktrees")
 
-        let dates = Dictionary(
-            uniqueKeysWithValues: vm.worktrees.map { ($0.folderName, $0.lastActivityAt) }
+        let worktreeByName = Dictionary(
+            uniqueKeysWithValues: vm.worktrees.map { ($0.folderName, $0) }
         )
 
-        #expect(dates["test-repo"] == Date(timeIntervalSince1970: 1_700_000_100))
-        #expect(dates["wt-a"] == Date(timeIntervalSince1970: 1_700_000_200))
-        #expect(dates["wt-b"] == Date(timeIntervalSince1970: 1_700_000_300))
+        let main = try #require(worktreeByName["test-repo"], "missing test-repo worktree")
+        let wtA = try #require(worktreeByName["wt-a"], "missing wt-a worktree")
+        let wtB = try #require(worktreeByName["wt-b"], "missing wt-b worktree")
+
+        #expect(main.lastActivityAt == Date(timeIntervalSince1970: 1_700_000_100))
+        #expect(wtA.lastActivityAt == Date(timeIntervalSince1970: 1_700_000_200))
+        #expect(wtB.lastActivityAt == Date(timeIntervalSince1970: 1_700_000_300))
     }
 }
