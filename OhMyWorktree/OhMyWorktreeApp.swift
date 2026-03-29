@@ -43,14 +43,7 @@ struct OhMyWorktreeApp: App {
                 }
                 .keyboardShortcut(.downArrow, modifiers: [.command, .shift])
             }
-            CommandGroup(replacing: .help) {
-                Button("Oh My Worktree Help") {
-                    NSWorkspace.shared.open(URL(string: "https://github.com/sapsaldog/oh-my-worktree/tree/main/docs#readme")!)
-                }
-                Button("Report Issue...") {
-                    NSWorkspace.shared.open(URL(string: "https://github.com/sapsaldog/oh-my-worktree/issues")!)
-                }
-            }
+            CommandGroup(replacing: .help) { }
         }
     }
 
