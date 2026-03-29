@@ -4,6 +4,10 @@ import os
 actor RepositoryStore {
     static let shared = RepositoryStore()
 
+    /// Crash reporter for capturing errors that would otherwise be silently swallowed.
+    /// Defaults to the app-wide reporter; tests can inject a no-op or mock.
+    nonisolated let crashReporter: CrashReporter
+
     private static let logger = Logger(
         subsystem: Bundle.main.bundleIdentifier ?? "com.ohmyworktree",
         category: "RepositoryStore"
@@ -41,14 +45,23 @@ actor RepositoryStore {
 
     // MARK: - Initialization
 
-    private init() {
+    private init(crashReporter: CrashReporter? = nil) {
+        self.crashReporter = crashReporter ?? CrashReporterProvider.shared
         // Compute URLs locally — nonisolated computed properties reference `self`,
         // which cannot be used before all stored properties are initialized.
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         let storageDir = appSupport.appendingPathComponent("OhMyWorktree", isDirectory: true)
 
         if !FileManager.default.fileExists(atPath: storageDir.path) {
-            try? FileManager.default.createDirectory(at: storageDir, withIntermediateDirectories: true)
+            do {
+                try FileManager.default.createDirectory(at: storageDir, withIntermediateDirectories: true)
+            } catch {
+                Self.logger.error("Failed to create storage directory: \(error.localizedDescription)")
+                self.crashReporter.capture(error: error, context: [
+                    "operation": "createStorageDirectory",
+                    "path": storageDir.path
+                ])
+            }
         }
 
         let decoder = JSONDecoder()
@@ -57,17 +70,22 @@ actor RepositoryStore {
         // Load into locals first, then assign to self in three definite-initialization
         // writes at the end. Swift 6 permits `self.x = value` in a nonisolated actor
         // init only when it is the *first* (definite) assignment to that property.
+        let reporter = self.crashReporter
+        reporter.addBreadcrumb(message: "Loading persisted data from disk", category: "persistence")
+
         let loadedRepos: [Repository] = Self.loadJSON(
             from: storageDir.appendingPathComponent("repositories.json"),
             type: [Repository].self,
-            decoder: decoder
+            decoder: decoder,
+            crashReporter: reporter
         ) ?? []
 
         var loadedMetadata: [UUID: [WorktreeMetadata]] = [:]
         if let decoded: [String: [WorktreeMetadata]] = Self.loadJSON(
             from: storageDir.appendingPathComponent("worktree_metadata.json"),
             type: [String: [WorktreeMetadata]].self,
-            decoder: decoder
+            decoder: decoder,
+            crashReporter: reporter
         ) {
             for (key, value) in decoded {
                 if let uuid = UUID(uuidString: key) { loadedMetadata[uuid] = value }
@@ -78,7 +96,8 @@ actor RepositoryStore {
         if let decoded: [String: Bool] = Self.loadJSON(
             from: storageDir.appendingPathComponent("env_copy_overrides.json"),
             type: [String: Bool].self,
-            decoder: decoder
+            decoder: decoder,
+            crashReporter: reporter
         ) {
             for (key, value) in decoded {
                 if let uuid = UUID(uuidString: key) { loadedOverrides[uuid] = value }
@@ -98,22 +117,38 @@ actor RepositoryStore {
     private static func loadJSON<T: Decodable>(
         from url: URL,
         type: T.Type,
-        decoder: JSONDecoder
+        decoder: JSONDecoder,
+        crashReporter: CrashReporter
     ) -> T? {
         // 1st: try the primary file
-        if let data = try? Data(contentsOf: url),
-           let decoded = try? decoder.decode(T.self, from: data) {
-            return decoded
+        var primaryError: Error?
+        do {
+            let data = try Data(contentsOf: url)
+            return try decoder.decode(T.self, from: data)
+        } catch {
+            primaryError = error
         }
 
         // 2nd: try the .backup file
         let backupURL = url.appendingPathExtension("backup")
-        if let data = try? Data(contentsOf: backupURL),
-           let decoded = try? decoder.decode(T.self, from: data) {
-            return decoded
+        do {
+            let data = try Data(contentsOf: backupURL)
+            return try decoder.decode(T.self, from: data)
+        } catch {
+            // Both failed — report if the primary file existed (not a first-launch scenario)
+            let fileExists = FileManager.default.fileExists(atPath: url.path)
+                || FileManager.default.fileExists(atPath: backupURL.path)
+            if fileExists {
+                logger.error("Failed to load \(url.lastPathComponent) from primary and backup")
+                crashReporter.capture(error: error, context: [
+                    "operation": "loadJSON",
+                    "file": url.lastPathComponent,
+                    "primaryError": primaryError?.localizedDescription ?? "unknown",
+                    "backupError": error.localizedDescription
+                ])
+            }
         }
 
-        // Both failed — return nil (first launch or unrecoverable)
         return nil
     }
 
@@ -225,6 +260,11 @@ actor RepositoryStore {
     private func saveToDisk() {
         guard dirtyRepos || dirtyMetadata || dirtyOverrides else { return }
 
+        crashReporter.addBreadcrumb(
+            message: "Saving to disk (repos=\(dirtyRepos), meta=\(dirtyMetadata), overrides=\(dirtyOverrides))",
+            category: "persistence"
+        )
+
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = .prettyPrinted
@@ -232,30 +272,51 @@ actor RepositoryStore {
         // Only encode and write data that was actually modified.
         // Clear dirty flag only on successful write so failures are retried.
         if dirtyRepos {
-            if let data = try? encoder.encode(repositories) {
+            do {
+                let data = try encoder.encode(repositories)
                 if atomicWrite(data: data, to: repositoriesFileURL) {
                     dirtyRepos = false
                 }
+            } catch {
+                Self.logger.error("Failed to encode repositories: \(error.localizedDescription)")
+                crashReporter.capture(error: error, context: [
+                    "operation": "encodeRepositories",
+                    "count": repositories.count
+                ])
             }
         }
         if dirtyMetadata {
             let stringKeyed = Dictionary(
                 uniqueKeysWithValues: worktreeMetadata.map { ($0.key.uuidString, $0.value) }
             )
-            if let data = try? encoder.encode(stringKeyed) {
+            do {
+                let data = try encoder.encode(stringKeyed)
                 if atomicWrite(data: data, to: metadataFileURL) {
                     dirtyMetadata = false
                 }
+            } catch {
+                Self.logger.error("Failed to encode metadata: \(error.localizedDescription)")
+                crashReporter.capture(error: error, context: [
+                    "operation": "encodeMetadata",
+                    "count": worktreeMetadata.count
+                ])
             }
         }
         if dirtyOverrides {
             let stringKeyed = Dictionary(
                 uniqueKeysWithValues: envCopyOverrides.map { ($0.key.uuidString, $0.value) }
             )
-            if let data = try? encoder.encode(stringKeyed) {
+            do {
+                let data = try encoder.encode(stringKeyed)
                 if atomicWrite(data: data, to: envCopyOverridesFileURL) {
                     dirtyOverrides = false
                 }
+            } catch {
+                Self.logger.error("Failed to encode overrides: \(error.localizedDescription)")
+                crashReporter.capture(error: error, context: [
+                    "operation": "encodeOverrides",
+                    "count": envCopyOverrides.count
+                ])
             }
         }
     }
@@ -283,6 +344,10 @@ actor RepositoryStore {
             return true
         } catch {
             Self.logger.error("Failed to write \(destinationURL.lastPathComponent): \(error.localizedDescription)")
+            crashReporter.capture(error: error, context: [
+                "operation": "atomicWrite",
+                "file": destinationURL.lastPathComponent
+            ])
             try? fm.removeItem(at: tempURL)
             return false
         }

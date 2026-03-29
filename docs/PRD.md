@@ -1205,6 +1205,32 @@ let nouns = ["ocean", "river", "mountain", "forest", "sky", "lunch", "pizza", ..
 
 ---
 
+#### FR-036: Error Tracking — Sentry Integration (P1)
+
+**설명**: Sentry SDK를 통합하여 크래시 리포팅 및 에러 트래킹 인프라를 구축. 현재 `RepositoryStore` 등 핵심 경로에서 조용히 무시되는(`try?`) 에러를 캡처하여 프로덕션 안정성 모니터링을 가능하게 함.
+
+**상세 요구사항**:
+- `CrashReporter` 프로토콜 정의: `start(dsn:)`, `capture(error:context:)`, `addBreadcrumb(message:category:)` 메서드
+- `SentryCrashReporter`: Sentry SDK를 사용한 프로토콜 구현체
+- 프로토콜 기반 설계로 테스트 시 Mock 주입 가능
+- 앱 시작 시(`OhMyWorktreeApp`) Sentry 초기화
+- DSN은 하드코딩하지 않고 설정 기반 접근 (환경변수 또는 Config)
+- `RepositoryStore`의 silent `try?` 블록에 에러 캡처 추가:
+  - `atomicWrite` catch 블록
+  - `loadJSON` 1차/백업 모두 실패 시
+  - 디렉토리 생성 실패 시
+  - 인코딩 실패 시
+- 주요 작업에 breadcrumb 추가 (저장, 로드, 삭제 등)
+
+**영향받는 컴포넌트**:
+- `CrashReporter` (새 프로토콜)
+- `SentryCrashReporter` (새 구현체)
+- `OhMyWorktreeApp` (초기화)
+- `RepositoryStore` (에러 캡처 추가)
+- `project.yml` (Sentry SPM 패키지 추가)
+
+---
+
 ## 6. 비기능 요구사항
 
 ### 6.1 성능 요구사항

@@ -17,9 +17,11 @@
 		156C6EB8ECDE30DC56C50A6B /* Repository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C1B43B188C597C61F1DC2EA /* Repository.swift */; };
 		1D280B90168CDB181DC5FAE4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 73CCA7E1C1ACBAF4E4291EA8 /* Assets.xcassets */; };
 		1D5329DDE42009E76C2650C5 /* ExternalToolLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 155B3645306233DD226910E8 /* ExternalToolLauncher.swift */; };
+		1F3AD538BC02934BE5D185D5 /* CrashReporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A6D32025CF2B6E308B21B8 /* CrashReporterTests.swift */; };
 		322D1AFDBFEEBF607E12181D /* PullRequestStateIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1024573DB028DE97085DF606 /* PullRequestStateIcon.swift */; };
 		360142061D0A4B3D4350737F /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 9C6FD25E01D2C241945E1D05 /* Sparkle */; };
 		38723E3C67DD58A9D57EAD4B /* PullRequestServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 038E188FA5528808D1BCFCC7 /* PullRequestServiceTests.swift */; };
+		3A8161F0ECD8D3CF35771DB9 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = F8F1840C5D81EAEA407952D8 /* Sentry */; };
 		3E3BC079BCB09601CF331D43 /* WorktreeListViewModelSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6460930465C1945BB9E708A7 /* WorktreeListViewModelSelectionTests.swift */; };
 		3EB8C4AB75DF90CAAA7764C0 /* AppIcon_original.svg in Resources */ = {isa = PBXBuildFile; fileRef = D8736AEED259ECCE858F5BFE /* AppIcon_original.svg */; };
 		40504C9B5C87311686050C85 /* RandomNameGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200952D514CDC6E761D7D31 /* RandomNameGenerator.swift */; };
@@ -53,6 +55,7 @@
 		ADBE2761848EDD4D7448F958 /* UpdaterManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFB32A5891B624A9E58CAA49 /* UpdaterManager.swift */; };
 		B1ED113BDF88D0A3D2A2A874 /* RepositoryListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A34554C16FE6EC54FBB5C200 /* RepositoryListViewModel.swift */; };
 		BA7B508992779E01ED6514B9 /* RepositoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DE83D40D208FBAE22E78A33 /* RepositoryStore.swift */; };
+		BA8411A9040864C023E23CD8 /* CrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 593B8209A3E9628B3F079464 /* CrashReporter.swift */; };
 		BE5701A4F52B99C834D7ACB5 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284A4CA5F96802A6098EA38B /* ContentView.swift */; };
 		BF12B0124F855ED64994FC08 /* ImportPRViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D4E99B69FBE28C8558EEC50 /* ImportPRViewModelTests.swift */; };
 		C504C333F22E91D5E0B35628 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C49FD4751640C27A346AD443 /* AppDelegate.swift */; };
@@ -81,6 +84,7 @@
 		051710DB8E7D2B5BEF352CDF /* OhMyWorktreeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OhMyWorktreeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0590D938B57D29A509B839A9 /* RepositorySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositorySettingsView.swift; sourceTree = "<group>"; };
 		1024573DB028DE97085DF606 /* PullRequestStateIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PullRequestStateIcon.swift; sourceTree = "<group>"; };
+		11A6D32025CF2B6E308B21B8 /* CrashReporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporterTests.swift; sourceTree = "<group>"; };
 		11E235697287DAAC0D8A697C /* BackgroundJob.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundJob.swift; sourceTree = "<group>"; };
 		12A03AD181020CC2A2003500 /* ImportPRView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportPRView.swift; sourceTree = "<group>"; };
 		13A81FF314A143B73B1AB7C8 /* RepositoryStoreRenameTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryStoreRenameTests.swift; sourceTree = "<group>"; };
@@ -97,6 +101,7 @@
 		45E90BF743990ABDF5F54752 /* WorktreeFileCopierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeFileCopierTests.swift; sourceTree = "<group>"; };
 		48C7BE2DF5F955131E669BE3 /* AppDelegateColdStartTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegateColdStartTests.swift; sourceTree = "<group>"; };
 		55F7FDE98A327CB12943BBD9 /* AppDelegate+Actions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDelegate+Actions.swift"; sourceTree = "<group>"; };
+		593B8209A3E9628B3F079464 /* CrashReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporter.swift; sourceTree = "<group>"; };
 		5DE83D40D208FBAE22E78A33 /* RepositoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryStore.swift; sourceTree = "<group>"; };
 		6460930465C1945BB9E708A7 /* WorktreeListViewModelSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeListViewModelSelectionTests.swift; sourceTree = "<group>"; };
 		64B3B3B1F44A78CB74EE99F8 /* RepositorySelectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositorySelectorView.swift; sourceTree = "<group>"; };
@@ -142,6 +147,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				360142061D0A4B3D4350737F /* Sparkle in Frameworks */,
+				3A8161F0ECD8D3CF35771DB9 /* Sentry in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -172,6 +178,7 @@
 			isa = PBXGroup;
 			children = (
 				688E52A50119AE1D61EBC870 /* BackgroundTaskQueue.swift */,
+				593B8209A3E9628B3F079464 /* CrashReporter.swift */,
 				155B3645306233DD226910E8 /* ExternalToolLauncher.swift */,
 				E12BD14A8E992E6A9B4668B7 /* GitCommandExecutor.swift */,
 				8D0B554A7A3F05F099599D36 /* GitHeadMonitor.swift */,
@@ -193,6 +200,7 @@
 				48C7BE2DF5F955131E669BE3 /* AppDelegateColdStartTests.swift */,
 				CA1521E4788D6CDF1C92F4C9 /* BackgroundJobStateTests.swift */,
 				04943FBE79E108AEA932BE7A /* BackgroundTaskQueueTests.swift */,
+				11A6D32025CF2B6E308B21B8 /* CrashReporterTests.swift */,
 				8D4E99B69FBE28C8558EEC50 /* ImportPRViewModelTests.swift */,
 				D17D255D9C03D39E65FC37E5 /* MockGitExecutor.swift */,
 				C9F3D7DAE61099FF17488E05 /* PullRequestInfoTests.swift */,
@@ -322,6 +330,7 @@
 			name = OhMyWorktree;
 			packageProductDependencies = (
 				9C6FD25E01D2C241945E1D05 /* Sparkle */,
+				F8F1840C5D81EAEA407952D8 /* Sentry */,
 			);
 			productName = OhMyWorktree;
 			productReference = AB7DCB0D9BD7764BC9BC08F6 /* OhMyWorktree.app */;
@@ -347,6 +356,7 @@
 			mainGroup = E24E11112DD38BB9817DC8CE;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				40A8866C3D898931BE1278F4 /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
 				02C86F602F1495B106DDAAA6 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -421,6 +431,7 @@
 				454889617A7D8475686FA15A /* AppDelegateColdStartTests.swift in Sources */,
 				0DCEB362F2A309D8F5E5360D /* BackgroundJobStateTests.swift in Sources */,
 				018CEB4BA33463D66FC56390 /* BackgroundTaskQueueTests.swift in Sources */,
+				1F3AD538BC02934BE5D185D5 /* CrashReporterTests.swift in Sources */,
 				BF12B0124F855ED64994FC08 /* ImportPRViewModelTests.swift in Sources */,
 				78CA79D990B38BC4BA845726 /* MockGitExecutor.swift in Sources */,
 				A04EF872B11EC64861D1931F /* PullRequestInfoTests.swift in Sources */,
@@ -446,6 +457,7 @@
 				069FE3565BC42960E0CFBDEA /* BackgroundJob.swift in Sources */,
 				0349E56A97431ED05B90B995 /* BackgroundTaskQueue.swift in Sources */,
 				BE5701A4F52B99C834D7ACB5 /* ContentView.swift in Sources */,
+				BA8411A9040864C023E23CD8 /* CrashReporter.swift in Sources */,
 				81182F4E1FD7B88AE6CCD9C2 /* Date+RelativeTime.swift in Sources */,
 				1D5329DDE42009E76C2650C5 /* ExternalToolLauncher.swift in Sources */,
 				D13B27C586A4730DF2924206 /* GitCommandExecutor.swift in Sources */,
@@ -735,6 +747,14 @@
 				minimumVersion = 2.6.0;
 			};
 		};
+		40A8866C3D898931BE1278F4 /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/getsentry/sentry-cocoa";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.40.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -742,6 +762,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 02C86F602F1495B106DDAAA6 /* XCRemoteSwiftPackageReference "Sparkle" */;
 			productName = Sparkle;
+		};
+		F8F1840C5D81EAEA407952D8 /* Sentry */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 40A8866C3D898931BE1278F4 /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
+			productName = Sentry;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

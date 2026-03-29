@@ -7,6 +7,11 @@ struct OhMyWorktreeApp: App {
     @StateObject private var worktreeViewModel = WorktreeListViewModel()
     @StateObject private var updaterManager = UpdaterManager()
 
+    init() {
+        let config = CrashReporterConfiguration.fromEnvironment()
+        CrashReporterProvider.shared.start(dsn: config.dsn)
+    }
+
     var body: some Scene {
         // Connect view models to AppDelegate during Scene body evaluation,
         // so the menu bar works even if the main window hasn't appeared yet

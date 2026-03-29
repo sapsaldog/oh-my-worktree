@@ -10,6 +10,9 @@ packages:
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
     from: "2.6.0"
+  Sentry:
+    url: https://github.com/getsentry/sentry-cocoa
+    from: "8.40.0"
 
 settings:
   SWIFT_VERSION: "5.9"
@@ -25,6 +28,7 @@ targets:
       - OhMyWorktree
     dependencies:
       - package: Sparkle
+      - package: Sentry
     preBuildScripts:
       - name: SwiftLint
         script: |
