@@ -152,14 +152,6 @@ extension AppDelegate {
         updaterManager?.checkForUpdates()
     }
 
-    @objc func helpClicked(_ sender: NSMenuItem) {
-        NSWorkspace.shared.open(URL(string: "https://github.com/sapsaldog/oh-my-worktree/tree/main/docs#readme")!)
-    }
-
-    @objc func reportIssueClicked(_ sender: NSMenuItem) {
-        NSWorkspace.shared.open(URL(string: "https://github.com/sapsaldog/oh-my-worktree/issues")!)
-    }
-
     @objc func quitClicked(_ sender: NSMenuItem) {
         NSApplication.shared.terminate(nil)
     }

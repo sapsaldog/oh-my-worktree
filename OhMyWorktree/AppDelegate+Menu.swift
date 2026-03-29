@@ -141,8 +141,6 @@ extension AppDelegate {
         menu.addItem(updatesItem)
         menu.addItem(.separator())
 
-        addHelpMenuItems(to: menu)
-
         let quitItem = NSMenuItem(
             title: "Quit Oh My Worktree",
             action: #selector(quitClicked(_:)),
@@ -150,27 +148,6 @@ extension AppDelegate {
         )
         quitItem.target = self
         menu.addItem(quitItem)
-    }
-
-    // MARK: - Help Menu Items
-
-    private func addHelpMenuItems(to menu: NSMenu) {
-        let helpItem = NSMenuItem(
-            title: "Oh My Worktree Help",
-            action: #selector(helpClicked(_:)),
-            keyEquivalent: ""
-        )
-        helpItem.target = self
-        menu.addItem(helpItem)
-
-        let reportItem = NSMenuItem(
-            title: "Report Issue...",
-            action: #selector(reportIssueClicked(_:)),
-            keyEquivalent: ""
-        )
-        reportItem.target = self
-        menu.addItem(reportItem)
-        menu.addItem(.separator())
     }
 
     // MARK: - Worktree Submenu
