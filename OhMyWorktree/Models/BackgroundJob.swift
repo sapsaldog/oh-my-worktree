@@ -4,12 +4,14 @@ import Foundation
 
 enum BackgroundJobKind: Equatable, Sendable {
     case removeWorktree(force: Bool)
+    case quickRemove
     case pull
     case addWorktreeFromPR(remoteBranch: String, localBranch: String, prNumber: Int)
 
     var displayLabel: String {
         switch self {
         case .removeWorktree(let force): return force ? "Force Remove" : "Remove"
+        case .quickRemove: return "Quick Remove"
         case .pull: return "Git Pull"
         case .addWorktreeFromPR(_, _, let prNumber): return "Import PR #\(prNumber)"
         }
@@ -18,6 +20,7 @@ enum BackgroundJobKind: Equatable, Sendable {
     var failureMessage: String {
         switch self {
         case .removeWorktree: return "remove failed"
+        case .quickRemove: return "quick remove failed"
         case .pull: return "pull failed"
         case .addWorktreeFromPR: return "import failed"
         }

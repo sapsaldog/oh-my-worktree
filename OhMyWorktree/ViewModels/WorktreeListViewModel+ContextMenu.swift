@@ -8,6 +8,7 @@ struct ContextMenuActions {
     let canGitPull: Bool
     let canRemove: Bool
     let canForceRemove: Bool
+    let canQuickRemove: Bool
     let canShowInFinder: Bool
     let canCopyPath: Bool
 }
@@ -20,7 +21,7 @@ extension WorktreeListViewModel {
         if isMultiSelected {
             let allRemovable = !worktrees.contains { w in
                 selectedWorktreeIDs.contains(w.id)
-                    && ((repository.map { w.isRoot(of: $0) } ?? false) || w.isBare)
+                    && ((repository.map { w.isRoot(of: $0) } ?? false) || w.isBare || w.isLocked)
             }
             let hasRemovableTarget = allRemovable && worktrees.contains { w in
                 selectedWorktreeIDs.contains(w.id)
@@ -32,6 +33,7 @@ extension WorktreeListViewModel {
                 canGitPull: false,
                 canRemove: hasRemovableTarget,
                 canForceRemove: hasRemovableTarget,
+                canQuickRemove: hasRemovableTarget,
                 canShowInFinder: false,
                 canCopyPath: false
             )
@@ -40,13 +42,14 @@ extension WorktreeListViewModel {
         // Single-item behavior
         let isBusy = jobQueue.busyWorktreeIDs.contains(worktree.id)
         let isRoot = repository.map { worktree.isRoot(of: $0) } ?? false
-        let canRemove = !isRoot && !worktree.isBare && !isBusy
+        let canRemove = !isRoot && !worktree.isBare && !worktree.isLocked && !isBusy
         return ContextMenuActions(
             canOpen: !isBusy,
             canRename: !isBusy,
             canGitPull: !worktree.isBare && !isBusy,
             canRemove: canRemove,
             canForceRemove: canRemove,
+            canQuickRemove: canRemove,
             canShowInFinder: true,
             canCopyPath: true
         )

@@ -7,6 +7,8 @@ private let logger = Logger(subsystem: "com.ohmyworktree", category: "Settings")
 struct SettingsView: View {
     @ObservedObject var updaterManager: UpdaterManager
     @AppStorage("copyEnvFilesEnabled") private var copyEnvFilesEnabled = true
+    @AppStorage(BackgroundTaskQueue.jobTimeoutSecondsKey)
+    private var jobTimeoutSeconds = Int(BackgroundTaskQueue.defaultJobTimeoutSeconds)
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
     private var appVersion: String {
@@ -53,6 +55,28 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section("Advanced") {
+                LabeledContent("Background task timeout") {
+                    HStack(spacing: 4) {
+                        TextField("", value: $jobTimeoutSeconds, format: .number)
+                            .frame(width: 50)
+                            .multilineTextAlignment(.trailing)
+                            .onSubmit { jobTimeoutSeconds = clampTimeout(jobTimeoutSeconds) }
+                            .onChange(of: jobTimeoutSeconds) { _, val in
+                                jobTimeoutSeconds = clampTimeout(val)
+                            }
+                        Text("sec")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Text(
+                    "Maximum time allowed for Remove / Force Remove operations (30–600s). " +
+                    "Quick Remove Worktree is not affected by this setting."
+                )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Updates") {
                 Toggle("Automatically check for updates", isOn: Binding(
                     get: { updaterManager.automaticallyChecksForUpdates },
@@ -63,18 +87,23 @@ struct SettingsView: View {
                 }
                 .disabled(!updaterManager.canCheckForUpdates)
             }
+
+            Section {
+                Text("v\(appVersion) (\(buildNumber)) · \(commitHash)")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity)
+            }
+            .listRowBackground(Color.clear)
         }
         .formStyle(.grouped)
-        .safeAreaInset(edge: .bottom) {
-            Text("v\(appVersion) (\(buildNumber)) · \(commitHash)")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-                .frame(maxWidth: .infinity)
-                .padding(.bottom, 8)
-        }
         .onAppear {
             launchAtLogin = SMAppService.mainApp.status == .enabled
         }
         .padding()
+    }
+
+    private func clampTimeout(_ value: Int) -> Int {
+        min(max(value, 30), 600)
     }
 }

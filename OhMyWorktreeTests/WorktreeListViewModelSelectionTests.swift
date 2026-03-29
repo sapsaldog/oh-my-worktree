@@ -15,7 +15,7 @@ final class WorktreeListViewModelSelectionTests: XCTestCase {
         try await super.setUp()
         mockExecutor = MockSimpleGitExecutor()
         sut = WorktreeListViewModel(
-            worktreeManager: WorktreeManager(executor: mockExecutor),
+            worktreeManager: WorktreeManager(executor: mockExecutor, fileManager: MockNoOpFileManager()),
             store: .shared,
             pullRequestService: MockNoPRService()
         )
@@ -133,6 +133,83 @@ final class WorktreeListViewModelSelectionTests: XCTestCase {
         sut.removeSelectedWorktrees(force: false)
 
         XCTAssertTrue(sut.selectedWorktreeIDs.isEmpty)
+    }
+
+    // MARK: - quickRemoveSelectedWorktrees filtering
+
+    func testQuickRemoveSelectedWorktrees_excludesRootWorktree() async {
+        mockExecutor.worktreeListOutput = """
+        worktree /tmp/sel-test
+        HEAD abc1111
+        branch refs/heads/main
+
+        worktree /tmp/sel-test/wt-feature
+        HEAD abc2222
+        branch refs/heads/feature/x
+
+        """
+        await sut.loadWorktrees()
+
+        let root = sut.worktrees.first(where: { $0.path == "/tmp/sel-test" })!
+        let feature = sut.worktrees.first(where: { $0.folderName == "wt-feature" })!
+        sut.selectedWorktreeIDs = [root.id, feature.id]
+
+        sut.quickRemoveSelectedWorktrees()
+
+        let quickJobs = sut.jobQueue.jobs.filter { $0.kind == .quickRemove }
+        XCTAssertEqual(quickJobs.count, 1)
+        XCTAssertEqual(quickJobs.first?.worktreeID, feature.id)
+    }
+
+    func testQuickRemoveSelectedWorktrees_clearsSelection() async {
+        mockExecutor.worktreeListOutput = """
+        worktree /tmp/sel-test
+        HEAD abc1111
+        branch refs/heads/main
+
+        worktree /tmp/sel-test/wt-feature
+        HEAD abc2222
+        branch refs/heads/feature/x
+
+        """
+        await sut.loadWorktrees()
+
+        let feature = sut.worktrees.first(where: { $0.folderName == "wt-feature" })!
+        sut.selectedWorktreeIDs = [feature.id]
+
+        sut.quickRemoveSelectedWorktrees()
+
+        XCTAssertTrue(sut.selectedWorktreeIDs.isEmpty)
+    }
+
+    func testQuickRemoveSelectedWorktrees_excludesLockedWorktree() async {
+        mockExecutor.worktreeListOutput = """
+        worktree /tmp/sel-test
+        HEAD abc1111
+        branch refs/heads/main
+
+        worktree /tmp/sel-test/wt-feature
+        HEAD abc2222
+        branch refs/heads/feature/x
+
+        worktree /tmp/sel-test/wt-locked
+        HEAD abc3333
+        branch refs/heads/feature/locked
+        locked
+
+        """
+        await sut.loadWorktrees()
+
+        let feature = sut.worktrees.first(where: { $0.folderName == "wt-feature" })!
+        let locked = sut.worktrees.first(where: { $0.isLocked })!
+        sut.selectedWorktreeIDs = [feature.id, locked.id]
+
+        sut.quickRemoveSelectedWorktrees()
+
+        // Only feature should be enqueued — locked must be excluded
+        let quickJobs = sut.jobQueue.jobs.filter { $0.kind == .quickRemove }
+        XCTAssertEqual(quickJobs.count, 1, "Only non-locked worktree should be quick-removed")
+        XCTAssertEqual(quickJobs.first?.worktreeID, feature.id)
     }
 }
 

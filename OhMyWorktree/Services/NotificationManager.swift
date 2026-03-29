@@ -40,7 +40,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         let content = UNMutableNotificationContent()
         content.title = "Oh My Worktree"
         switch job.kind {
-        case .removeWorktree:
+        case .removeWorktree, .quickRemove:
             content.body = "'\(job.displayName)' removed"
         case .pull:
             content.body = "'\(job.displayName)' pulled successfully"

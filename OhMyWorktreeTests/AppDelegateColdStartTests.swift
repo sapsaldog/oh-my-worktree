@@ -239,6 +239,62 @@ final class AppDelegateColdStartTests: XCTestCase {
                        "Main window title should match AppDelegate.mainWindowTitle")
     }
 
+    // MARK: - Test environment detection
+
+    func testIsRunningTests_returnsTrueInTestEnvironment() {
+        XCTAssertTrue(AppDelegate.isRunningTests,
+                      "isRunningTests should be true when running under XCTest")
+    }
+
+    // MARK: - Settings view does not impose a fixed size that conflicts with window
+
+    // MARK: - No redundant worktree loading from repo selection sink
+
+    func testSelectedRepoDoesNotEagerLoadWorktrees() async throws {
+        let mockExecutor = MockSimpleGitExecutor()
+        mockExecutor.worktreeListOutput = """
+        worktree /tmp/no-eager-test
+        HEAD abc1111
+        branch refs/heads/main
+
+        worktree /tmp/no-eager-test/wt-feature
+        HEAD abc2222
+        branch refs/heads/feature/x
+
+        """
+
+        let worktreeVM = WorktreeListViewModel(
+            worktreeManager: WorktreeManager(executor: mockExecutor, fileManager: MockNoOpFileManager()),
+            store: .shared,
+            pullRequestService: MockNoPRService()
+        )
+
+        let repoVM = RepositoryListViewModel()
+        let appDelegate = AppDelegate()
+        appDelegate.setupStatusItem()
+        appDelegate.worktreeViewModel = worktreeVM
+        appDelegate.repoViewModel = repoVM
+
+        // Wait for any eager repo loading to settle
+        try await Task.sleep(for: .milliseconds(200))
+
+        // Act: change selectedRepository — triggers the $selectedRepository sink
+        let repo = Repository(name: "no-eager-test", path: "/tmp/no-eager-test")
+        repoVM.selectedRepository = repo
+
+        // Wait for Combine sink and any async tasks to fire
+        try await Task.sleep(for: .milliseconds(300))
+
+        // Assert: repository should be synced by the sink
+        XCTAssertEqual(worktreeVM.repository?.id, repo.id,
+            "AppDelegate should sync worktreeViewModel.repository")
+
+        // Assert: worktrees should NOT be loaded by AppDelegate
+        // (ContentView and menuWillOpen are responsible for loading)
+        XCTAssertTrue(worktreeVM.worktrees.isEmpty,
+            "AppDelegate should not trigger worktree loading from selectedRepository sink")
+    }
+
     // MARK: - Settings view does not impose a fixed size that conflicts with window
 
     func testSettingsViewIntrinsicSizeIsNotFixedFramePlusPadding() async throws {
@@ -281,5 +337,41 @@ final class AppDelegateColdStartTests: XCTestCase {
             + "\(intrinsicSize.width)x\(intrinsicSize.height), which matches "
             + "the .frame(400,500).padding() overflow pattern."
         )
+    }
+
+    // MARK: - Silent guard failures don't crash
+
+    func testShowOrCreateMainWindow_doesNotCrashWhenViewModelsNil() {
+        // Close any pre-existing windows (e.g. from SwiftUI WindowGroup)
+        for window in NSApp.windows where window.title == AppDelegate.mainWindowTitle {
+            window.close()
+        }
+        let beforeCount = NSApp.windows.filter { $0.title == AppDelegate.mainWindowTitle }.count
+
+        let appDelegate = AppDelegate()
+        appDelegate.setupStatusItem()
+        // repoViewModel and worktreeViewModel are nil
+        appDelegate.showOrCreateMainWindow()
+        // Should not crash — just returns early (with a log warning)
+
+        let afterCount = NSApp.windows.filter { $0.title == AppDelegate.mainWindowTitle }.count
+        XCTAssertEqual(afterCount, beforeCount, "No window should be created when view models are nil")
+    }
+
+    func testShowOrCreateSettingsWindow_doesNotCrashWhenUpdaterManagerNil() {
+        // Close any pre-existing windows (e.g. from other tests)
+        for window in NSApp.windows where window.title == AppDelegate.settingsWindowTitle {
+            window.close()
+        }
+        let beforeCount = NSApp.windows.filter { $0.title == AppDelegate.settingsWindowTitle }.count
+
+        let appDelegate = AppDelegate()
+        appDelegate.setupStatusItem()
+        // updaterManager is nil
+        appDelegate.showOrCreateSettingsWindow()
+        // Should not crash — just returns early (with a log warning)
+
+        let afterCount = NSApp.windows.filter { $0.title == AppDelegate.settingsWindowTitle }.count
+        XCTAssertEqual(afterCount, beforeCount, "No window should be created when updaterManager is nil")
     }
 }

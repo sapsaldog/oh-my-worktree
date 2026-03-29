@@ -16,7 +16,7 @@ final class BackgroundTaskQueueTests: XCTestCase {
         try await super.setUp()
         mockExecutor = MockSimpleGitExecutor()
         sut = BackgroundTaskQueue(
-            worktreeManager: WorktreeManager(executor: mockExecutor),
+            worktreeManager: WorktreeManager(executor: mockExecutor, fileManager: MockNoOpFileManager()),
             store: .shared
         )
     }
@@ -430,6 +430,40 @@ final class BackgroundTaskQueueTests: XCTestCase {
         XCTAssertFalse(sut.jobs.isEmpty, "Failed jobs should still be in jobs array")
     }
 
+    // MARK: - Quick Remove
+
+    func testQuickRemoveJob_completesSuccessfully() async {
+        let job = makeJob(kind: .quickRemove)
+        sut.enqueue(job)
+        await waitForIdle()
+
+        XCTAssertFalse(sut.hasActiveJobs)
+        XCTAssertFalse(sut.hasFailedJobs, "Quick remove should succeed with mock executor")
+    }
+
+    func testQuickRemoveJob_callbackFiredOnCompletion() async {
+        var completedIDs: [UUID] = []
+        sut.onJobStateChange = { job in
+            if job.state == .completed { completedIDs.append(job.id) }
+        }
+
+        let job = makeJob(kind: .quickRemove)
+        sut.enqueue(job)
+        await waitForIdle()
+
+        XCTAssertTrue(completedIDs.contains(job.id))
+    }
+
+    // MARK: - jobTimeoutSecondsKey
+
+    func testJobTimeoutSecondsKey_hasExpectedValue() {
+        XCTAssertEqual(BackgroundTaskQueue.jobTimeoutSecondsKey, "jobTimeoutSeconds")
+    }
+
+    func testDefaultJobTimeoutSeconds_isSixty() {
+        XCTAssertEqual(BackgroundTaskQueue.defaultJobTimeoutSeconds, 60)
+    }
+
     // MARK: - BackgroundJobTimeoutError
 
     func testTimeoutError_hasDescriptiveMessage() {
@@ -439,5 +473,13 @@ final class BackgroundTaskQueueTests: XCTestCase {
             error.errorDescription?.contains("60") == true,
             "Timeout error should mention the 60-second limit"
         )
+    }
+
+    func testTimeoutError_mentionsSettingsAndQuickRemove() {
+        let error = BackgroundJobTimeoutError(seconds: 120)
+        let desc = error.errorDescription ?? ""
+        XCTAssertTrue(desc.contains("120"), "Should mention timeout duration")
+        XCTAssertTrue(desc.contains("Settings"), "Should mention Settings")
+        XCTAssertTrue(desc.contains("Quick Remove"), "Should mention Quick Remove as alternative")
     }
 }

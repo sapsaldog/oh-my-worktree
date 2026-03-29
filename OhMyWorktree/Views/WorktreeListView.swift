@@ -6,6 +6,8 @@ struct WorktreeListView: View {
     @State private var renamingWorktreeID: UUID?
     @State private var forceRemoveTarget: ForceRemoveTarget?
     @State private var confirmBulkRemove = false
+    @State private var confirmBulkQuickRemove = false
+    @State private var quickRemoveTarget: Worktree?
 
     private enum ForceRemoveTarget {
         case single(Worktree)
@@ -99,6 +101,38 @@ struct WorktreeListView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Worktrees with uncommitted changes will not be removed.")
+        }
+        .confirmationDialog(
+            "Quick Remove \(viewModel.selectedWorktreeIDs.count) Worktrees?",
+            isPresented: $confirmBulkQuickRemove,
+            titleVisibility: .visible
+        ) {
+            Button("Quick Remove", role: .destructive) {
+                viewModel.quickRemoveSelectedWorktrees()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            // swiftlint:disable:next line_length
+            Text("Directories will be moved to Trash. Uncommitted changes will not be checked. Git worktree registration will be removed immediately.")
+        }
+        .confirmationDialog(
+            "Quick Remove '\(quickRemoveTarget?.displayName ?? "")'?",
+            isPresented: Binding(
+                get: { quickRemoveTarget != nil },
+                set: { if !$0 { quickRemoveTarget = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Quick Remove", role: .destructive) {
+                if let worktree = quickRemoveTarget {
+                    viewModel.quickRemoveWorktree(worktree)
+                }
+                quickRemoveTarget = nil
+            }
+            Button("Cancel", role: .cancel) { quickRemoveTarget = nil }
+        } message: {
+            // swiftlint:disable:next line_length
+            Text("The directory will be moved to Trash. Uncommitted changes will not be checked. Git worktree registration will be removed immediately.")
         }
     }
 
@@ -212,6 +246,11 @@ struct WorktreeListView: View {
         }
         .disabled(!actions.canCopyPath)
 
+        removalMenuItems(for: worktree, actions: actions, isMultiSelected: isMultiSelected)
+    }
+
+    @ViewBuilder
+    private func removalMenuItems(for worktree: Worktree, actions: ContextMenuActions, isMultiSelected: Bool) -> some View {
         if isMultiSelected {
             if actions.canRemove {
                 Divider()
@@ -220,6 +259,9 @@ struct WorktreeListView: View {
                 }
                 Button("Force Remove Selected Worktrees", role: .destructive) {
                     forceRemoveTarget = .selectedWorktrees(count: viewModel.selectedWorktreeIDs.count)
+                }
+                Button("Quick Remove Selected Worktrees", role: .destructive) {
+                    confirmBulkQuickRemove = true
                 }
             }
         } else if let repository = viewModel.repository, !worktree.isRoot(of: repository) {
@@ -233,6 +275,11 @@ struct WorktreeListView: View {
                 forceRemoveTarget = .single(worktree)
             }
             .disabled(!actions.canForceRemove)
+
+            Button("Quick Remove Worktree", role: .destructive) {
+                quickRemoveTarget = worktree
+            }
+            .disabled(!actions.canQuickRemove)
         }
     }
 }

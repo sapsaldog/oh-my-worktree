@@ -4,6 +4,12 @@ import Foundation
 final class BackgroundTaskQueue: ObservableObject {
     @Published private(set) var jobs: [BackgroundJob] = []
 
+    /// UserDefaults key for the configurable job timeout (shared with SettingsView).
+    static let jobTimeoutSecondsKey = "jobTimeoutSeconds"
+
+    /// Default timeout in seconds when no UserDefaults value is set.
+    static let defaultJobTimeoutSeconds: TimeInterval = 60
+
     /// Called whenever a job transitions to completed/failed/cancelled.
     var onJobStateChange: (@MainActor (BackgroundJob) -> Void)?
 
@@ -13,13 +19,20 @@ final class BackgroundTaskQueue: ObservableObject {
     private var processingTasks: [String: Task<Void, Never>] = [:]
 
     /// Maximum duration (in seconds) for any single job before it times out.
-    /// Injectable for testing — defaults to 60 seconds in production.
-    let jobTimeoutSeconds: TimeInterval
+    /// Injectable for testing. In production, reads from UserDefaults ("jobTimeoutSeconds")
+    /// each time a job starts, so Settings changes take effect on the next enqueued job.
+    private let jobTimeoutOverride: TimeInterval?
 
-    init(worktreeManager: WorktreeManager, store: RepositoryStore, jobTimeoutSeconds: TimeInterval = 60) {
+    var jobTimeoutSeconds: TimeInterval {
+        if let override = jobTimeoutOverride { return override }
+        let stored = UserDefaults.standard.integer(forKey: Self.jobTimeoutSecondsKey)
+        return stored > 0 ? TimeInterval(stored) : Self.defaultJobTimeoutSeconds
+    }
+
+    init(worktreeManager: WorktreeManager, store: RepositoryStore, jobTimeoutSeconds: TimeInterval? = nil) {
         self.worktreeManager = worktreeManager
         self.store = store
-        self.jobTimeoutSeconds = jobTimeoutSeconds
+        self.jobTimeoutOverride = jobTimeoutSeconds
     }
 
     // MARK: - Public Interface
@@ -85,7 +98,7 @@ final class BackgroundTaskQueue: ObservableObject {
     var currentJobDescription: String? {
         guard let job = jobs.first(where: { $0.state == .inProgress }) else { return nil }
         switch job.kind {
-        case .removeWorktree: return "Removing \(job.displayName)..."
+        case .removeWorktree, .quickRemove: return "Removing \(job.displayName)..."
         case .pull: return "Pulling \(job.displayName)..."
         case .addWorktreeFromPR(_, _, let prNumber):
             return "Importing PR #\(prNumber)..."
@@ -129,44 +142,15 @@ final class BackgroundTaskQueue: ObservableObject {
         let timeout = jobTimeoutSeconds
 
         do {
-            // Wrap the git operation in a timeout to prevent indefinite blocking
-            // if a git process hangs (e.g. waiting for SSH passphrase or network).
-            try await withJobTimeout(seconds: timeout) {
-                switch job.kind {
-                case .removeWorktree(let force):
-                    if FileManager.default.fileExists(atPath: job.worktreePath) {
-                        try await wm.removeWorktree(
-                            repositoryPath: job.repositoryPath,
-                            worktreePath: job.worktreePath,
-                            force: force
-                        )
-                    } else {
-                        // Directory was manually deleted; prune the dangling git
-                        // registration so it doesn't reappear on next reload.
-                        // Ignore prune errors — metadata cleanup below is sufficient.
-                        try? await wm.pruneWorktrees(repositoryPath: job.repositoryPath)
-                    }
-                    await st.removeWorktreeMetadata(
-                        folderName: job.folderName,
-                        repositoryID: job.repositoryID
-                    )
-                case .pull:
-                    _ = try await wm.gitPull(worktreePath: job.worktreePath)
-                case .addWorktreeFromPR(let remoteBranch, let localBranch, let prNumber):
-                    // Fetch via pull/<number>/head into a named ref so fork PRs
-                    // are handled correctly without relying on FETCH_HEAD (which
-                    // could be overwritten by an interleaving git fetch).
-                    let ref = try await wm.fetchPullRequestRef(number: prNumber, repositoryPath: job.repositoryPath)
-                    _ = try await wm.addWorktreeFromRemoteBranch(
-                        repositoryPath: job.repositoryPath,
-                        folderName: job.folderName,
-                        localBranch: localBranch,
-                        remoteBranch: remoteBranch,
-                        startPoint: ref
-                    )
-                    await wm.deleteRef(ref, repositoryPath: job.repositoryPath)
-                    let metadata = WorktreeMetadata(folderName: job.folderName, prRemoteBranch: remoteBranch)
-                    await st.addWorktreeMetadata(metadata, repositoryID: job.repositoryID)
+            // Quick remove uses FileManager.trashItem which completes near-instantly,
+            // so it does not need (and should not have) a timeout wrapper.
+            if job.kind == .quickRemove {
+                try await Self.dispatchJob(job, worktreeManager: wm, store: st)
+            } else {
+                // Wrap the git operation in a timeout to prevent indefinite blocking
+                // if a git process hangs (e.g. waiting for SSH passphrase or network).
+                try await withJobTimeout(seconds: timeout) {
+                    try await Self.dispatchJob(job, worktreeManager: wm, store: st)
                 }
             }
             if let i = jobIndex(for: jobID) {
@@ -182,6 +166,58 @@ final class BackgroundTaskQueue: ObservableObject {
                 let snapshot = jobs[i]
                 onJobStateChange?(snapshot)
             }
+        }
+    }
+
+    // MARK: - Private: Job Dispatch
+
+    /// Dispatches the actual git/filesystem work for a single job.
+    /// Extracted from `executeJob` to keep function body length within lint limits.
+    private nonisolated static func dispatchJob(
+        _ job: BackgroundJob,
+        worktreeManager wm: WorktreeManager,
+        store st: RepositoryStore
+    ) async throws {
+        switch job.kind {
+        case .removeWorktree(let force):
+            if wm.fileExists(atPath: job.worktreePath) {
+                try await wm.removeWorktree(
+                    repositoryPath: job.repositoryPath,
+                    worktreePath: job.worktreePath,
+                    force: force
+                )
+            } else {
+                // Directory was manually deleted; prune the dangling git
+                // registration so it doesn't reappear on next reload.
+                try? await wm.pruneWorktrees(repositoryPath: job.repositoryPath)
+            }
+            await st.removeWorktreeMetadata(
+                folderName: job.folderName,
+                repositoryID: job.repositoryID
+            )
+        case .quickRemove:
+            try await wm.quickRemoveWorktree(
+                worktreePath: job.worktreePath,
+                repositoryPath: job.repositoryPath
+            )
+            await st.removeWorktreeMetadata(
+                folderName: job.folderName,
+                repositoryID: job.repositoryID
+            )
+        case .pull:
+            _ = try await wm.gitPull(worktreePath: job.worktreePath)
+        case .addWorktreeFromPR(let remoteBranch, let localBranch, let prNumber):
+            let ref = try await wm.fetchPullRequestRef(number: prNumber, repositoryPath: job.repositoryPath)
+            _ = try await wm.addWorktreeFromRemoteBranch(
+                repositoryPath: job.repositoryPath,
+                folderName: job.folderName,
+                localBranch: localBranch,
+                remoteBranch: remoteBranch,
+                startPoint: ref
+            )
+            await wm.deleteRef(ref, repositoryPath: job.repositoryPath)
+            let metadata = WorktreeMetadata(folderName: job.folderName, prRemoteBranch: remoteBranch)
+            await st.addWorktreeMetadata(metadata, repositoryID: job.repositoryID)
         }
     }
 
@@ -256,6 +292,8 @@ final class BackgroundTaskQueue: ObservableObject {
 struct BackgroundJobTimeoutError: LocalizedError {
     let seconds: Int
     var errorDescription: String? {
-        "Operation timed out after \(seconds) seconds"
+        "Operation timed out after \(seconds) seconds. "
+        + "Projects with large directories (e.g. node_modules) may need more time. "
+        + "You can increase the timeout in Settings > Advanced, or use 'Quick Remove Worktree' for instant removal."
     }
 }

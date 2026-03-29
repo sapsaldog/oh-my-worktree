@@ -113,7 +113,7 @@ final class WorktreeListViewModel: ObservableObject {
 
     private func handleJobStateChange(_ job: BackgroundJob) {
         switch (job.state, job.kind) {
-        case (.completed, .removeWorktree):
+        case (.completed, .removeWorktree), (.completed, .quickRemove):
             // Defer @Published writes to avoid "Publishing during view update" warnings.
             // The callback fires synchronously inside executeJob's Task continuation;
             // wrapping in a new Task guarantees the writes land between render passes.

@@ -60,6 +60,13 @@ final class BackgroundJobStateTests: XCTestCase {
         XCTAssertEqual(kind.displayLabel, "Import PR #42")
     }
 
+    // MARK: - quickRemove displayLabel
+
+    func testDisplayLabel_quickRemove() {
+        let kind = BackgroundJobKind.quickRemove
+        XCTAssertEqual(kind.displayLabel, "Quick Remove")
+    }
+
     // MARK: - failureMessage
 
     func testFailureMessage_allKinds() {
@@ -71,5 +78,9 @@ final class BackgroundJobStateTests: XCTestCase {
             ).failureMessage,
             "import failed"
         )
+    }
+
+    func testFailureMessage_quickRemove() {
+        XCTAssertEqual(BackgroundJobKind.quickRemove.failureMessage, "quick remove failed")
     }
 }
