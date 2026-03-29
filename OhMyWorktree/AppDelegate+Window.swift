@@ -70,36 +70,28 @@ extension AppDelegate {
 
 extension AppDelegate {
 
-    /// Sets up NSApp.mainMenu after macOS finishes its own menu bar setup.
-    /// Must run via DispatchQueue.main.async to avoid being overwritten by
-    /// macOS during .accessory → .regular activation policy transitions.
+    /// Inserts a "Settings..." (Cmd+,) item into the existing application menu.
+    /// macOS auto-creates the app menu when switching to .regular policy,
+    /// and overwrites any NSApp.mainMenu we set. So we inject into its menu instead.
     func setupMainMenu() {
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            guard let self,
+                  let appMenu = NSApp.mainMenu?.item(at: 0)?.submenu else { return }
 
-            let mainMenu = NSMenu()
+            // Already injected
+            guard !appMenu.items.contains(where: { $0.keyEquivalent == "," }) else { return }
 
-            let appMenuItem = NSMenuItem()
-            let appMenu = NSMenu(title: "OhMyWorktree")
+            // Insert "Settings..." after "About" (index 1)
+            let separator = NSMenuItem.separator()
             let settingsItem = NSMenuItem(
                 title: "Settings...",
                 action: #selector(self.settingsClicked(_:)),
                 keyEquivalent: ","
             )
             settingsItem.target = self
-            appMenu.addItem(settingsItem)
-            appMenu.addItem(.separator())
-            let quitItem = NSMenuItem(
-                title: "Quit Oh My Worktree",
-                action: #selector(self.quitClicked(_:)),
-                keyEquivalent: "q"
-            )
-            quitItem.target = self
-            appMenu.addItem(quitItem)
-            appMenuItem.submenu = appMenu
-            mainMenu.addItem(appMenuItem)
-
-            NSApp.mainMenu = mainMenu
+            let insertIndex = min(1, appMenu.numberOfItems)
+            appMenu.insertItem(separator, at: insertIndex)
+            appMenu.insertItem(settingsItem, at: insertIndex)
         }
     }
 }
