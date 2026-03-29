@@ -1,7 +1,9 @@
 import Foundation
+import Observation
 
+@Observable
 @MainActor
-final class ImportPRViewModel: ObservableObject {
+final class ImportPRViewModel {
 
     enum PRTab: String, CaseIterable {
         case open = "Open"
@@ -9,22 +11,20 @@ final class ImportPRViewModel: ObservableObject {
         case closed = "Closed"
     }
 
-    @Published var allPRs: [PullRequestInfo] = []
-    @Published var isLoading = false
-    @Published var loadFailed = false
-    @Published var errorMessage: String?
-    @Published var selectedPR: PullRequestInfo?
-    @Published var searchText = ""
-    @Published var selectedTab: PRTab = .open
+    var allPRs: [PullRequestInfo] = []
+    var isLoading = false
+    var loadFailed = false
+    var errorMessage: String?
+    var selectedPR: PullRequestInfo?
+    var searchText = ""
+    var selectedTab: PRTab = .open
 
     var repositoryPath: String = ""
     var repositoryName: String = ""
 
     private let pullRequestService: any PullRequestFetching
-    private var loadTask: Task<Void, Never>?
-    /// Generation counter to invalidate stale results when loadPRs is called
-    /// concurrently (e.g. rapid sheet open/close cycles).
-    private var loadGeneration = UUID()
+    @ObservationIgnored private var loadTask: Task<Void, Never>?
+    @ObservationIgnored private var loadGeneration = UUID()
 
     init(pullRequestService: any PullRequestFetching = PullRequestService()) {
         self.pullRequestService = pullRequestService

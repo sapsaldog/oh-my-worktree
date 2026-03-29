@@ -1,4 +1,5 @@
-import XCTest
+import Foundation
+import Testing
 
 @testable import OhMyWorktree
 
@@ -25,18 +26,18 @@ final class MockWorktreeExecutor: GitCommandExecuting, @unchecked Sendable {
 
 // MARK: - Tests
 
+@Suite(.serialized)
 @MainActor
-final class WorktreeListViewModelTests: XCTestCase {
+struct WorktreeListViewModelTests {
 
-    var mockExecutor: MockWorktreeExecutor!
-    var sut: WorktreeListViewModel!
+    let mockExecutor: MockWorktreeExecutor
+    let sut: WorktreeListViewModel
     let testRepo = Repository(
         name: "test-repo",
         path: "/tmp/test-repo"
     )
 
-    override func setUp() async throws {
-        try await super.setUp()
+    init() async throws {
         mockExecutor = MockWorktreeExecutor()
         sut = WorktreeListViewModel(
             worktreeManager: WorktreeManager(executor: mockExecutor),
@@ -48,7 +49,7 @@ final class WorktreeListViewModelTests: XCTestCase {
 
     // MARK: - updateSelectedWorktree (via loadWorktrees)
 
-    func testLoadWorktrees_selectedWorktreeUpdated_whenStillPresent() async {
+    @Test func loadWorktrees_selectedWorktreeUpdated_whenStillPresent() async {
         mockExecutor.stubWorktrees("""
         worktree /tmp/test-repo
         HEAD abc1111
@@ -66,11 +67,11 @@ final class WorktreeListViewModelTests: XCTestCase {
         // Reload — selected should still be there, updated with fresh data
         await sut.loadWorktrees()
 
-        XCTAssertNotNil(sut.selectedWorktree)
-        XCTAssertEqual(sut.selectedWorktree?.folderName, "feature-a")
+        #expect(sut.selectedWorktree != nil)
+        #expect(sut.selectedWorktree?.folderName == "feature-a")
     }
 
-    func testLoadWorktrees_selectedWorktreeCleared_whenRemoved() async {
+    @Test func loadWorktrees_selectedWorktreeCleared_whenRemoved() async {
         mockExecutor.stubWorktrees("""
         worktree /tmp/test-repo
         HEAD abc1111
@@ -84,7 +85,7 @@ final class WorktreeListViewModelTests: XCTestCase {
 
         await sut.loadWorktrees()
         sut.selectedWorktree = sut.worktrees.first(where: { $0.folderName == "feature-a" })
-        XCTAssertNotNil(sut.selectedWorktree)
+        #expect(sut.selectedWorktree != nil)
 
         // Remove feature-a from the list
         mockExecutor.stubWorktrees("""
@@ -96,12 +97,12 @@ final class WorktreeListViewModelTests: XCTestCase {
 
         await sut.loadWorktrees()
 
-        XCTAssertNil(sut.selectedWorktree)
+        #expect(sut.selectedWorktree == nil)
     }
 
     // MARK: - loadWorktrees basic behavior
 
-    func testLoadWorktrees_populatesWorktrees() async {
+    @Test func loadWorktrees_populatesWorktrees() async {
         mockExecutor.stubWorktrees("""
         worktree /tmp/test-repo
         HEAD abc1111
@@ -115,21 +116,21 @@ final class WorktreeListViewModelTests: XCTestCase {
 
         await sut.loadWorktrees()
 
-        XCTAssertEqual(sut.worktrees.count, 2)
-        XCTAssertFalse(sut.isLoading)
-        XCTAssertNil(sut.errorMessage)
+        #expect(sut.worktrees.count == 2)
+        #expect(!sut.isLoading)
+        #expect(sut.errorMessage == nil)
     }
 
-    func testLoadWorktrees_noRepository_clearsWorktrees() async {
+    @Test func loadWorktrees_noRepository_clearsWorktrees() async {
         sut.repository = nil
         mockExecutor.stubWorktrees("worktree /tmp/test-repo\nHEAD abc\nbranch refs/heads/main\n")
 
         await sut.loadWorktrees()
 
-        XCTAssertTrue(sut.worktrees.isEmpty)
+        #expect(sut.worktrees.isEmpty)
     }
 
-    func testLoadWorktrees_debounce_skipsIfRecentlyLoaded() async {
+    @Test func loadWorktrees_debounce_skipsIfRecentlyLoaded() async {
         mockExecutor.stubWorktrees("""
         worktree /tmp/test-repo
         HEAD abc1111
@@ -138,7 +139,7 @@ final class WorktreeListViewModelTests: XCTestCase {
         """)
 
         await sut.loadWorktrees()
-        XCTAssertEqual(sut.worktrees.count, 1)
+        #expect(sut.worktrees.count == 1)
 
         // Change the stub — debounced call should not re-fetch
         mockExecutor.stubWorktrees("""
@@ -155,12 +156,12 @@ final class WorktreeListViewModelTests: XCTestCase {
         await sut.loadWorktrees(debounce: true)
 
         // Still 1 — debounce skipped the reload
-        XCTAssertEqual(sut.worktrees.count, 1)
+        #expect(sut.worktrees.count == 1)
     }
 
     // MARK: - renameWorktree
 
-    func testRenameWorktree_updatesLocalState() async {
+    @Test func renameWorktree_updatesLocalState() async {
         mockExecutor.stubWorktrees("""
         worktree /tmp/test-repo
         HEAD abc1111
@@ -178,11 +179,11 @@ final class WorktreeListViewModelTests: XCTestCase {
 
         await sut.renameWorktree(worktree, newName: "My Feature")
 
-        XCTAssertEqual(sut.worktrees.first(where: { $0.folderName == "feature-a" })?.customName, "My Feature")
-        XCTAssertEqual(sut.selectedWorktree?.customName, "My Feature")
+        #expect(sut.worktrees.first(where: { $0.folderName == "feature-a" })?.customName == "My Feature")
+        #expect(sut.selectedWorktree?.customName == "My Feature")
     }
 
-    func testRenameWorktree_whitespaceOnlyName_clearsCustomName() async {
+    @Test func renameWorktree_whitespaceOnlyName_clearsCustomName() async {
         mockExecutor.stubWorktrees("""
         worktree /tmp/test-repo
         HEAD abc1111
@@ -199,7 +200,7 @@ final class WorktreeListViewModelTests: XCTestCase {
 
         await sut.renameWorktree(worktree, newName: "   ")
 
-        XCTAssertNil(sut.worktrees.first(where: { $0.folderName == "feature-a" })?.customName)
+        #expect(sut.worktrees.first(where: { $0.folderName == "feature-a" })?.customName == nil)
     }
 
     // MARK: - Shared Fixtures
@@ -219,7 +220,7 @@ final class WorktreeListViewModelTests: XCTestCase {
 
 extension WorktreeListViewModelTests {
 
-    func test_addWorktreeFromPR_branchNotCheckedOut_enquesWithSameLocalBranch() {
+    @Test func addWorktreeFromPR_branchNotCheckedOut_enquesWithSameLocalBranch() {
         sut.worktrees = [rootWorktree]
 
         let pr = PullRequestInfo(
@@ -231,17 +232,17 @@ extension WorktreeListViewModelTests {
 
         let error = sut.addWorktreeFromPR(pr)
 
-        XCTAssertNil(error)
-        XCTAssertEqual(sut.jobQueue.jobs.count, 1)
+        #expect(error == nil)
+        #expect(sut.jobQueue.jobs.count == 1)
         guard case .addWorktreeFromPR(let remote, let local, _) = sut.jobQueue.jobs[0].kind else {
-            XCTFail("Expected addWorktreeFromPR job kind")
+            Issue.record("Expected addWorktreeFromPR job kind")
             return
         }
-        XCTAssertEqual(remote, "feature/new")
-        XCTAssertEqual(local, "feature/new")
+        #expect(remote == "feature/new")
+        #expect(local == "feature/new")
     }
 
-    func test_addWorktreeFromPR_branchAlreadyCheckedOut_enquesWithVersionedLocalBranch() {
+    @Test func addWorktreeFromPR_branchAlreadyCheckedOut_enquesWithVersionedLocalBranch() {
         sut.worktrees = [
             rootWorktree,
             Worktree(path: "/tmp/worktrees/feature-a", folderName: "feature-a", branch: "feature/a")
@@ -256,16 +257,16 @@ extension WorktreeListViewModelTests {
 
         let error = sut.addWorktreeFromPR(pr)
 
-        XCTAssertNil(error)
-        XCTAssertEqual(sut.jobQueue.jobs.count, 1)
+        #expect(error == nil)
+        #expect(sut.jobQueue.jobs.count == 1)
         guard case .addWorktreeFromPR(let remote, let local, _) = sut.jobQueue.jobs[0].kind else {
-            XCTFail("Expected addWorktreeFromPR job kind")
+            Issue.record("Expected addWorktreeFromPR job kind")
             return
         }
-        XCTAssertEqual(remote, "feature/a")
-        XCTAssertEqual(local, "feature/a-v2")
+        #expect(remote == "feature/a")
+        #expect(local == "feature/a-v2")
         // Folder name is now a random name, not branch-derived.
-        XCTAssertFalse(sut.jobQueue.jobs[0].folderName.isEmpty)
+        #expect(!sut.jobQueue.jobs[0].folderName.isEmpty)
     }
 }
 
@@ -273,33 +274,33 @@ extension WorktreeListViewModelTests {
 
 extension WorktreeListViewModelTests {
 
-    func test_gitPull_enqueuesJobForWorktree() {
+    @Test func gitPull_enqueuesJobForWorktree() {
         sut.worktrees = [rootWorktree, featureWorktree]
 
         sut.gitPull(featureWorktree)
 
-        XCTAssertEqual(sut.jobQueue.jobs.count, 1)
-        XCTAssertEqual(sut.jobQueue.jobs[0].kind, .pull)
-        XCTAssertEqual(sut.jobQueue.jobs[0].worktreeID, featureWorktree.id)
+        #expect(sut.jobQueue.jobs.count == 1)
+        #expect(sut.jobQueue.jobs[0].kind == .pull)
+        #expect(sut.jobQueue.jobs[0].worktreeID == featureWorktree.id)
     }
 
-    func test_gitPull_noRepository_doesNotEnqueue() {
+    @Test func gitPull_noRepository_doesNotEnqueue() {
         sut.repository = nil
         let worktree = featureWorktree
 
         sut.gitPull(worktree)
 
-        XCTAssertTrue(sut.jobQueue.jobs.isEmpty)
+        #expect(sut.jobQueue.jobs.isEmpty)
     }
 
-    func test_gitPull_busyWorktree_doesNotDuplicate() {
+    @Test func gitPull_busyWorktree_doesNotDuplicate() {
         sut.worktrees = [rootWorktree, featureWorktree]
 
         sut.gitPull(featureWorktree)
         sut.gitPull(featureWorktree) // second pull for same worktree
 
         // Should be 1 — second call is guarded by busyWorktreeIDs
-        XCTAssertEqual(sut.jobQueue.jobs.count, 1)
+        #expect(sut.jobQueue.jobs.count == 1)
     }
 }
 
@@ -307,51 +308,51 @@ extension WorktreeListViewModelTests {
 
 extension WorktreeListViewModelTests {
 
-    func test_removeWorktree_enqueuesJobForWorktree() {
+    @Test func removeWorktree_enqueuesJobForWorktree() {
         sut.worktrees = [rootWorktree, featureWorktree]
 
         sut.removeWorktree(featureWorktree)
 
-        XCTAssertEqual(sut.jobQueue.jobs.count, 1)
-        XCTAssertEqual(sut.jobQueue.jobs[0].kind, .removeWorktree(force: false))
-        XCTAssertEqual(sut.jobQueue.jobs[0].worktreeID, featureWorktree.id)
+        #expect(sut.jobQueue.jobs.count == 1)
+        #expect(sut.jobQueue.jobs[0].kind == .removeWorktree(force: false))
+        #expect(sut.jobQueue.jobs[0].worktreeID == featureWorktree.id)
     }
 
-    func test_removeWorktree_force_enqueuesForceJob() {
+    @Test func removeWorktree_force_enqueuesForceJob() {
         sut.worktrees = [rootWorktree, featureWorktree]
 
         sut.removeWorktree(featureWorktree, force: true)
 
-        XCTAssertEqual(sut.jobQueue.jobs.count, 1)
-        XCTAssertEqual(sut.jobQueue.jobs[0].kind, .removeWorktree(force: true))
+        #expect(sut.jobQueue.jobs.count == 1)
+        #expect(sut.jobQueue.jobs[0].kind == .removeWorktree(force: true))
     }
 
-    func test_removeWorktree_noRepository_doesNotEnqueue() {
+    @Test func removeWorktree_noRepository_doesNotEnqueue() {
         sut.repository = nil
 
         sut.removeWorktree(featureWorktree)
 
-        XCTAssertTrue(sut.jobQueue.jobs.isEmpty)
+        #expect(sut.jobQueue.jobs.isEmpty)
     }
 
     // MARK: - PendingDelete
 
-    func testPendingDelete_initiallyNil() {
-        XCTAssertNil(sut.pendingDelete)
+    @Test func pendingDelete_initiallyNil() {
+        #expect(sut.pendingDelete == nil)
     }
 
-    func testPendingDelete_canBeSetAndCleared() {
+    @Test func pendingDelete_canBeSetAndCleared() {
         sut.pendingDelete = .remove
-        XCTAssertEqual(sut.pendingDelete, .remove)
+        #expect(sut.pendingDelete == .remove)
 
         sut.pendingDelete = .forceRemove
-        XCTAssertEqual(sut.pendingDelete, .forceRemove)
+        #expect(sut.pendingDelete == .forceRemove)
 
         sut.pendingDelete = .quickRemove
-        XCTAssertEqual(sut.pendingDelete, .quickRemove)
+        #expect(sut.pendingDelete == .quickRemove)
 
         sut.pendingDelete = nil
-        XCTAssertNil(sut.pendingDelete)
+        #expect(sut.pendingDelete == nil)
     }
 
 }

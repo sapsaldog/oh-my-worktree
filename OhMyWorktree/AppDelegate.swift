@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import Observation
 import os
 import SwiftUI
 
@@ -37,8 +38,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     var menuRefreshTask: Task<Void, Never>?
     var cancellables = Set<AnyCancellable>()
-    private var repoCancellables = Set<AnyCancellable>()
-    var shortcutCancellables = Set<AnyCancellable>()
     private let headMonitor = GitHeadMonitor()
     private let windowObserver = WindowObserver()
     var liveBranchName: String?
@@ -64,35 +63,44 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Observe ViewModel Changes
 
     private func observeRepositoryChanges() {
-        repoCancellables.removeAll()
-
         guard let repoViewModel else { return }
 
-        // Eagerly load repositories so the menu bar is populated
-        // even before the main window appears (fixes cold-start on reboot).
         if repoViewModel.repositories.isEmpty {
             Task {
                 await repoViewModel.loadRepositories()
             }
         }
 
-        repoViewModel.$repositories
-            .dropFirst()
-            .sink { [weak self] _ in
+        observeRepositories()
+        observeSelectedRepository()
+    }
+
+    private func observeRepositories() {
+        guard let repoViewModel else { return }
+        withObservationTracking {
+            _ = repoViewModel.repositories
+        } onChange: {
+            Task { @MainActor [weak self] in
                 self?.rebuildMenu()
                 self?.updateStatusItemTitle()
+                self?.observeRepositories()
             }
-            .store(in: &repoCancellables)
+        }
+    }
 
-        repoViewModel.$selectedRepository
-            .dropFirst()
-            .sink { [weak self] newValue in
+    private func observeSelectedRepository() {
+        guard let repoViewModel else { return }
+        withObservationTracking {
+            _ = repoViewModel.selectedRepository
+        } onChange: {
+            Task { @MainActor [weak self] in
                 guard let self else { return }
-                self.worktreeViewModel?.repository = newValue
+                self.worktreeViewModel?.repository = self.repoViewModel?.selectedRepository
                 self.rebuildMenu()
                 self.updateStatusItemTitle()
+                self.observeSelectedRepository()
             }
-            .store(in: &repoCancellables)
+        }
     }
 
     private func observeWorktreeChanges() {

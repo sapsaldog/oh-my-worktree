@@ -1,11 +1,11 @@
-import XCTest
+import Foundation
+import Testing
 
 @testable import OhMyWorktree
 
 // MARK: - Handler-based Mock
 
-/// Handler-based mock that returns different results based on the git arguments.
-private final class HandlerMockGitExecutor: GitCommandExecuting, @unchecked Sendable {
+final class HandlerMockGitExecutor: GitCommandExecuting, @unchecked Sendable {
     var executedCommands: [[String]] = []
     var handler: (([String]) -> CommandResult)?
 
@@ -17,14 +17,13 @@ private final class HandlerMockGitExecutor: GitCommandExecuting, @unchecked Send
 
 // MARK: - addWorktreeFromRemoteBranch Orphaned Branch Tests (GitHub #23)
 
-final class WorktreeManagerRemoteBranchTests: XCTestCase {
+@Suite struct WorktreeManagerRemoteBranchTests {
 
-    private var mock: HandlerMockGitExecutor!
-    private var sut: WorktreeManager!
-    private var expectedPath: String!
+    let mock: HandlerMockGitExecutor
+    let sut: WorktreeManager
+    let expectedPath: String
 
-    override func setUp() {
-        super.setUp()
+    init() {
         mock = HandlerMockGitExecutor()
         sut = WorktreeManager(executor: mock, fileManager: MockNoOpFileManager())
         expectedPath = WorktreeManager.worktreePath(repositoryPath: "/tmp/repo", folderName: "bright-ocean")
@@ -41,9 +40,8 @@ final class WorktreeManagerRemoteBranchTests: XCTestCase {
 
     // MARK: - Fallback when local branch already exists
 
-    func testAddWorktreeFromRemoteBranch_branchAlreadyExists_fallsBackToExistingBranch() async throws {
+    @Test func addWorktreeFromRemoteBranch_branchAlreadyExists_fallsBackToExistingBranch() async throws {
         mock.handler = { [expectedPath] args in
-            // First call: `git worktree add -b fix/foo <path> <startPoint>` → fails
             if args.contains("-b") && args.contains("fix/foo") {
                 return CommandResult(
                     stdout: "",
@@ -51,13 +49,11 @@ final class WorktreeManagerRemoteBranchTests: XCTestCase {
                     exitCode: 128
                 )
             }
-            // Second call: `git worktree add <path> fix/foo` → succeeds
             if args.first == "worktree" && args.contains("add") && !args.contains("-b") {
                 return CommandResult(stdout: "", stderr: "", exitCode: 0)
             }
-            // Third call: `git worktree list --porcelain` → returns the new worktree
             if args == ["worktree", "list", "--porcelain"] {
-                return CommandResult(stdout: self.worktreeListOutput(path: expectedPath!), stderr: "", exitCode: 0)
+                return CommandResult(stdout: self.worktreeListOutput(path: expectedPath), stderr: "", exitCode: 0)
             }
             return CommandResult(stdout: "", stderr: "", exitCode: 0)
         }
@@ -70,16 +66,15 @@ final class WorktreeManagerRemoteBranchTests: XCTestCase {
             startPoint: "refs/omw/pr/10"
         )
 
-        XCTAssertEqual(worktree.branch, "fix/foo")
+        #expect(worktree.branch == "fix/foo")
 
-        // Verify the fallback command was issued (without -b)
         let fallbackCommand = mock.executedCommands.first { args in
             args.first == "worktree" && args.contains("add") && !args.contains("-b") && args.contains("fix/foo")
         }
-        XCTAssertNotNil(fallbackCommand, "Expected a fallback 'git worktree add <path> <branch>' without -b")
+        #expect(fallbackCommand != nil, "Expected a fallback 'git worktree add <path> <branch>' without -b")
     }
 
-    func testAddWorktreeFromRemoteBranch_otherError_throwsWithoutRetry() async {
+    @Test func addWorktreeFromRemoteBranch_otherError_throwsWithoutRetry() async {
         mock.handler = { args in
             if args.contains("-b") {
                 return CommandResult(
@@ -94,29 +89,27 @@ final class WorktreeManagerRemoteBranchTests: XCTestCase {
             return CommandResult(stdout: "", stderr: "", exitCode: 0)
         }
 
-        await XCTAssertThrowsErrorAsync(
-            try await sut.addWorktreeFromRemoteBranch(
+        await #expect(throws: (any Error).self) {
+            try await self.sut.addWorktreeFromRemoteBranch(
                 repositoryPath: "/tmp/repo",
                 folderName: "bright-ocean",
                 localBranch: "fix/foo",
                 remoteBranch: "fix/foo",
                 startPoint: "refs/omw/pr/10"
             )
-        )
+        }
 
-        // Should NOT attempt a fallback for non-"already exists" errors
         let fallbackCommand = mock.executedCommands.first { args in
             args.first == "worktree" && args.contains("add") && !args.contains("-b")
         }
-        XCTAssertNil(fallbackCommand, "Should not retry with fallback for non-branch-exists errors")
+        #expect(fallbackCommand == nil, "Should not retry with fallback for non-branch-exists errors")
     }
 
-    func testAddWorktreeFromRemoteBranch_noBranchConflict_usesCreateBranch() async throws {
+    @Test func addWorktreeFromRemoteBranch_noBranchConflict_usesCreateBranch() async throws {
         mock.handler = { [expectedPath] args in
             if args == ["worktree", "list", "--porcelain"] {
-                return CommandResult(stdout: self.worktreeListOutput(path: expectedPath!), stderr: "", exitCode: 0)
+                return CommandResult(stdout: self.worktreeListOutput(path: expectedPath), stderr: "", exitCode: 0)
             }
-            // All commands succeed (including -b)
             return CommandResult(stdout: "", stderr: "", exitCode: 0)
         }
 
@@ -128,18 +121,16 @@ final class WorktreeManagerRemoteBranchTests: XCTestCase {
             startPoint: "refs/omw/pr/10"
         )
 
-        XCTAssertEqual(worktree.branch, "fix/foo")
+        #expect(worktree.branch == "fix/foo")
 
-        // Should use -b (create branch), not fallback
         let createBranchCommand = mock.executedCommands.first { args in
             args.contains("-b") && args.contains("fix/foo")
         }
-        XCTAssertNotNil(createBranchCommand, "Should use -b to create a new branch when none exists")
+        #expect(createBranchCommand != nil, "Should use -b to create a new branch when none exists")
 
-        // Should NOT have a fallback command
         let fallbackCommand = mock.executedCommands.first { args in
             args.first == "worktree" && args.contains("add") && !args.contains("-b") && args.contains("fix/foo")
         }
-        XCTAssertNil(fallbackCommand, "Should not issue fallback when -b succeeds")
+        #expect(fallbackCommand == nil, "Should not issue fallback when -b succeeds")
     }
 }

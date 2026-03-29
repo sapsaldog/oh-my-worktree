@@ -1,8 +1,9 @@
-import XCTest
+import Foundation
+import Testing
 
 @testable import OhMyWorktree
 
-final class WorktreeMetadataTests: XCTestCase {
+@Suite struct WorktreeMetadataTests {
 
     private let encoder: JSONEncoder = {
         let e = JSONEncoder()
@@ -18,28 +19,27 @@ final class WorktreeMetadataTests: XCTestCase {
 
     // MARK: - customName encode/decode
 
-    func testEncodeDecode_withCustomName() throws {
+    @Test func encodeDecode_withCustomName() throws {
         let metadata = WorktreeMetadata(folderName: "bright-ocean", customName: "My Feature")
 
         let data = try encoder.encode(metadata)
         let decoded = try decoder.decode(WorktreeMetadata.self, from: data)
 
-        XCTAssertEqual(decoded.folderName, "bright-ocean")
-        XCTAssertEqual(decoded.customName, "My Feature")
+        #expect(decoded.folderName == "bright-ocean")
+        #expect(decoded.customName == "My Feature")
     }
 
-    func testEncodeDecode_withNilCustomName() throws {
+    @Test func encodeDecode_withNilCustomName() throws {
         let metadata = WorktreeMetadata(folderName: "bright-ocean")
 
         let data = try encoder.encode(metadata)
         let decoded = try decoder.decode(WorktreeMetadata.self, from: data)
 
-        XCTAssertEqual(decoded.folderName, "bright-ocean")
-        XCTAssertNil(decoded.customName)
+        #expect(decoded.folderName == "bright-ocean")
+        #expect(decoded.customName == nil)
     }
 
-    func testDecode_backwardCompatibility_withoutCustomNameField() throws {
-        // Simulate JSON from older version that doesn't have customName field
+    @Test func decode_backwardCompatibility_withoutCustomNameField() throws {
         let json = """
         {
             "folderName": "bright-ocean",
@@ -50,7 +50,7 @@ final class WorktreeMetadataTests: XCTestCase {
         let data = json.data(using: .utf8)!
         let decoded = try decoder.decode(WorktreeMetadata.self, from: data)
 
-        XCTAssertEqual(decoded.folderName, "bright-ocean")
-        XCTAssertNil(decoded.customName)
+        #expect(decoded.folderName == "bright-ocean")
+        #expect(decoded.customName == nil)
     }
 }

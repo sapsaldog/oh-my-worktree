@@ -1,8 +1,10 @@
 import Foundation
+import Observation
 
+@Observable
 @MainActor
-final class BackgroundTaskQueue: ObservableObject {
-    @Published private(set) var jobs: [BackgroundJob] = []
+final class BackgroundTaskQueue {
+    private(set) var jobs: [BackgroundJob] = []
 
     /// UserDefaults key for the configurable job timeout (shared with SettingsView).
     static let jobTimeoutSecondsKey = "jobTimeoutSeconds"
@@ -11,17 +13,17 @@ final class BackgroundTaskQueue: ObservableObject {
     static let defaultJobTimeoutSeconds: TimeInterval = 60
 
     /// Called whenever a job transitions to completed/failed/cancelled.
-    var onJobStateChange: (@MainActor (BackgroundJob) -> Void)?
+    @ObservationIgnored var onJobStateChange: (@MainActor (BackgroundJob) -> Void)?
 
     private let worktreeManager: WorktreeManager
     private let store: RepositoryStore
     /// Serial processing task per repository path (prevents git lock conflicts).
-    private var processingTasks: [String: Task<Void, Never>] = [:]
+    @ObservationIgnored private var processingTasks: [String: Task<Void, Never>] = [:]
 
     /// Maximum duration (in seconds) for any single job before it times out.
     /// Injectable for testing. In production, reads from UserDefaults ("jobTimeoutSeconds")
     /// each time a job starts, so Settings changes take effect on the next enqueued job.
-    private let jobTimeoutOverride: TimeInterval?
+    @ObservationIgnored private let jobTimeoutOverride: TimeInterval?
 
     var jobTimeoutSeconds: TimeInterval {
         if let override = jobTimeoutOverride { return override }
@@ -74,7 +76,7 @@ final class BackgroundTaskQueue: ObservableObject {
 
     var activeJobs: [BackgroundJob] { jobs.filter { $0.state.isActive } }
     var hasActiveJobs: Bool { !activeJobs.isEmpty }
-    @Published private(set) var busyWorktreeIDs: Set<UUID> = []
+    private(set) var busyWorktreeIDs: Set<UUID> = []
     var failedJobs: [BackgroundJob] { jobs.filter { if case .failed = $0.state { return true }; return false } }
     var hasFailedJobs: Bool { !failedJobs.isEmpty }
     var failedJobCount: Int { failedJobs.count }

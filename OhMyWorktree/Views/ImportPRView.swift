@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct ImportPRView: View {
-    @ObservedObject var worktreeViewModel: WorktreeListViewModel
-    @StateObject private var viewModel = ImportPRViewModel()
+    var worktreeViewModel: WorktreeListViewModel
+    @State private var viewModel = ImportPRViewModel()
     @Environment(\.dismiss) private var dismiss
     @State private var selectedID: Int?
 
@@ -30,9 +30,30 @@ struct ImportPRView: View {
         }
     }
 
-    // MARK: - Header
-
     private var headerArea: some View {
+        HeaderAreaView(viewModel: viewModel, selectedID: $selectedID)
+    }
+
+    private var contentArea: some View {
+        ContentAreaView(viewModel: viewModel, selectedID: $selectedID)
+    }
+
+    private var footerArea: some View {
+        FooterAreaView(
+            viewModel: viewModel,
+            worktreeViewModel: worktreeViewModel,
+            dismiss: dismiss
+        )
+    }
+}
+
+// MARK: - Subviews
+
+private struct HeaderAreaView: View {
+    @Bindable var viewModel: ImportPRViewModel
+    @Binding var selectedID: Int?
+
+    var body: some View {
         VStack(spacing: 8) {
             Picker("", selection: $viewModel.selectedTab) {
                 ForEach(ImportPRViewModel.PRTab.allCases, id: \.self) { tab in
@@ -73,11 +94,14 @@ struct ImportPRView: View {
         .padding(.top, 16)
         .padding(.bottom, 10)
     }
+}
 
-    // MARK: - Content
+private struct ContentAreaView: View {
+    var viewModel: ImportPRViewModel
+    @Binding var selectedID: Int?
 
     @ViewBuilder
-    private var contentArea: some View {
+    var body: some View {
         if viewModel.isLoading {
             ProgressView("Loading pull requests…")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -133,10 +157,14 @@ struct ImportPRView: View {
             }
         }
     }
+}
 
-    // MARK: - Footer
+private struct FooterAreaView: View {
+    var viewModel: ImportPRViewModel
+    var worktreeViewModel: WorktreeListViewModel
+    let dismiss: DismissAction
 
-    private var footerArea: some View {
+    var body: some View {
         HStack {
             Spacer()
 

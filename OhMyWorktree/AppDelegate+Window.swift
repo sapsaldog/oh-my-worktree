@@ -52,7 +52,7 @@ extension AppDelegate {
             size: NSSize(width: 500, height: 400)
         ) {
             ContentView(repoViewModel: repoVM, worktreeViewModel: worktreeVM)
-                .environmentObject(sm)
+                .environment(sm)
                 .frame(minWidth: 400, minHeight: 300)
         }
     }

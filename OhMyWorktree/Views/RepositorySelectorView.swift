@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct RepositorySelectorView: View {
-    @ObservedObject var viewModel: RepositoryListViewModel
+    @Bindable var viewModel: RepositoryListViewModel
     @State private var showingRepoSettings = false
 
     var body: some View {

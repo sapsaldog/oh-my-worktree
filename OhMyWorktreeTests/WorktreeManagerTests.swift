@@ -1,4 +1,5 @@
-import XCTest
+import Foundation
+import Testing
 
 @testable import OhMyWorktree
 
@@ -45,20 +46,18 @@ private final class MockFileManager: FileManaging, @unchecked Sendable {
 
 // MARK: - Worktree List Parsing Tests
 
-final class WorktreeManagerTests: XCTestCase {
+@Suite
+struct WorktreeManagerTests {
 
-    private var mock: MockGitExecutor!
-    private var sut: WorktreeManager!
+    private let mock: MockGitExecutor
+    private let sut: WorktreeManager
 
-    override func setUp() {
-        super.setUp()
+    init() {
         mock = MockGitExecutor()
         sut = WorktreeManager(executor: mock)
     }
 
-    // MARK: - Single Worktree
-
-    func testListWorktrees_singleBranchWorktree_parsesCorrectly() async throws {
+    @Test func listWorktrees_singleBranchWorktree_parsesCorrectly() async throws {
         mock.stub(stdout: """
         worktree /Users/user/repo
         HEAD abc1234567890abcdef
@@ -68,19 +67,17 @@ final class WorktreeManagerTests: XCTestCase {
 
         let result = try await sut.listWorktrees(repositoryPath: "/tmp/repo")
 
-        XCTAssertEqual(result.count, 1)
-        XCTAssertEqual(result[0].path, "/Users/user/repo")
-        XCTAssertEqual(result[0].folderName, "repo")
-        XCTAssertEqual(result[0].branch, "main")
-        XCTAssertEqual(result[0].commitHash, "abc1234567890abcdef")
-        XCTAssertFalse(result[0].isDetached)
-        XCTAssertFalse(result[0].isBare)
-        XCTAssertFalse(result[0].isLocked)
+        #expect(result.count == 1)
+        #expect(result[0].path == "/Users/user/repo")
+        #expect(result[0].folderName == "repo")
+        #expect(result[0].branch == "main")
+        #expect(result[0].commitHash == "abc1234567890abcdef")
+        #expect(!result[0].isDetached)
+        #expect(!result[0].isBare)
+        #expect(!result[0].isLocked)
     }
 
-    // MARK: - refs/heads/ stripping
-
-    func testListWorktrees_branchWithRefsHeadsPrefix_stripsPrefix() async throws {
+    @Test func listWorktrees_branchWithRefsHeadsPrefix_stripsPrefix() async throws {
         mock.stub(stdout: """
         worktree /Users/user/repo/feature-branch
         HEAD deadbeef
@@ -90,10 +87,10 @@ final class WorktreeManagerTests: XCTestCase {
 
         let result = try await sut.listWorktrees(repositoryPath: "/tmp/repo")
 
-        XCTAssertEqual(result[0].branch, "feature/my-feature")
+        #expect(result[0].branch == "feature/my-feature")
     }
 
-    func testListWorktrees_branchWithoutRefsHeadsPrefix_keepsAsIs() async throws {
+    @Test func listWorktrees_branchWithoutRefsHeadsPrefix_keepsAsIs() async throws {
         mock.stub(stdout: """
         worktree /Users/user/repo
         HEAD deadbeef
@@ -103,12 +100,10 @@ final class WorktreeManagerTests: XCTestCase {
 
         let result = try await sut.listWorktrees(repositoryPath: "/tmp/repo")
 
-        XCTAssertEqual(result[0].branch, "main")
+        #expect(result[0].branch == "main")
     }
 
-    // MARK: - Detached HEAD
-
-    func testListWorktrees_detachedHead_setsIsDetached() async throws {
+    @Test func listWorktrees_detachedHead_setsIsDetached() async throws {
         mock.stub(stdout: """
         worktree /Users/user/repo/detached
         HEAD abc1234
@@ -118,14 +113,12 @@ final class WorktreeManagerTests: XCTestCase {
 
         let result = try await sut.listWorktrees(repositoryPath: "/tmp/repo")
 
-        XCTAssertEqual(result.count, 1)
-        XCTAssertTrue(result[0].isDetached)
-        XCTAssertNil(result[0].branch)
+        #expect(result.count == 1)
+        #expect(result[0].isDetached)
+        #expect(result[0].branch == nil)
     }
 
-    // MARK: - Bare Worktree
-
-    func testListWorktrees_bareWorktree_setsIsBare() async throws {
+    @Test func listWorktrees_bareWorktree_setsIsBare() async throws {
         mock.stub(stdout: """
         worktree /Users/user/repo.git
         HEAD 0000000000000000000000000000000000000000
@@ -135,13 +128,11 @@ final class WorktreeManagerTests: XCTestCase {
 
         let result = try await sut.listWorktrees(repositoryPath: "/tmp/repo")
 
-        XCTAssertEqual(result.count, 1)
-        XCTAssertTrue(result[0].isBare)
+        #expect(result.count == 1)
+        #expect(result[0].isBare)
     }
 
-    // MARK: - Locked Worktree
-
-    func testListWorktrees_lockedWorktree_setsIsLocked() async throws {
+    @Test func listWorktrees_lockedWorktree_setsIsLocked() async throws {
         mock.stub(stdout: """
         worktree /Users/user/repo/locked-wt
         HEAD abc1234
@@ -152,13 +143,11 @@ final class WorktreeManagerTests: XCTestCase {
 
         let result = try await sut.listWorktrees(repositoryPath: "/tmp/repo")
 
-        XCTAssertEqual(result.count, 1)
-        XCTAssertTrue(result[0].isLocked)
+        #expect(result.count == 1)
+        #expect(result[0].isLocked)
     }
 
-    // MARK: - Multiple Worktrees
-
-    func testListWorktrees_multipleWorktrees_parsesAll() async throws {
+    @Test func listWorktrees_multipleWorktrees_parsesAll() async throws {
         mock.stub(stdout: """
         worktree /Users/user/repo
         HEAD abc1111
@@ -176,15 +165,13 @@ final class WorktreeManagerTests: XCTestCase {
 
         let result = try await sut.listWorktrees(repositoryPath: "/tmp/repo")
 
-        XCTAssertEqual(result.count, 3)
-        XCTAssertEqual(result[0].branch, "main")
-        XCTAssertEqual(result[1].branch, "feature/a")
-        XCTAssertTrue(result[2].isDetached)
+        #expect(result.count == 3)
+        #expect(result[0].branch == "main")
+        #expect(result[1].branch == "feature/a")
+        #expect(result[2].isDetached)
     }
 
-    // MARK: - folderName derivation
-
-    func testListWorktrees_folderName_isLastPathComponent() async throws {
+    @Test func listWorktrees_folderName_isLastPathComponent() async throws {
         mock.stub(stdout: """
         worktree /Users/user/oh-my-worktree/workspaces/my-repo/bright-ocean-widget
         HEAD abc1234
@@ -194,48 +181,42 @@ final class WorktreeManagerTests: XCTestCase {
 
         let result = try await sut.listWorktrees(repositoryPath: "/tmp/repo")
 
-        XCTAssertEqual(result[0].folderName, "bright-ocean-widget")
+        #expect(result[0].folderName == "bright-ocean-widget")
     }
 
-    // MARK: - Empty output
-
-    func testListWorktrees_emptyOutput_returnsEmpty() async throws {
+    @Test func listWorktrees_emptyOutput_returnsEmpty() async throws {
         mock.stub(stdout: "")
 
         let result = try await sut.listWorktrees(repositoryPath: "/tmp/repo")
 
-        XCTAssertTrue(result.isEmpty)
+        #expect(result.isEmpty)
     }
 
-    func testListWorktrees_whitespaceOnlyOutput_returnsEmpty() async throws {
+    @Test func listWorktrees_whitespaceOnlyOutput_returnsEmpty() async throws {
         mock.stub(stdout: "\n\n\n")
 
         let result = try await sut.listWorktrees(repositoryPath: "/tmp/repo")
 
-        XCTAssertTrue(result.isEmpty)
+        #expect(result.isEmpty)
     }
 
-    // MARK: - Error handling
-
-    func testListWorktrees_nonZeroExitCode_throws() async {
+    @Test func listWorktrees_nonZeroExitCode_throws() async {
         mock.stub(stdout: "", exitCode: 128)
 
-        await XCTAssertThrowsErrorAsync(
+        await #expect(throws: (any Error).self) {
             try await sut.listWorktrees(repositoryPath: "/tmp/repo")
-        )
+        }
     }
 
-    func testListWorktrees_executorThrows_rethrows() async {
+    @Test func listWorktrees_executorThrows_rethrows() async {
         mock.stubError(NSError(domain: "test", code: 1, userInfo: [NSLocalizedDescriptionKey: "process failed"]))
 
-        await XCTAssertThrowsErrorAsync(
+        await #expect(throws: (any Error).self) {
             try await sut.listWorktrees(repositoryPath: "/tmp/repo")
-        )
+        }
     }
 
-    // MARK: - Prunable worktree filtering
-
-    func testListWorktrees_prunableWorktree_isExcluded() async throws {
+    @Test func listWorktrees_prunableWorktree_isExcluded() async throws {
         mock.stub(stdout: """
         worktree /Users/user/repo
         HEAD abc1111
@@ -250,11 +231,11 @@ final class WorktreeManagerTests: XCTestCase {
 
         let result = try await sut.listWorktrees(repositoryPath: "/tmp/repo")
 
-        XCTAssertEqual(result.count, 1, "Prunable worktree must be excluded from the list")
-        XCTAssertEqual(result[0].branch, "main")
+        #expect(result.count == 1)
+        #expect(result[0].branch == "main")
     }
 
-    func testListWorktrees_prunableAmongMultiple_onlyExcludesPrunable() async throws {
+    @Test func listWorktrees_prunableAmongMultiple_onlyExcludesPrunable() async throws {
         mock.stub(stdout: """
         worktree /Users/user/repo
         HEAD abc1111
@@ -273,23 +254,21 @@ final class WorktreeManagerTests: XCTestCase {
 
         let result = try await sut.listWorktrees(repositoryPath: "/tmp/repo")
 
-        XCTAssertEqual(result.count, 2)
-        XCTAssertFalse(result.contains { $0.folderName == "stale-wt" })
-        XCTAssertTrue(result.contains { $0.folderName == "good-wt" })
+        #expect(result.count == 2)
+        #expect(!result.contains { $0.folderName == "stale-wt" })
+        #expect(result.contains { $0.folderName == "good-wt" })
     }
 
-    // MARK: - gitPull result parsing
-
-    func testGitPull_alreadyUpToDate_returnsAlreadyUpToDate() async throws {
+    @Test func gitPull_alreadyUpToDate_returnsAlreadyUpToDate() async throws {
         mock.stub(stdout: "Already up to date.\n")
 
         let result = try await sut.gitPull(worktreePath: "/tmp/repo")
 
-        XCTAssertTrue(result.alreadyUpToDate)
-        XCTAssertEqual(result.summary, "Already up to date.")
+        #expect(result.alreadyUpToDate)
+        #expect(result.summary == "Already up to date.")
     }
 
-    func testGitPull_withChanges_returnsSummaryLine() async throws {
+    @Test func gitPull_withChanges_returnsSummaryLine() async throws {
         mock.stub(stdout: """
         remote: Counting objects: 5, done.
         Updating abc1234..def5678
@@ -301,130 +280,99 @@ final class WorktreeManagerTests: XCTestCase {
 
         let result = try await sut.gitPull(worktreePath: "/tmp/repo")
 
-        XCTAssertFalse(result.alreadyUpToDate)
-        XCTAssertEqual(result.summary, "3 files changed, 5 insertions(+), 2 deletions(-)")
+        #expect(!result.alreadyUpToDate)
+        #expect(result.summary == "3 files changed, 5 insertions(+), 2 deletions(-)")
     }
 
-    func testGitPull_conflictError_throws() async {
+    @Test func gitPull_conflictError_throws() async {
         mock.stub(stdout: "", exitCode: 1)
         mock.stubbedResult = CommandResult(stdout: "", stderr: "CONFLICT (content): Merge conflict in README.md", exitCode: 1)
 
-        await XCTAssertThrowsErrorAsync(
+        await #expect(throws: (any Error).self) {
             try await sut.gitPull(worktreePath: "/tmp/repo")
-        )
+        }
     }
 }
 
 // MARK: - Quick Remove Worktree Tests
 
-final class WorktreeManagerQuickRemoveTests: XCTestCase {
+@Suite
+struct WorktreeManagerQuickRemoveTests {
 
-    private var mockExecutor: MockGitExecutor!
-    private var mockFileManager: MockFileManager!
-    private var sut: WorktreeManager!
+    private let mockExecutor: MockGitExecutor
+    private let mockFileManager: MockFileManager
+    private let sut: WorktreeManager
 
-    override func setUp() {
-        super.setUp()
+    init() {
         mockExecutor = MockGitExecutor()
         mockFileManager = MockFileManager()
         sut = WorktreeManager(executor: mockExecutor, fileManager: mockFileManager)
     }
 
-    func testQuickRemove_trashesDirectoryAndRunsPrune() async throws {
+    @Test func quickRemove_trashesDirectoryAndRunsPrune() async throws {
         try await sut.quickRemoveWorktree(
             worktreePath: "/tmp/worktree",
             repositoryPath: "/tmp/repo"
         )
 
-        // Verify trash was called with correct URL
-        XCTAssertEqual(mockFileManager.trashedURLs.count, 1)
-        XCTAssertEqual(mockFileManager.trashedURLs.first?.path, "/tmp/worktree")
+        #expect(mockFileManager.trashedURLs.count == 1)
+        #expect(mockFileManager.trashedURLs.first?.path == "/tmp/worktree")
 
-        // Verify git worktree prune was called
-        XCTAssertTrue(
-            mockExecutor.executedCommands.contains(["worktree", "prune"]),
-            "Expected 'git worktree prune' to be called"
+        #expect(
+            mockExecutor.executedCommands.contains(["worktree", "prune"])
         )
     }
 
-    func testQuickRemove_directoryNotExists_skipTrashAndPruneOnly() async throws {
-        // Use a path that doesn't exist on disk
+    @Test func quickRemove_directoryNotExists_skipTrashAndPruneOnly() async throws {
         try await sut.quickRemoveWorktree(
             worktreePath: "/nonexistent/path/that/does/not/exist",
             repositoryPath: "/tmp/repo"
         )
 
-        // Trash should NOT be called for non-existent directory
-        XCTAssertTrue(mockFileManager.trashedURLs.isEmpty,
-                       "Trash should not be called when directory doesn't exist")
+        #expect(mockFileManager.trashedURLs.isEmpty)
 
-        // Prune should still be called to clean up git metadata
-        XCTAssertTrue(
-            mockExecutor.executedCommands.contains(["worktree", "prune"]),
-            "Prune should still run for non-existent directory"
+        #expect(
+            mockExecutor.executedCommands.contains(["worktree", "prune"])
         )
     }
 
-    func testQuickRemove_trashFailure_throwsError() async {
+    @Test func quickRemove_trashFailure_throwsError() async {
         mockFileManager.shouldFailTrash = true
 
-        await XCTAssertThrowsErrorAsync(
+        await #expect(throws: (any Error).self) {
             try await sut.quickRemoveWorktree(
                 worktreePath: "/tmp/worktree",
                 repositoryPath: "/tmp/repo"
             )
-        )
+        }
 
-        // Prune should NOT be called if trash failed
-        XCTAssertFalse(
-            mockExecutor.executedCommands.contains(["worktree", "prune"]),
-            "Prune should not run when trash fails"
+        #expect(
+            !mockExecutor.executedCommands.contains(["worktree", "prune"])
         )
     }
 
-    // MARK: - fileExists delegation
+    @Test func fileExists_delegatesToInjectedFileManager() {
+        #expect(sut.fileExists(atPath: "/tmp/worktree"))
 
-    func testFileExists_delegatesToInjectedFileManager() {
-        // Path present in MockFileManager.existingPaths → true
-        XCTAssertTrue(sut.fileExists(atPath: "/tmp/worktree"))
-
-        // Path NOT present → false
-        XCTAssertFalse(sut.fileExists(atPath: "/nonexistent/path"))
+        #expect(!sut.fileExists(atPath: "/nonexistent/path"))
     }
 
-    func testFileExists_reflectsCustomExistingPaths() {
+    @Test func fileExists_reflectsCustomExistingPaths() {
         mockFileManager.existingPaths = ["/custom/a", "/custom/b"]
-        XCTAssertTrue(sut.fileExists(atPath: "/custom/a"))
-        XCTAssertTrue(sut.fileExists(atPath: "/custom/b"))
-        XCTAssertFalse(sut.fileExists(atPath: "/custom/c"))
+        #expect(sut.fileExists(atPath: "/custom/a"))
+        #expect(sut.fileExists(atPath: "/custom/b"))
+        #expect(!sut.fileExists(atPath: "/custom/c"))
     }
 
-    func testQuickRemove_pruneFailure_doesNotThrowAfterSuccessfulTrash() async throws {
-        // Prune will fail (exitCode != 0)
+    @Test func quickRemove_pruneFailure_doesNotThrowAfterSuccessfulTrash() async throws {
         mockExecutor.stubbedResult = CommandResult(stdout: "", stderr: "prune error", exitCode: 1)
 
-        // Should NOT throw — prune failure is non-fatal after successful trash
         try await sut.quickRemoveWorktree(
             worktreePath: "/tmp/worktree",
             repositoryPath: "/tmp/repo"
         )
 
-        // Trash was still called
-        XCTAssertEqual(mockFileManager.trashedURLs.count, 1)
-        // Prune was attempted
-        XCTAssertTrue(mockExecutor.executedCommands.contains(["worktree", "prune"]))
+        #expect(mockFileManager.trashedURLs.count == 1)
+        #expect(mockExecutor.executedCommands.contains(["worktree", "prune"]))
     }
-}
-
-// MARK: - Async Assert Helper
-
-func XCTAssertThrowsErrorAsync<T>(
-    _ expression: @autoclosure () async throws -> T,
-    file: StaticString = #file,
-    line: UInt = #line
-) async {
-    do {
-        _ = try await expression()
-        XCTFail("Expected error to be thrown", file: file, line: line)
-    } catch {}
 }

@@ -1,9 +1,9 @@
 import SwiftUI
 
 struct ContentView: View {
-    @ObservedObject var repoViewModel: RepositoryListViewModel
-    @ObservedObject var worktreeViewModel: WorktreeListViewModel
-    @EnvironmentObject var shortcutManager: ShortcutManager
+    var repoViewModel: RepositoryListViewModel
+    @Bindable var worktreeViewModel: WorktreeListViewModel
+    @Environment(ShortcutManager.self) var shortcutManager
 
     var body: some View {
         ZStack {
@@ -56,9 +56,26 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Main Content
-
     private var mainContent: some View {
+        MainContentView(repoViewModel: repoViewModel, worktreeViewModel: worktreeViewModel)
+    }
+
+    private var shortcutButtons: some View {
+        ShortcutButtonsView(
+            repoViewModel: repoViewModel,
+            worktreeViewModel: worktreeViewModel,
+            shortcutManager: shortcutManager
+        )
+    }
+}
+
+// MARK: - Subviews
+
+private struct MainContentView: View {
+    var repoViewModel: RepositoryListViewModel
+    var worktreeViewModel: WorktreeListViewModel
+
+    var body: some View {
         VStack(spacing: 0) {
             RepositorySelectorView(viewModel: repoViewModel)
                 .padding(.horizontal, 12)
@@ -77,19 +94,18 @@ struct ContentView: View {
                 .padding(.vertical, 8)
         }
     }
+}
 
-    // MARK: - Keyboard Shortcut Buttons
+private struct ShortcutButtonsView: View {
+    var repoViewModel: RepositoryListViewModel
+    var worktreeViewModel: WorktreeListViewModel
+    var shortcutManager: ShortcutManager
 
-    /// Invisible buttons that register keyboard shortcuts with the SwiftUI responder chain.
-    /// NSApp.mainMenu also registers these shortcuts as a fallback for Cmd+, etc.
-    @ViewBuilder
-    private var shortcutButtons: some View {
+    var body: some View {
         // swiftlint:disable:next redundant_discardable_let
         let _ = shortcutManager.version
 
         Group {
-            // Cmd+, is handled by AppDelegate's NSEvent monitor since macOS
-            // reserves it for the application menu and intercepts it before SwiftUI.
             shortcutButton(for: .addRepository) {
                 repoViewModel.showingFileDialog = true
             }

@@ -1,5 +1,7 @@
-import Combine
-import XCTest
+import Foundation
+import Testing
+
+import AppKit
 
 @testable import OhMyWorktree
 
@@ -10,13 +12,13 @@ import XCTest
 /// NSHostingView, bypassing SwiftUI Scene lifecycle entirely.
 /// No @Environment closures are needed, so cold start works identically
 /// to a normal launch.
+@Suite(.serialized)
 @MainActor
-final class AppDelegateColdStartTests: XCTestCase {
+final class AppDelegateColdStartTests {
 
-    private var testRepo: Repository!
+    private var testRepo: Repository
 
-    override func setUp() async throws {
-        try await super.setUp()
+    init() async throws {
         testRepo = Repository(
             name: "cold-start-test",
             path: "/tmp/cold-start-\(UUID().uuidString)"
@@ -24,7 +26,7 @@ final class AppDelegateColdStartTests: XCTestCase {
         await RepositoryStore.shared.addRepository(testRepo)
     }
 
-    override func tearDown() async throws {
+    deinit {
         // Close any windows created during the test to prevent cross-test
         // interference via title-based window lookup in showOrCreateWindow.
         let testWindowTitles: Set<String> = [
@@ -35,62 +37,52 @@ final class AppDelegateColdStartTests: XCTestCase {
             window.close()
         }
 
-        await RepositoryStore.shared.removeRepository(id: testRepo.id)
-        try await super.tearDown()
+        Task { @MainActor [testRepo] in
+            await RepositoryStore.shared.removeRepository(id: testRepo.id)
+        }
     }
 
     // MARK: - Eager repository loading
 
-    func testRepoViewModelDidSetTriggersEagerLoad() async throws {
+    @Test func repoViewModelDidSetTriggersEagerLoad() async throws {
         let vm = RepositoryListViewModel()
-        XCTAssertTrue(vm.repositories.isEmpty)
+        #expect(vm.repositories.isEmpty)
 
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
 
-        let loaded = expectation(description: "Repositories loaded after didSet")
-        let cancellable = vm.$repositories
-            .dropFirst()
-            .first(where: { $0.contains(where: { $0.id == self.testRepo.id }) })
-            .sink { _ in loaded.fulfill() }
-
         appDelegate.repoViewModel = vm
 
-        await fulfillment(of: [loaded], timeout: 3.0)
-        XCTAssertTrue(vm.repositories.contains(where: { $0.id == testRepo.id }))
-        cancellable.cancel()
+        let testRepoID = self.testRepo.id
+        try await pollUntil { vm.repositories.contains(where: { $0.id == testRepoID }) }
+        #expect(vm.repositories.contains(where: { $0.id == self.testRepo.id }))
     }
 
     // MARK: - Menu populated after eager load
 
-    func testMenuPopulatedAfterColdStartLoad() async throws {
+    @Test func menuPopulatedAfterColdStartLoad() async throws {
         let vm = RepositoryListViewModel()
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
 
-        let loaded = expectation(description: "Repositories loaded")
-        let cancellable = vm.$repositories
-            .dropFirst()
-            .first(where: { $0.contains(where: { $0.id == self.testRepo.id }) })
-            .sink { _ in loaded.fulfill() }
-
         appDelegate.repoViewModel = vm
-        await fulfillment(of: [loaded], timeout: 3.0)
-        cancellable.cancel()
+
+        let testRepoID = self.testRepo.id
+        try await pollUntil { vm.repositories.contains(where: { $0.id == testRepoID }) }
 
         try await Task.sleep(for: .milliseconds(100))
 
         guard let menu = appDelegate.statusItem?.menu else {
-            XCTFail("Status item menu should exist")
+            Issue.record("Status item menu should exist")
             return
         }
         let repoItem = menu.items.first(where: { $0.title == testRepo.name })
-        XCTAssertNotNil(repoItem, "Menu should contain the repository after cold-start loading")
+        #expect(repoItem != nil, "Menu should contain the repository after cold-start loading")
     }
 
     // MARK: - Open Main Window creates NSWindow on cold start
 
-    func testShowOrCreateMainWindowCreatesWindow() async throws {
+    @Test func showOrCreateMainWindowCreatesWindow() async throws {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
         appDelegate.repoViewModel = RepositoryListViewModel()
@@ -106,7 +98,7 @@ final class AppDelegateColdStartTests: XCTestCase {
 
     // MARK: - Settings does not crash on cold start
 
-    func testSettingsClickedDoesNotCrash() async throws {
+    @Test func settingsClickedDoesNotCrash() async throws {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
         appDelegate.updaterManager = UpdaterManager()
@@ -116,19 +108,19 @@ final class AppDelegateColdStartTests: XCTestCase {
         appDelegate.settingsClicked(menuItem)
 
         let settingsWindows = NSApp.windows.filter { $0.title == AppDelegate.settingsWindowTitle }
-        XCTAssertEqual(settingsWindows.count, 1, "Settings window should be created on cold start")
+        #expect(settingsWindows.count == 1, "Settings window should be created on cold start")
     }
 
     // MARK: - Import PR triggers sheet flag
 
-    func testImportPRSetsSheetFlag() async throws {
+    @Test func importPRSetsSheetFlag() async throws {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
         let worktreeVM = WorktreeListViewModel()
         appDelegate.repoViewModel = RepositoryListViewModel()
         appDelegate.worktreeViewModel = worktreeVM
 
-        XCTAssertFalse(worktreeVM.isShowingImportPR)
+        #expect(!worktreeVM.isShowingImportPR)
 
         let menuItem = NSMenuItem(title: "Import from GitHub PR…", action: nil, keyEquivalent: "")
         appDelegate.importFromGitHubPRClicked(menuItem)
@@ -136,12 +128,12 @@ final class AppDelegateColdStartTests: XCTestCase {
         // Give DispatchQueue.main.async time to execute
         try await Task.sleep(for: .milliseconds(100))
 
-        XCTAssertTrue(worktreeVM.isShowingImportPR)
+        #expect(worktreeVM.isShowingImportPR)
     }
 
     // MARK: - Window reuse (no duplicates)
 
-    func testSettingsWindowIsReused() async throws {
+    @Test func settingsWindowIsReused() async throws {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
         appDelegate.updaterManager = UpdaterManager()
@@ -152,10 +144,10 @@ final class AppDelegateColdStartTests: XCTestCase {
         appDelegate.settingsClicked(menuItem)
 
         let settingsWindows = NSApp.windows.filter { $0.title == AppDelegate.settingsWindowTitle }
-        XCTAssertEqual(settingsWindows.count, 1, "Clicking Settings twice should reuse the same window")
+        #expect(settingsWindows.count == 1, "Clicking Settings twice should reuse the same window")
     }
 
-    func testMainWindowIsReused() async throws {
+    @Test func mainWindowIsReused() async throws {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
         appDelegate.repoViewModel = RepositoryListViewModel()
@@ -166,12 +158,12 @@ final class AppDelegateColdStartTests: XCTestCase {
         appDelegate.showOrCreateMainWindow()
 
         let mainWindows = NSApp.windows.filter { $0.title == AppDelegate.mainWindowTitle }
-        XCTAssertEqual(mainWindows.count, 1, "Calling showOrCreateMainWindow twice should reuse the same window")
+        #expect(mainWindows.count == 1, "Calling showOrCreateMainWindow twice should reuse the same window")
     }
 
     // MARK: - Window survives close (no crash on dealloc)
 
-    func testWindowNotReleasedWhenClosed() async throws {
+    @Test func windowNotReleasedWhenClosed() async throws {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
         appDelegate.repoViewModel = RepositoryListViewModel()
@@ -181,17 +173,17 @@ final class AppDelegateColdStartTests: XCTestCase {
         appDelegate.showOrCreateMainWindow()
 
         guard let window = NSApp.windows.first(where: { $0.title == AppDelegate.mainWindowTitle }) else {
-            XCTFail("Main window should exist")
+            Issue.record("Main window should exist")
             return
         }
 
-        XCTAssertFalse(window.isReleasedWhenClosed,
-                       "Window must not be released on close to prevent crash in AppKit animations")
+        #expect(!window.isReleasedWhenClosed,
+               "Window must not be released on close to prevent crash in AppKit animations")
     }
 
     // MARK: - Worktree synced when selectedRepository changes
 
-    func testSelectedRepoSyncsWorktreeViewModel() async throws {
+    @Test func selectedRepoSyncsWorktreeViewModel() async throws {
         let repoVM = RepositoryListViewModel()
         let worktreeVM = WorktreeListViewModel()
 
@@ -201,25 +193,19 @@ final class AppDelegateColdStartTests: XCTestCase {
         appDelegate.repoViewModel = repoVM
 
         // Wait for eager load
-        let loaded = expectation(description: "Repos loaded")
-        let cancellable = repoVM.$repositories
-            .dropFirst()
-            .first(where: { !$0.isEmpty })
-            .sink { _ in loaded.fulfill() }
-        await fulfillment(of: [loaded], timeout: 3.0)
-        cancellable.cancel()
+        try await pollUntil { !repoVM.repositories.isEmpty }
 
         // selectedRepository should have been set and synced to worktreeVM
         if let selected = repoVM.selectedRepository {
             try await Task.sleep(for: .milliseconds(200))
-            XCTAssertEqual(worktreeVM.repository?.id, selected.id,
-                           "worktreeViewModel.repository should sync with selectedRepository")
+            #expect(worktreeVM.repository?.id == selected.id,
+                   "worktreeViewModel.repository should sync with selectedRepository")
         }
     }
 
     // MARK: - Window title consistency
 
-    func testSettingsWindowUsesExpectedTitle() async throws {
+    @Test func settingsWindowUsesExpectedTitle() async throws {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
         appDelegate.updaterManager = UpdaterManager()
@@ -228,11 +214,11 @@ final class AppDelegateColdStartTests: XCTestCase {
         appDelegate.showOrCreateSettingsWindow()
 
         let settingsWindows = NSApp.windows.filter { $0.title == AppDelegate.settingsWindowTitle }
-        XCTAssertEqual(settingsWindows.count, 1,
-                       "Settings window title should match AppDelegate.settingsWindowTitle")
+        #expect(settingsWindows.count == 1,
+               "Settings window title should match AppDelegate.settingsWindowTitle")
     }
 
-    func testMainWindowUsesExpectedTitle() async throws {
+    @Test func mainWindowUsesExpectedTitle() async throws {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
         appDelegate.repoViewModel = RepositoryListViewModel()
@@ -242,22 +228,22 @@ final class AppDelegateColdStartTests: XCTestCase {
         appDelegate.showOrCreateMainWindow()
 
         let mainWindows = NSApp.windows.filter { $0.title == AppDelegate.mainWindowTitle }
-        XCTAssertEqual(mainWindows.count, 1,
-                       "Main window title should match AppDelegate.mainWindowTitle")
+        #expect(mainWindows.count == 1,
+               "Main window title should match AppDelegate.mainWindowTitle")
     }
 
     // MARK: - Test environment detection
 
-    func testIsRunningTests_returnsTrueInTestEnvironment() {
-        XCTAssertTrue(AppDelegate.isRunningTests,
-                      "isRunningTests should be true when running under XCTest")
+    @Test func isRunningTests_returnsTrueInTestEnvironment() {
+        #expect(AppDelegate.isRunningTests,
+               "isRunningTests should be true when running under XCTest")
     }
 
     // MARK: - Settings view does not impose a fixed size that conflicts with window
 
     // MARK: - No redundant worktree loading from repo selection sink
 
-    func testSelectedRepoDoesNotEagerLoadWorktrees() async throws {
+    @Test func selectedRepoDoesNotEagerLoadWorktrees() async throws {
         let mockExecutor = MockSimpleGitExecutor()
         mockExecutor.worktreeListOutput = """
         worktree /tmp/no-eager-test
@@ -285,26 +271,26 @@ final class AppDelegateColdStartTests: XCTestCase {
         // Wait for any eager repo loading to settle
         try await Task.sleep(for: .milliseconds(200))
 
-        // Act: change selectedRepository — triggers the $selectedRepository sink
+        // Act: change selectedRepository — triggers the observation callback
         let repo = Repository(name: "no-eager-test", path: "/tmp/no-eager-test")
         repoVM.selectedRepository = repo
 
-        // Wait for Combine sink and any async tasks to fire
+        // Wait for any async tasks to fire
         try await Task.sleep(for: .milliseconds(300))
 
-        // Assert: repository should be synced by the sink
-        XCTAssertEqual(worktreeVM.repository?.id, repo.id,
-            "AppDelegate should sync worktreeViewModel.repository")
+        // Assert: repository should be synced by the observer
+        #expect(worktreeVM.repository?.id == repo.id,
+               "AppDelegate should sync worktreeViewModel.repository")
 
         // Assert: worktrees should NOT be loaded by AppDelegate
         // (ContentView and menuWillOpen are responsible for loading)
-        XCTAssertTrue(worktreeVM.worktrees.isEmpty,
-            "AppDelegate should not trigger worktree loading from selectedRepository sink")
+        #expect(worktreeVM.worktrees.isEmpty,
+               "AppDelegate should not trigger worktree loading from selectedRepository sink")
     }
 
     // MARK: - Settings view does not impose a fixed size that conflicts with window
 
-    func testSettingsViewIntrinsicSizeIsNotFixedFramePlusPadding() async throws {
+    @Test func settingsViewIntrinsicSizeIsNotFixedFramePlusPadding() async throws {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
         appDelegate.updaterManager = UpdaterManager()
@@ -315,7 +301,7 @@ final class AppDelegateColdStartTests: XCTestCase {
         guard let window = NSApp.windows.first(where: { $0.title == AppDelegate.settingsWindowTitle }),
               let hostingView = window.contentView
         else {
-            XCTFail("Settings window with hosting view should exist")
+            Issue.record("Settings window with hosting view should exist")
             return
         }
 
@@ -328,18 +314,18 @@ final class AppDelegateColdStartTests: XCTestCase {
             abs(intrinsicSize.width - buggyWidth) < tolerance &&
             abs(intrinsicSize.height - buggyHeight) < tolerance
 
-        XCTAssertFalse(
-            hasRedundantFrame,
-            "SettingsView should not impose a fixed 400x500 frame; "
-            + "the NSWindow owns the sizing. Intrinsic size was "
-            + "\(intrinsicSize.width)x\(intrinsicSize.height), which matches "
-            + "the .frame(400,500).padding() overflow pattern."
-        )
+        let message: Comment = """
+            SettingsView should not impose a fixed 400x500 frame; \
+            the NSWindow owns the sizing. Intrinsic size was \
+            \(intrinsicSize.width)x\(intrinsicSize.height), which matches \
+            the .frame(400,500).padding() overflow pattern.
+            """
+        #expect(!hasRedundantFrame, message)
     }
 
     // MARK: - Silent guard failures don't crash
 
-    func testShowOrCreateMainWindow_doesNotCrashWhenViewModelsNil() {
+    @Test func showOrCreateMainWindow_doesNotCrashWhenViewModelsNil() {
         // Close any pre-existing windows (e.g. from SwiftUI WindowGroup)
         for window in NSApp.windows where window.title == AppDelegate.mainWindowTitle {
             window.close()
@@ -353,10 +339,10 @@ final class AppDelegateColdStartTests: XCTestCase {
         // Should not crash — just returns early (with a log warning)
 
         let afterCount = NSApp.windows.filter { $0.title == AppDelegate.mainWindowTitle }.count
-        XCTAssertEqual(afterCount, beforeCount, "No window should be created when view models are nil")
+        #expect(afterCount == beforeCount, "No window should be created when view models are nil")
     }
 
-    func testShowOrCreateSettingsWindow_doesNotCrashWhenUpdaterManagerNil() {
+    @Test func showOrCreateSettingsWindow_doesNotCrashWhenUpdaterManagerNil() {
         // Close any pre-existing windows (e.g. from other tests)
         for window in NSApp.windows where window.title == AppDelegate.settingsWindowTitle {
             window.close()
@@ -370,6 +356,23 @@ final class AppDelegateColdStartTests: XCTestCase {
         // Should not crash — just returns early (with a log warning)
 
         let afterCount = NSApp.windows.filter { $0.title == AppDelegate.settingsWindowTitle }.count
-        XCTAssertEqual(afterCount, beforeCount, "No window should be created when updaterManager is nil")
+        #expect(afterCount == beforeCount, "No window should be created when updaterManager is nil")
+    }
+
+    // MARK: - Helpers
+
+    private func pollUntil(
+        timeout: TimeInterval = 5,
+        interval: Duration = .milliseconds(50),
+        _ condition: @MainActor () -> Bool
+    ) async throws {
+        let deadline = Date().addingTimeInterval(timeout)
+        while !condition() {
+            guard Date() < deadline else {
+                Issue.record("pollUntil timed out after \(timeout)s")
+                return
+            }
+            try await Task.sleep(for: interval)
+        }
     }
 }

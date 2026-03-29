@@ -1,18 +1,18 @@
-import XCTest
+import Testing
 
 @testable import OhMyWorktree
 
 // MARK: - WorktreeListViewModel Bulk Remove Tests
 
+@Suite(.serialized)
 @MainActor
-final class WorktreeListViewModelSelectionTests: XCTestCase {
+struct WorktreeListViewModelSelectionTests {
 
-    private var mockExecutor: MockSimpleGitExecutor!
-    private var sut: WorktreeListViewModel!
+    private let mockExecutor: MockSimpleGitExecutor
+    private let sut: WorktreeListViewModel
     private let testRepo = Repository(name: "sel-test", path: "/tmp/sel-test")
 
-    override func setUp() async throws {
-        try await super.setUp()
+    init() async throws {
         mockExecutor = MockSimpleGitExecutor()
         sut = WorktreeListViewModel(
             worktreeManager: WorktreeManager(executor: mockExecutor, fileManager: MockNoOpFileManager()),
@@ -24,7 +24,7 @@ final class WorktreeListViewModelSelectionTests: XCTestCase {
 
     // MARK: - removeSelectedWorktrees filtering
 
-    func testRemoveSelectedWorktrees_excludesRootWorktree() async {
+    @Test func removeSelectedWorktrees_excludesRootWorktree() async {
         mockExecutor.worktreeListOutput = """
         worktree /tmp/sel-test
         HEAD abc1111
@@ -44,11 +44,11 @@ final class WorktreeListViewModelSelectionTests: XCTestCase {
         sut.removeSelectedWorktrees(force: false)
 
         // Only feature should be enqueued — root must be excluded
-        XCTAssertEqual(sut.jobQueue.jobs.count, 1)
-        XCTAssertEqual(sut.jobQueue.jobs.first?.worktreeID, feature.id)
+        #expect(sut.jobQueue.jobs.count == 1)
+        #expect(sut.jobQueue.jobs.first?.worktreeID == feature.id)
     }
 
-    func testRemoveSelectedWorktrees_excludesBareWorktrees() async {
+    @Test func removeSelectedWorktrees_excludesBareWorktrees() async {
         mockExecutor.worktreeListOutput = """
         worktree /tmp/sel-test
         HEAD abc1111
@@ -73,11 +73,11 @@ final class WorktreeListViewModelSelectionTests: XCTestCase {
         sut.removeSelectedWorktrees(force: false)
 
         // Only feature enqueued — bare must be excluded
-        XCTAssertEqual(sut.jobQueue.jobs.count, 1)
-        XCTAssertEqual(sut.jobQueue.jobs.first?.worktreeID, feature.id)
+        #expect(sut.jobQueue.jobs.count == 1)
+        #expect(sut.jobQueue.jobs.first?.worktreeID == feature.id)
     }
 
-    func testRemoveSelectedWorktrees_excludesBusyWorktrees() async {
+    @Test func removeSelectedWorktrees_excludesBusyWorktrees() async {
         mockExecutor.worktreeListOutput = """
         worktree /tmp/sel-test
         HEAD abc1111
@@ -100,7 +100,7 @@ final class WorktreeListViewModelSelectionTests: XCTestCase {
         // Make wt-a busy by enqueueing a pull job; the processing Task is async
         // so the job stays .pending (busy) until we yield.
         sut.gitPull(wtA)
-        XCTAssertTrue(sut.jobQueue.busyWorktreeIDs.contains(wtA.id), "wt-a should be busy")
+        #expect(sut.jobQueue.busyWorktreeIDs.contains(wtA.id), "wt-a should be busy")
 
         sut.selectedWorktreeIDs = [wtA.id, wtB.id]
         sut.removeSelectedWorktrees(force: false)
@@ -110,11 +110,11 @@ final class WorktreeListViewModelSelectionTests: XCTestCase {
             if case .removeWorktree = $0.kind { return true }
             return false
         }
-        XCTAssertEqual(removeJobs.count, 1)
-        XCTAssertEqual(removeJobs.first?.worktreeID, wtB.id)
+        #expect(removeJobs.count == 1)
+        #expect(removeJobs.first?.worktreeID == wtB.id)
     }
 
-    func testRemoveSelectedWorktrees_clearsSelectionAfterEnqueue() async {
+    @Test func removeSelectedWorktrees_clearsSelectionAfterEnqueue() async {
         mockExecutor.worktreeListOutput = """
         worktree /tmp/sel-test
         HEAD abc1111
@@ -132,12 +132,12 @@ final class WorktreeListViewModelSelectionTests: XCTestCase {
 
         sut.removeSelectedWorktrees(force: false)
 
-        XCTAssertTrue(sut.selectedWorktreeIDs.isEmpty)
+        #expect(sut.selectedWorktreeIDs.isEmpty)
     }
 
     // MARK: - quickRemoveSelectedWorktrees filtering
 
-    func testQuickRemoveSelectedWorktrees_excludesRootWorktree() async {
+    @Test func quickRemoveSelectedWorktrees_excludesRootWorktree() async {
         mockExecutor.worktreeListOutput = """
         worktree /tmp/sel-test
         HEAD abc1111
@@ -157,11 +157,11 @@ final class WorktreeListViewModelSelectionTests: XCTestCase {
         sut.quickRemoveSelectedWorktrees()
 
         let quickJobs = sut.jobQueue.jobs.filter { $0.kind == .quickRemove }
-        XCTAssertEqual(quickJobs.count, 1)
-        XCTAssertEqual(quickJobs.first?.worktreeID, feature.id)
+        #expect(quickJobs.count == 1)
+        #expect(quickJobs.first?.worktreeID == feature.id)
     }
 
-    func testQuickRemoveSelectedWorktrees_clearsSelection() async {
+    @Test func quickRemoveSelectedWorktrees_clearsSelection() async {
         mockExecutor.worktreeListOutput = """
         worktree /tmp/sel-test
         HEAD abc1111
@@ -179,10 +179,10 @@ final class WorktreeListViewModelSelectionTests: XCTestCase {
 
         sut.quickRemoveSelectedWorktrees()
 
-        XCTAssertTrue(sut.selectedWorktreeIDs.isEmpty)
+        #expect(sut.selectedWorktreeIDs.isEmpty)
     }
 
-    func testQuickRemoveSelectedWorktrees_excludesLockedWorktree() async {
+    @Test func quickRemoveSelectedWorktrees_excludesLockedWorktree() async {
         mockExecutor.worktreeListOutput = """
         worktree /tmp/sel-test
         HEAD abc1111
@@ -208,8 +208,8 @@ final class WorktreeListViewModelSelectionTests: XCTestCase {
 
         // Only feature should be enqueued — locked must be excluded
         let quickJobs = sut.jobQueue.jobs.filter { $0.kind == .quickRemove }
-        XCTAssertEqual(quickJobs.count, 1, "Only non-locked worktree should be quick-removed")
-        XCTAssertEqual(quickJobs.first?.worktreeID, feature.id)
+        #expect(quickJobs.count == 1, "Only non-locked worktree should be quick-removed")
+        #expect(quickJobs.first?.worktreeID == feature.id)
     }
 }
 

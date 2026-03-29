@@ -3,10 +3,10 @@ import SwiftUI
 @main
 struct OhMyWorktreeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @StateObject private var repoViewModel = RepositoryListViewModel()
-    @StateObject private var worktreeViewModel = WorktreeListViewModel()
-    @StateObject private var updaterManager = UpdaterManager()
-    @StateObject private var shortcutManager = ShortcutManager()
+    @State private var repoViewModel = RepositoryListViewModel()
+    @State private var worktreeViewModel = WorktreeListViewModel()
+    @State private var updaterManager = UpdaterManager()
+    @State private var shortcutManager = ShortcutManager()
 
     init() {
         ShortcutManager.migrateLegacyKeys()
@@ -21,7 +21,7 @@ struct OhMyWorktreeApp: App {
 
         WindowGroup(id: "main") {
             ContentView(repoViewModel: repoViewModel, worktreeViewModel: worktreeViewModel)
-                .environmentObject(shortcutManager)
+                .environment(shortcutManager)
                 .frame(minWidth: 400, minHeight: 300)
         }
         .defaultSize(width: 500, height: 400)
