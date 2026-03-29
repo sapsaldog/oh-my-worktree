@@ -26,10 +26,6 @@ struct OhMyWorktreeApp: App {
         }
         .defaultSize(width: 500, height: 400)
         .windowResizability(.contentSize)
-
-        Settings {
-            SettingsView(updaterManager: updaterManager, shortcutManager: shortcutManager)
-        }
     }
 
     private func connectAppDelegate() {

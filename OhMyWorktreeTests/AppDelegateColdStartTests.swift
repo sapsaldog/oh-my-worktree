@@ -111,10 +111,11 @@ final class AppDelegateColdStartTests: XCTestCase {
         appDelegate.updaterManager = UpdaterManager()
         appDelegate.shortcutManager = ShortcutManager()
 
-        // Settings is now managed by SwiftUI Settings scene.
-        // This just verifies the action doesn't crash without a scene context.
         let menuItem = NSMenuItem(title: "Settings...", action: nil, keyEquivalent: "")
         appDelegate.settingsClicked(menuItem)
+
+        let settingsWindows = NSApp.windows.filter { $0.title == AppDelegate.settingsWindowTitle }
+        XCTAssertEqual(settingsWindows.count, 1, "Settings window should be created on cold start")
     }
 
     // MARK: - Import PR triggers sheet flag
@@ -139,16 +140,18 @@ final class AppDelegateColdStartTests: XCTestCase {
 
     // MARK: - Window reuse (no duplicates)
 
-    func testSettingsClickedTwiceDoesNotCrash() async throws {
+    func testSettingsWindowIsReused() async throws {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
         appDelegate.updaterManager = UpdaterManager()
         appDelegate.shortcutManager = ShortcutManager()
 
-        // Settings window is managed by SwiftUI Settings scene; just verify no crash.
         let menuItem = NSMenuItem(title: "Settings...", action: nil, keyEquivalent: "")
         appDelegate.settingsClicked(menuItem)
         appDelegate.settingsClicked(menuItem)
+
+        let settingsWindows = NSApp.windows.filter { $0.title == AppDelegate.settingsWindowTitle }
+        XCTAssertEqual(settingsWindows.count, 1, "Clicking Settings twice should reuse the same window")
     }
 
     func testMainWindowIsReused() async throws {
@@ -213,14 +216,17 @@ final class AppDelegateColdStartTests: XCTestCase {
 
     // MARK: - Window title consistency
 
-    func testShowOrCreateSettingsWindowDoesNotCrash() async throws {
+    func testSettingsWindowUsesExpectedTitle() async throws {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
         appDelegate.updaterManager = UpdaterManager()
         appDelegate.shortcutManager = ShortcutManager()
 
-        // Settings window is managed by SwiftUI Settings scene; just verify no crash.
         appDelegate.showOrCreateSettingsWindow()
+
+        let settingsWindows = NSApp.windows.filter { $0.title == AppDelegate.settingsWindowTitle }
+        XCTAssertEqual(settingsWindows.count, 1,
+                       "Settings window title should match AppDelegate.settingsWindowTitle")
     }
 
     func testMainWindowUsesExpectedTitle() async throws {
@@ -295,7 +301,36 @@ final class AppDelegateColdStartTests: XCTestCase {
     // MARK: - Settings view does not impose a fixed size that conflicts with window
 
     func testSettingsViewIntrinsicSizeIsNotFixedFramePlusPadding() async throws {
-        // Settings is now managed by SwiftUI Settings scene — no manual window to test.
+        let appDelegate = AppDelegate()
+        appDelegate.setupStatusItem()
+        appDelegate.updaterManager = UpdaterManager()
+        appDelegate.shortcutManager = ShortcutManager()
+
+        appDelegate.showOrCreateSettingsWindow()
+
+        guard let window = NSApp.windows.first(where: { $0.title == AppDelegate.settingsWindowTitle }),
+              let hostingView = window.contentView
+        else {
+            XCTFail("Settings window with hosting view should exist")
+            return
+        }
+
+        let intrinsicSize = hostingView.intrinsicContentSize
+        let buggyWidth: CGFloat = 432
+        let buggyHeight: CGFloat = 532
+        let tolerance: CGFloat = 2
+
+        let hasRedundantFrame =
+            abs(intrinsicSize.width - buggyWidth) < tolerance &&
+            abs(intrinsicSize.height - buggyHeight) < tolerance
+
+        XCTAssertFalse(
+            hasRedundantFrame,
+            "SettingsView should not impose a fixed 400x500 frame; "
+            + "the NSWindow owns the sizing. Intrinsic size was "
+            + "\(intrinsicSize.width)x\(intrinsicSize.height), which matches "
+            + "the .frame(400,500).padding() overflow pattern."
+        )
     }
 
     // MARK: - Silent guard failures don't crash
