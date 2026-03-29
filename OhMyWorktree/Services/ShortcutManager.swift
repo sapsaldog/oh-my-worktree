@@ -76,27 +76,6 @@ final class ShortcutManager: ObservableObject {
         return (key, modifiers)
     }
 
-    // MARK: - NSMenuItem Key Equivalent Helper
-
-    /// Converts the current combo for an action into NSMenuItem-compatible key equivalent and modifiers.
-    /// Returns nil if the combo is empty or unparseable.
-    func menuItemKeyEquivalent(
-        for action: ShortcutAction
-    ) -> (key: String, modifiers: NSEvent.ModifierFlags)? {
-        let comboString = combo(for: action)
-        guard !comboString.isEmpty, let parsed = KeyCombo.from(string: comboString) else { return nil }
-
-        guard let character = Self.keyCodeToMenuCharacter[parsed.keyCode] else { return nil }
-
-        var modifiers: NSEvent.ModifierFlags = []
-        if parsed.modifiers.contains(.command) { modifiers.insert(.command) }
-        if parsed.modifiers.contains(.option) { modifiers.insert(.option) }
-        if parsed.modifiers.contains(.shift) { modifiers.insert(.shift) }
-        if parsed.modifiers.contains(.control) { modifiers.insert(.control) }
-
-        return (String(character), modifiers)
-    }
-
     // MARK: - Migration
 
     /// Migrates legacy `globalHotkeyKeyCombo` key to the new `shortcut.globalHotkey` key.
@@ -127,12 +106,4 @@ final class ShortcutManager: ObservableObject {
         UInt16(kVK_ANSI_Slash): "/",
         UInt16(kVK_Delete): Character(UnicodeScalar(8))  // matches KeyEquivalent.delete
     ]
-
-    /// Character mapping for NSMenuItem key equivalents.
-    /// Same as keyCodeToCharacter except backspace uses NSBackspaceCharacter (0x08).
-    private static let keyCodeToMenuCharacter: [UInt16: Character] = {
-        var map = keyCodeToCharacter
-        map[UInt16(kVK_Delete)] = Character(UnicodeScalar(8))  // NSBackspaceCharacter
-        return map
-    }()
 }

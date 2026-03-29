@@ -67,9 +67,3 @@ extension AppDelegate {
         }
     }
 }
-
-// MARK: - Main Menu (all in-app keyboard shortcuts via NSMenuItem)
-
-extension AppDelegate {
-
-}

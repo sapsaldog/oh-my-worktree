@@ -152,6 +152,23 @@ final class HotkeyRecorderViewModelTests: XCTestCase {
         XCTAssertEqual(vm.displayString, "Type shortcut...")
     }
 
+    // MARK: - Override Clears Conflicting Action
+
+    @MainActor
+    func testResolveConflict_override_clearsConflictingActionCombo() {
+        // addWorktree default is "⌘N". Assign "⌘N" to openSettings → conflict.
+        let vm = HotkeyRecorderViewModel(action: .openSettings, shortcutManager: shortcutManager)
+        vm.startRecording()
+        _ = vm.handleKey(keyCode: UInt16(kVK_ANSI_N), modifiers: [.command])
+
+        vm.resolveConflict(override: true)
+
+        // openSettings should now have "⌘N"
+        XCTAssertEqual(shortcutManager.combo(for: .openSettings), "⌘N")
+        // addWorktree (the conflicting action) should be cleared to empty
+        XCTAssertEqual(shortcutManager.combo(for: .addWorktree), "")
+    }
+
     // MARK: - Not Recording State
 
     @MainActor

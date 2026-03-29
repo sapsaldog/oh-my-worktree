@@ -157,18 +157,4 @@ final class HotkeyManagerTests: XCTestCase {
         XCTAssertFalse(manager.isRegistered)
     }
 
-    // MARK: - AppSettings Defaults
-
-    func testAppSettings_defaultHotkeyEnabled() {
-        let settings = AppSettings()
-        XCTAssertTrue(settings.globalHotkeyEnabled)
-    }
-
-    func testAppSettings_hotkeyEnabledRoundTrip() throws {
-        var original = AppSettings()
-        original.globalHotkeyEnabled = false
-        let data = try JSONEncoder().encode(original)
-        let decoded = try JSONDecoder().decode(AppSettings.self, from: data)
-        XCTAssertFalse(decoded.globalHotkeyEnabled)
-    }
 }

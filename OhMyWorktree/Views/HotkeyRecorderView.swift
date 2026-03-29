@@ -21,6 +21,8 @@ final class HotkeyRecorderViewModel: ObservableObject {
 
     /// Combo captured during conflict state, pending user resolution.
     private var pendingCombo: String?
+    /// The action that conflicts with the pending combo.
+    private var conflictingAction: ShortcutAction?
 
     init(action: ShortcutAction, shortcutManager: ShortcutManager) {
         self.action = action
@@ -35,6 +37,7 @@ final class HotkeyRecorderViewModel: ObservableObject {
 
     func cancelRecording() {
         pendingCombo = nil
+        conflictingAction = nil
         state = .idle
     }
 
@@ -65,6 +68,7 @@ final class HotkeyRecorderViewModel: ObservableObject {
         // Check for conflicts
         if let conflicting = shortcutManager.conflictingAction(for: comboString, excluding: action) {
             pendingCombo = comboString
+            conflictingAction = conflicting
             state = .conflict(actionName: conflicting.displayName, combo: comboString)
             return true
         }
@@ -78,11 +82,17 @@ final class HotkeyRecorderViewModel: ObservableObject {
     func resolveConflict(override: Bool) {
         guard case .conflict = state, let combo = pendingCombo else { return }
         if override {
+            // Clear the conflicting action's combo before assigning the new one
+            if let conflicting = conflictingAction {
+                shortcutManager.setCombo("", for: conflicting)
+            }
             shortcutManager.setCombo(combo, for: action)
             pendingCombo = nil
+            conflictingAction = nil
             state = .idle
         } else {
             pendingCombo = nil
+            conflictingAction = nil
             state = .recording
         }
     }
@@ -103,7 +113,7 @@ final class HotkeyRecorderViewModel: ObservableObject {
 
 /// A clickable shortcut recorder that captures keyboard input.
 struct HotkeyRecorderView: View {
-    @ObservedObject var viewModel: HotkeyRecorderViewModel
+    @StateObject var viewModel: HotkeyRecorderViewModel
 
     var body: some View {
         HStack {
