@@ -1080,9 +1080,11 @@ Force Remove Worktree
 
 **상세 요구사항**:
 - macOS 표준 Settings 창 (`⌘,` 단축키)
-- General 섹션: Launch at Login 토글
-- Worktree 생성 섹션: .env 파일 복사 토글
-- Advanced 섹션 (FR-037): 백그라운드 작업 타임아웃 설정
+- **탭 기반 레이아웃** (macOS 표준 `TabView` with `.tabViewStyle(.automatic)`):
+  - **General 탭**: Launch at Login 토글, .env 파일 복사 토글
+  - **Shortcuts 탭**: 글로벌 핫키 설정, 인앱 단축키 설정 (모든 단축키 커스터마이징 가능, 키 레코더 UI)
+  - **Advanced 탭**: 백그라운드 작업 타임아웃 설정 (FR-037)
+  - **Updates 탭**: 자동 업데이트 확인 토글, 수동 업데이트 확인 버튼
 - 메뉴바에서 "Settings..." 항목으로 접근 가능
 - SwiftUI Settings Scene 사용
 
@@ -1148,14 +1150,75 @@ Force Remove Worktree
 **설명**: 주요 기능에 대한 키보드 단축키 제공
 
 **상세 요구사항**:
-- `Cmd+N`: Repository 셀렉터에서 '+ New Repository' 항목 선택
-- `Cmd+Shift+N`: Worktree 리스트에서 '+ New Worktree' 항목 선택
-- `Cmd+Backspace`: 선택 항목 삭제
-- `Cmd+T`: iTerm에서 열기
-- `Cmd+Shift+T`: Ghostty에서 열기
-- `Cmd+E`: VSCode에서 열기
-- `Cmd+R`: 목록 새로고침
-- `Cmd+,`: Settings 창 열기
+
+**글로벌 핫키**:
+- `⌥⇧W` (기본값): 메인 윈도우 열기/포커스 (앱이 백그라운드에 있어도 동작)
+- Settings > Shortcuts 탭에서 활성화/비활성화 토글
+- Carbon `RegisterEventHotKey` 기반 구현 (접근성/입력 모니터링 권한 불필요)
+
+**인앱 단축키** (기본값):
+| 단축키 | 기능 |
+|--------|------|
+| `Cmd+,` | Settings 창 열기 |
+| `Cmd+N` | Worktree 리스트에서 '+ New Worktree' 선택 |
+| `Cmd+Shift+N` | Repository 셀렉터에서 '+ New Repository' 선택 |
+| `Delete(⌫)` | 선택 항목 삭제 |
+| `Cmd+Delete(⌘⌫)` | 선택 항목 강제 삭제 (Force Remove) |
+| `Cmd+Shift+Delete(⇧⌘⌫)` | 선택 항목 빠른 삭제 (Quick Remove) |
+| `Cmd+Shift+I` | iTerm에서 열기 |
+| `Cmd+Shift+G` | Ghostty에서 열기 |
+| `Cmd+Shift+V` | VSCode에서 열기 |
+| `Cmd+Shift+C` | Cursor에서 열기 |
+| `Cmd+Shift+M` | CMux에서 열기 |
+| `Cmd+R` | 목록 새로고침 |
+
+**키보드 네비게이션**:
+- 메인 윈도우 포커스 시 Worktree 리스트가 자동으로 포커스를 받아야 함
+- `↑` / `↓`: Worktree 리스트 항목 탐색
+- `Cmd+Shift+↑` / `Cmd+Shift+↓`: Repository 전환 (이전/다음 repository 선택)
+- `Delete`: 선택된 worktree 일반 삭제
+- `Cmd+Delete`: 선택된 worktree 강제 삭제 (Force Remove)
+- `Cmd+Shift+Delete`: 선택된 worktree 빠른 삭제 (Quick Remove)
+- `Enter`: 선택된 worktree 이름 변경 (기존 동작 유지)
+- `Escape`: 선택 해제 (기존 동작 유지)
+
+**확인 다이얼로그 키보드 조작**:
+- 삭제 확인 다이얼로그에서 키보드만으로 확인/취소 가능
+- `Enter` 또는 `Space`: 포커스된 버튼 실행
+- `Escape`: 취소
+- `Tab`: 버튼 간 포커스 이동
+
+**컨텍스트 메뉴 단축키 표기**:
+- Worktree 컨텍스트 메뉴(우클릭)의 각 항목 옆에 해당 단축키 조합 표시
+- 사용자가 Settings에서 단축키를 변경하면 컨텍스트 메뉴 표기도 즉시 반영
+- 대상 항목: Open in iTerm/Ghostty/VSCode/Cursor/cmux, Remove Worktree 등
+
+**단축키 커스터마이징** (Settings > Shortcuts 탭):
+- 모든 단축키(글로벌 핫키 + 인앱 단축키) 변경 가능
+- 키 레코더 UI 제공:
+  - 단축키 입력 필드 클릭 시 "recording" 모드 진입
+  - 사용자가 새 키 조합 입력 시 즉시 반영
+  - ESC로 recording 취소, ⌫(Delete)로 기본값 복원
+  - 유효하지 않은 조합(modifier 없이 단일 키 등) 거부
+  - 다른 단축키와 충돌 시 경고 표시
+- 단축키 설정은 `AppStorage`에 저장
+
+**인수 기준**:
+- [ ] `⌥⇧W` 핫키로 메인 윈도우가 열리거나 포커스되어야 함
+- [ ] 메인 윈도우에서 `Cmd+,` 입력 시 Settings 창이 열려야 함
+- [ ] 모든 인앱 단축키가 해당 기능을 실행해야 함
+- [ ] Settings > Shortcuts 탭에서 모든 단축키를 변경할 수 있어야 함
+- [ ] 키 레코더가 modifier 없는 단일 키 입력을 거부해야 함
+- [ ] 단축키 충돌 시 경고가 표시되어야 함
+- [ ] ESC로 recording 취소, ⌫로 기본값 복원이 되어야 함
+- [ ] 변경된 단축키가 즉시 적용되어야 함
+- [ ] 앱 재시작 후에도 설정이 유지되어야 함
+- [ ] 컨텍스트 메뉴 항목에 단축키 조합이 표시되어야 함
+- [ ] 단축키 변경 시 컨텍스트 메뉴 표기가 즉시 업데이트되어야 함
+- [ ] 메인 윈도우 포커스 시 화살표 키로 Worktree 리스트를 탐색할 수 있어야 함
+- [ ] `Cmd+Shift+↑`/`Cmd+Shift+↓`로 Repository를 전환할 수 있어야 함
+- [ ] `Delete`/`Cmd+Delete`/`Cmd+Shift+Delete`로 각각 일반/강제/빠른 삭제가 되어야 함
+- [ ] 삭제 확인 다이얼로그에서 키보드로 확인/취소가 가능해야 함
 
 ---
 

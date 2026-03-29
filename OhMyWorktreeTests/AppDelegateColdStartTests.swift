@@ -95,6 +95,7 @@ final class AppDelegateColdStartTests: XCTestCase {
         appDelegate.setupStatusItem()
         appDelegate.repoViewModel = RepositoryListViewModel()
         appDelegate.worktreeViewModel = WorktreeListViewModel()
+        appDelegate.shortcutManager = ShortcutManager()
 
         // When: showOrCreateMainWindow is called (no existing window)
         appDelegate.showOrCreateMainWindow()
@@ -109,6 +110,7 @@ final class AppDelegateColdStartTests: XCTestCase {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
         appDelegate.updaterManager = UpdaterManager()
+        appDelegate.shortcutManager = ShortcutManager()
 
         let menuItem = NSMenuItem(title: "Settings...", action: nil, keyEquivalent: "")
         appDelegate.settingsClicked(menuItem)
@@ -143,6 +145,7 @@ final class AppDelegateColdStartTests: XCTestCase {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
         appDelegate.updaterManager = UpdaterManager()
+        appDelegate.shortcutManager = ShortcutManager()
 
         let menuItem = NSMenuItem(title: "Settings...", action: nil, keyEquivalent: "")
         appDelegate.settingsClicked(menuItem)
@@ -157,6 +160,7 @@ final class AppDelegateColdStartTests: XCTestCase {
         appDelegate.setupStatusItem()
         appDelegate.repoViewModel = RepositoryListViewModel()
         appDelegate.worktreeViewModel = WorktreeListViewModel()
+        appDelegate.shortcutManager = ShortcutManager()
 
         appDelegate.showOrCreateMainWindow()
         appDelegate.showOrCreateMainWindow()
@@ -172,6 +176,7 @@ final class AppDelegateColdStartTests: XCTestCase {
         appDelegate.setupStatusItem()
         appDelegate.repoViewModel = RepositoryListViewModel()
         appDelegate.worktreeViewModel = WorktreeListViewModel()
+        appDelegate.shortcutManager = ShortcutManager()
 
         appDelegate.showOrCreateMainWindow()
 
@@ -218,6 +223,7 @@ final class AppDelegateColdStartTests: XCTestCase {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
         appDelegate.updaterManager = UpdaterManager()
+        appDelegate.shortcutManager = ShortcutManager()
 
         appDelegate.showOrCreateSettingsWindow()
 
@@ -231,6 +237,7 @@ final class AppDelegateColdStartTests: XCTestCase {
         appDelegate.setupStatusItem()
         appDelegate.repoViewModel = RepositoryListViewModel()
         appDelegate.worktreeViewModel = WorktreeListViewModel()
+        appDelegate.shortcutManager = ShortcutManager()
 
         appDelegate.showOrCreateMainWindow()
 
@@ -298,14 +305,10 @@ final class AppDelegateColdStartTests: XCTestCase {
     // MARK: - Settings view does not impose a fixed size that conflicts with window
 
     func testSettingsViewIntrinsicSizeIsNotFixedFramePlusPadding() async throws {
-        // The Settings window sets its own content size to 400x500.
-        // If SettingsView also has .frame(width: 400, height: 500).padding(),
-        // the padding adds ~16pt on each side OUTSIDE the frame, inflating
-        // the hosting view's intrinsic content size to exactly 432x532.
-        // This causes the view to overflow the 400x500 window.
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
         appDelegate.updaterManager = UpdaterManager()
+        appDelegate.shortcutManager = ShortcutManager()
 
         appDelegate.showOrCreateSettingsWindow()
 
@@ -317,11 +320,6 @@ final class AppDelegateColdStartTests: XCTestCase {
         }
 
         let intrinsicSize = hostingView.intrinsicContentSize
-
-        // With the redundant .frame(400,500).padding() pattern, intrinsic size
-        // would be exactly 432x532 (400+32, 500+32). After removing the redundant
-        // .frame(), the view flexibly fills the window and its intrinsic width
-        // should NOT be 432 (the telltale sign of the overflow bug).
         let buggyWidth: CGFloat = 432
         let buggyHeight: CGFloat = 532
         let tolerance: CGFloat = 2

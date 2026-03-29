@@ -6,6 +6,11 @@ struct OhMyWorktreeApp: App {
     @StateObject private var repoViewModel = RepositoryListViewModel()
     @StateObject private var worktreeViewModel = WorktreeListViewModel()
     @StateObject private var updaterManager = UpdaterManager()
+    @StateObject private var shortcutManager = ShortcutManager()
+
+    init() {
+        ShortcutManager.migrateLegacyKeys()
+    }
 
     var body: some Scene {
         // Connect view models to AppDelegate during Scene body evaluation,
@@ -16,15 +21,39 @@ struct OhMyWorktreeApp: App {
 
         WindowGroup(id: "main") {
             ContentView(repoViewModel: repoViewModel, worktreeViewModel: worktreeViewModel)
+                .environmentObject(shortcutManager)
                 .frame(minWidth: 400, minHeight: 300)
         }
         .defaultSize(width: 500, height: 400)
         .windowResizability(.contentSize)
+        .commands {
+            CommandGroup(replacing: .appSettings) {
+                Button("Settings...") {
+                    appDelegate.showOrCreateSettingsWindow()
+                }
+                .keyboardShortcut(",", modifiers: .command)
+            }
+            CommandMenu("Navigate") {
+                Button("Previous Repository") {
+                    repoViewModel.selectPreviousRepository()
+                }
+                .keyboardShortcut(.upArrow, modifiers: [.command, .shift])
+                Button("Next Repository") {
+                    repoViewModel.selectNextRepository()
+                }
+                .keyboardShortcut(.downArrow, modifiers: [.command, .shift])
+            }
+        }
     }
 
     private func connectAppDelegate() {
         appDelegate.repoViewModel = repoViewModel
         appDelegate.worktreeViewModel = worktreeViewModel
         appDelegate.updaterManager = updaterManager
+        if appDelegate.shortcutManager !== shortcutManager {
+            appDelegate.shortcutManager = shortcutManager
+            appDelegate.observeShortcutChanges()
+            appDelegate.setupGlobalHotkey()
+        }
     }
 }

@@ -2,7 +2,6 @@ import SwiftUI
 
 struct RepositorySelectorView: View {
     @ObservedObject var viewModel: RepositoryListViewModel
-    @State private var showingFileDialog = false
     @State private var showingRepoSettings = false
 
     var body: some View {
@@ -42,7 +41,7 @@ struct RepositorySelectorView: View {
             }
 
             Button(action: {
-                showingFileDialog = true
+                viewModel.showingFileDialog = true
             }) {
                 Image(systemName: "plus")
             }
@@ -78,7 +77,7 @@ struct RepositorySelectorView: View {
             }
         }
         .fileImporter(
-            isPresented: $showingFileDialog,
+            isPresented: $viewModel.showingFileDialog,
             allowedContentTypes: [.folder],
             allowsMultipleSelection: false
         ) { result in
@@ -90,9 +89,7 @@ struct RepositorySelectorView: View {
                     await viewModel.addRepository(at: path)
                 }
             case .failure(let error):
-                Task { @MainActor in
-                    viewModel.errorMessage = error.localizedDescription
-                }
+                viewModel.errorMessage = error.localizedDescription
             }
         }
     }

@@ -333,6 +333,27 @@ extension WorktreeListViewModelTests {
 
         XCTAssertTrue(sut.jobQueue.jobs.isEmpty)
     }
+
+    // MARK: - PendingDelete
+
+    func testPendingDelete_initiallyNil() {
+        XCTAssertNil(sut.pendingDelete)
+    }
+
+    func testPendingDelete_canBeSetAndCleared() {
+        sut.pendingDelete = .remove
+        XCTAssertEqual(sut.pendingDelete, .remove)
+
+        sut.pendingDelete = .forceRemove
+        XCTAssertEqual(sut.pendingDelete, .forceRemove)
+
+        sut.pendingDelete = .quickRemove
+        XCTAssertEqual(sut.pendingDelete, .quickRemove)
+
+        sut.pendingDelete = nil
+        XCTAssertNil(sut.pendingDelete)
+    }
+
 }
 
 // MockNoPRService is defined in MockGitExecutor.swift

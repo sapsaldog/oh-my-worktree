@@ -3,24 +3,12 @@ import SwiftUI
 struct ContentView: View {
     @ObservedObject var repoViewModel: RepositoryListViewModel
     @ObservedObject var worktreeViewModel: WorktreeListViewModel
+    @EnvironmentObject var shortcutManager: ShortcutManager
 
     var body: some View {
-        VStack(spacing: 0) {
-            RepositorySelectorView(viewModel: repoViewModel)
-                .padding(.horizontal, 12)
-                .padding(.top, 12)
-                .padding(.bottom, 8)
-
-            Divider()
-
-            WorktreeListView(viewModel: worktreeViewModel)
-                .frame(maxHeight: .infinity)
-
-            Divider()
-
-            QueueStatusBarView(viewModel: worktreeViewModel)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+        ZStack {
+            mainContent
+            shortcutButtons
         }
         .frame(minWidth: 400, minHeight: 300)
         .navigationTitle("Oh My Worktree")
@@ -33,10 +21,8 @@ struct ContentView: View {
                 get: { repoViewModel.errorMessage != nil || worktreeViewModel.errorMessage != nil },
                 set: { newValue in
                     if !newValue {
-                        Task { @MainActor in
-                            repoViewModel.clearError()
-                            worktreeViewModel.clearError()
-                        }
+                        repoViewModel.clearError()
+                        worktreeViewModel.clearError()
                     }
                 }
             )
@@ -52,9 +38,6 @@ struct ContentView: View {
             if repoViewModel.repositories.isEmpty {
                 await repoViewModel.loadRepositories()
             }
-            // On cold start, selectedRepository may already be set by
-            // AppDelegate's eager loading, so .onChange won't fire.
-            // Sync worktreeViewModel manually in that case.
             if worktreeViewModel.repository == nil, let selected = repoViewModel.selectedRepository {
                 worktreeViewModel.repository = selected
                 await worktreeViewModel.loadWorktrees()
@@ -72,11 +55,92 @@ struct ContentView: View {
             }
         }
     }
-}
 
-#Preview {
-    ContentView(
-        repoViewModel: RepositoryListViewModel(),
-        worktreeViewModel: WorktreeListViewModel()
-    )
+    // MARK: - Main Content
+
+    private var mainContent: some View {
+        VStack(spacing: 0) {
+            RepositorySelectorView(viewModel: repoViewModel)
+                .padding(.horizontal, 12)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
+
+            Divider()
+
+            WorktreeListView(viewModel: worktreeViewModel)
+                .frame(maxHeight: .infinity)
+
+            Divider()
+
+            QueueStatusBarView(viewModel: worktreeViewModel)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+        }
+    }
+
+    // MARK: - Keyboard Shortcut Buttons
+
+    /// Invisible buttons that register keyboard shortcuts with the SwiftUI responder chain.
+    /// NSApp.mainMenu also registers these shortcuts as a fallback for Cmd+, etc.
+    @ViewBuilder
+    private var shortcutButtons: some View {
+        // swiftlint:disable:next redundant_discardable_let
+        let _ = shortcutManager.version
+
+        Group {
+            // Cmd+, is handled by AppDelegate's NSEvent monitor since macOS
+            // reserves it for the application menu and intercepts it before SwiftUI.
+            shortcutButton(for: .addRepository) {
+                repoViewModel.showingFileDialog = true
+            }
+            shortcutButton(for: .addWorktree) {
+                Task { await worktreeViewModel.addWorktree() }
+            }
+            shortcutButton(for: .removeWorktree) {
+                worktreeViewModel.pendingDelete = .remove
+            }
+            shortcutButton(for: .forceRemoveWorktree) {
+                worktreeViewModel.pendingDelete = .forceRemove
+            }
+            shortcutButton(for: .quickRemoveWorktree) {
+                worktreeViewModel.pendingDelete = .quickRemove
+            }
+            shortcutButton(for: .openITerm) {
+                openSelectedWorktree { vm, wt in await vm.openInITerm(wt) }
+            }
+            shortcutButton(for: .openGhostty) {
+                openSelectedWorktree { vm, wt in await vm.openInGhostty(wt) }
+            }
+            shortcutButton(for: .openVSCode) {
+                openSelectedWorktree { vm, wt in await vm.openInVSCode(wt) }
+            }
+            shortcutButton(for: .openCursor) {
+                openSelectedWorktree { vm, wt in await vm.openInCursor(wt) }
+            }
+            shortcutButton(for: .openCmux) {
+                openSelectedWorktree { vm, wt in await vm.openInCmux(wt) }
+            }
+            shortcutButton(for: .refreshWorktrees) {
+                Task { await worktreeViewModel.loadWorktrees() }
+            }
+        }
+        .frame(width: 0, height: 0)
+        .opacity(0)
+        .allowsHitTesting(false)
+    }
+
+    @ViewBuilder
+    private func shortcutButton(for action: ShortcutAction, perform: @escaping () -> Void) -> some View {
+        if let shortcut = shortcutManager.keyboardShortcut(for: action) {
+            Button(action.displayName, action: perform)
+                .keyboardShortcut(shortcut.key, modifiers: shortcut.modifiers)
+        }
+    }
+
+    private func openSelectedWorktree(
+        action: @escaping @MainActor (WorktreeListViewModel, Worktree) async -> Void
+    ) {
+        guard let worktree = worktreeViewModel.selectedWorktree else { return }
+        Task { await action(worktreeViewModel, worktree) }
+    }
 }

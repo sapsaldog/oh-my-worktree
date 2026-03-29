@@ -1,15 +1,8 @@
-import os
-import ServiceManagement
 import SwiftUI
-
-private let logger = Logger(subsystem: "com.ohmyworktree", category: "Settings")
 
 struct SettingsView: View {
     @ObservedObject var updaterManager: UpdaterManager
-    @AppStorage("copyEnvFilesEnabled") private var copyEnvFilesEnabled = true
-    @AppStorage(BackgroundTaskQueue.jobTimeoutSecondsKey)
-    private var jobTimeoutSeconds = Int(BackgroundTaskQueue.defaultJobTimeoutSeconds)
-    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+    @ObservedObject var shortcutManager: ShortcutManager
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
@@ -24,86 +17,26 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        Form {
-            Section("General") {
-                Toggle("Launch at Login", isOn: $launchAtLogin)
-                    .onChange(of: launchAtLogin) { _, newValue in
-                        do {
-                            if newValue {
-                                try SMAppService.mainApp.register()
-                            } else {
-                                try SMAppService.mainApp.unregister()
-                            }
-                        } catch {
-                            let action = newValue ? "enable" : "disable"
-                            logger.error("Failed to \(action) launch at login: \(error.localizedDescription)")
-                            launchAtLogin = SMAppService.mainApp.status == .enabled
-                        }
-                    }
-                Text("Automatically start Oh My Worktree when you log in.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+        TabView {
+            Tab("General", systemImage: "gear") {
+                GeneralSettingsView()
             }
-
-            Section("Worktree Creation") {
-                Toggle("Copy files to new worktrees", isOn: $copyEnvFilesEnabled)
-                Text(
-                    "When enabled, files matching .worktreeinclude patterns " +
-                    "(or .env files by default) are automatically copied into newly created worktrees."
-                )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            Tab("Shortcuts", systemImage: "keyboard") {
+                ShortcutsSettingsView(shortcutManager: shortcutManager)
             }
-
-            Section("Advanced") {
-                LabeledContent("Background task timeout") {
-                    HStack(spacing: 4) {
-                        TextField("", value: $jobTimeoutSeconds, format: .number)
-                            .frame(width: 50)
-                            .multilineTextAlignment(.trailing)
-                            .onSubmit { jobTimeoutSeconds = clampTimeout(jobTimeoutSeconds) }
-                            .onChange(of: jobTimeoutSeconds) { _, val in
-                                jobTimeoutSeconds = clampTimeout(val)
-                            }
-                        Text("sec")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                Text(
-                    "Maximum time allowed for Remove / Force Remove operations (30–600s). " +
-                    "Quick Remove Worktree is not affected by this setting."
-                )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            Tab("Advanced", systemImage: "wrench.adjustable") {
+                AdvancedSettingsView()
             }
-
-            Section("Updates") {
-                Toggle("Automatically check for updates", isOn: Binding(
-                    get: { updaterManager.automaticallyChecksForUpdates },
-                    set: { updaterManager.automaticallyChecksForUpdates = $0 }
-                ))
-                Button("Check for Updates Now") {
-                    updaterManager.checkForUpdates()
-                }
-                .disabled(!updaterManager.canCheckForUpdates)
+            Tab("Updates", systemImage: "arrow.triangle.2.circlepath") {
+                UpdatesSettingsView(updaterManager: updaterManager)
             }
-
-            Section {
-                Text("v\(appVersion) (\(buildNumber)) · \(commitHash)")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .frame(maxWidth: .infinity)
-            }
-            .listRowBackground(Color.clear)
         }
-        .formStyle(.grouped)
-        .onAppear {
-            launchAtLogin = SMAppService.mainApp.status == .enabled
+        .frame(minWidth: 450, minHeight: 350)
+        .overlay(alignment: .bottom) {
+            Text("v\(appVersion) (\(buildNumber)) · \(commitHash)")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .padding(.bottom, 8)
         }
-        .padding()
-    }
-
-    private func clampTimeout(_ value: Int) -> Int {
-        min(max(value, 30), 600)
     }
 }

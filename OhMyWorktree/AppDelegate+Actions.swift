@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 
 // MARK: - WorktreeRef
 
@@ -138,7 +139,7 @@ extension AppDelegate {
 
     @objc func importFromGitHubPRClicked(_ sender: NSMenuItem) {
         showOrCreateMainWindow()
-        DispatchQueue.main.async { [weak self] in
+        Task { @MainActor [weak self] in
             self?.worktreeViewModel?.isShowingImportPR = true
         }
     }
@@ -153,5 +154,20 @@ extension AppDelegate {
 
     @objc func quitClicked(_ sender: NSMenuItem) {
         NSApplication.shared.terminate(nil)
+    }
+}
+
+// MARK: - Shortcut Manager Observation
+
+extension AppDelegate {
+
+    func observeShortcutChanges() {
+        shortcutCancellables.removeAll()
+        shortcutManager?.$version
+            .dropFirst()
+            .sink { [weak self] _ in
+                self?.setupGlobalHotkey()
+            }
+            .store(in: &shortcutCancellables)
     }
 }
