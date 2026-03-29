@@ -1,1 +1,16 @@
-{}
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx tsx \"$(dirname \"$(git rev-parse --git-common-dir)\")/.claude/hooks/post-push-pr-sync.ts\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
