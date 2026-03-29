@@ -215,21 +215,36 @@ final class WorktreeListViewModel: ObservableObject {
 
     private func enriched(_ worktrees: [Worktree], metadata: [WorktreeMetadata]) async -> [Worktree] {
         var result = worktrees
+
+        // Step 1: Apply metadata (in-memory, no I/O)
         for i in result.indices {
-            guard !Task.isCancelled else { return result }
-            let wt = result[i]
-            let meta = metadata.first(where: { $0.folderName == wt.folderName })
+            let meta = metadata.first(where: { $0.folderName == result[i].folderName })
             result[i].customName = meta?.customName
             result[i].prRemoteBranch = meta?.prRemoteBranch
-            let metaActivity = meta?.lastActivityAt
-            let commitDate = await worktreeManager.lastCommitDate(worktreePath: wt.path)
-            switch (metaActivity, commitDate) {
-            case let (date1?, date2?): result[i].lastActivityAt = max(date1, date2)
-            case let (date1?, nil):    result[i].lastActivityAt = date1
-            case let (nil, date2?):    result[i].lastActivityAt = date2
-            case (nil, nil):           break
+        }
+
+        // Step 2: Fetch commit dates concurrently (issue #12)
+        let manager = worktreeManager
+        await withTaskGroup(of: (Int, Date?).self) { group in
+            for i in result.indices {
+                let path = result[i].path
+                group.addTask {
+                    let date = await manager.lastCommitDate(worktreePath: path)
+                    return (i, date)
+                }
+            }
+            for await (index, commitDate) in group {
+                guard !Task.isCancelled else { return }
+                let metaActivity = metadata.first(where: { $0.folderName == result[index].folderName })?.lastActivityAt
+                switch (metaActivity, commitDate) {
+                case let (date1?, date2?): result[index].lastActivityAt = max(date1, date2)
+                case let (date1?, nil):    result[index].lastActivityAt = date1
+                case let (nil, date2?):    result[index].lastActivityAt = date2
+                case (nil, nil):           break
+                }
             }
         }
+
         return result
     }
 

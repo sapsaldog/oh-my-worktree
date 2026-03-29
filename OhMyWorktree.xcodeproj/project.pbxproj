@@ -22,6 +22,7 @@
 		1D5329DDE42009E76C2650C5 /* ExternalToolLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 155B3645306233DD226910E8 /* ExternalToolLauncher.swift */; };
 		24D6FB5B97F04ECE5DC221BF /* WorktreeManager+GitOps.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08B45C279C31CE3F9F048056 /* WorktreeManager+GitOps.swift */; };
 		28AAB167DD6C5B36997EEFDB /* ShortcutsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D6DA2DB9FCC472CF45E5EB /* ShortcutsSettingsView.swift */; };
+		2BD7B4F6824F0432D87DE1EC /* WorktreeListViewModelEnrichmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D367A4F79D360C4F51AA85FE /* WorktreeListViewModelEnrichmentTests.swift */; };
 		2DE6E669FC57B2FFF1BB3BB4 /* HotkeyRecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92C079207B4A1020DEDB71F4 /* HotkeyRecorderView.swift */; };
 		2E75657635769738BAE6D205 /* HotkeyManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBE71833015D389E58D69922 /* HotkeyManagerTests.swift */; };
 		322D1AFDBFEEBF607E12181D /* PullRequestStateIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1024573DB028DE97085DF606 /* PullRequestStateIcon.swift */; };
@@ -167,6 +168,7 @@
 		CFCCF64227A4F11AF7BA80B6 /* OhMyWorktreeError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OhMyWorktreeError.swift; sourceTree = "<group>"; };
 		D0F95F0D684BC863684D8241 /* PullRequestInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PullRequestInfo.swift; sourceTree = "<group>"; };
 		D17D255D9C03D39E65FC37E5 /* MockGitExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockGitExecutor.swift; sourceTree = "<group>"; };
+		D367A4F79D360C4F51AA85FE /* WorktreeListViewModelEnrichmentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeListViewModelEnrichmentTests.swift; sourceTree = "<group>"; };
 		D8736AEED259ECCE858F5BFE /* AppIcon_original.svg */ = {isa = PBXFileReference; path = AppIcon_original.svg; sourceTree = "<group>"; };
 		E12BD14A8E992E6A9B4668B7 /* GitCommandExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitCommandExecutor.swift; sourceTree = "<group>"; };
 		E6AE572EAF819FF7917FB985 /* WorktreeListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeListView.swift; sourceTree = "<group>"; };
@@ -253,6 +255,7 @@
 				2A9067CC38D79C1B97FBAEAA /* ShortcutManagerTests.swift */,
 				45E90BF743990ABDF5F54752 /* WorktreeFileCopierTests.swift */,
 				5DFB6A201DF132C6DDBE5D42 /* WorktreeListViewModelContextMenuTests.swift */,
+				D367A4F79D360C4F51AA85FE /* WorktreeListViewModelEnrichmentTests.swift */,
 				F6949AB98960591D37ABCC59 /* WorktreeListViewModelImportTests.swift */,
 				6460930465C1945BB9E708A7 /* WorktreeListViewModelSelectionTests.swift */,
 				ABF450885A0658CB279EE089 /* WorktreeListViewModelTests.swift */,
@@ -497,6 +500,7 @@
 				FB3FF8FDBBFB2838013C6FC4 /* ShortcutManagerTests.swift in Sources */,
 				671DEF7953036D7C339F1C16 /* WorktreeFileCopierTests.swift in Sources */,
 				C903C1B2B26FFB577D51C6F0 /* WorktreeListViewModelContextMenuTests.swift in Sources */,
+				2BD7B4F6824F0432D87DE1EC /* WorktreeListViewModelEnrichmentTests.swift in Sources */,
 				8C7C7074832657257E597751 /* WorktreeListViewModelImportTests.swift in Sources */,
 				3E3BC079BCB09601CF331D43 /* WorktreeListViewModelSelectionTests.swift in Sources */,
 				80092B38847E833C625A2FC9 /* WorktreeListViewModelTests.swift in Sources */,
