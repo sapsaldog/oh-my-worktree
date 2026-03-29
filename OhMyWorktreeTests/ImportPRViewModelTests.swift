@@ -274,7 +274,7 @@ struct ImportPRViewModelTests {
 
     // MARK: - retry (RED: verifies retry() actually updates state)
 
-    @Test func retry_afterFailure_updatesState() async {
+    @Test func retry_afterFailure_updatesState() async throws {
         let mock = MockPRFetching()
         mock.listResult = nil
         let sut = ImportPRViewModel(pullRequestService: mock)
@@ -287,12 +287,8 @@ struct ImportPRViewModelTests {
         mock.listResult = [makePR(number: 1)]
         sut.retry()
 
-        // Wait for the retry Task to be scheduled and complete on @MainActor.
-        // Task.sleep suspends the current task, giving the retry task a chance to run.
-        let deadline = Date().addingTimeInterval(2)
-        while (sut.loadFailed || sut.allPRs.isEmpty) && Date() < deadline {
-            try? await Task.sleep(nanoseconds: 10_000_000)
-        }
+        // Wait for the retry Task to complete
+        try await pollUntil { false == sut.loadFailed && false == sut.allPRs.isEmpty }
 
         #expect(false == sut.loadFailed, "retry() should clear loadFailed on success")
         #expect(sut.allPRs.count == 1, "retry() should populate allPRs")
@@ -347,7 +343,7 @@ struct ImportPRViewModelTests {
 
     // MARK: - loadPRs generation guard (isLoading race)
 
-    @Test func loadPRs_staleCall_doesNotResetIsLoading() async {
+    @Test func loadPRs_staleCall_doesNotResetIsLoading() async throws {
         // Use a slow mock that lets us interleave two loadPRs calls.
         let slowMock = SlowPRFetching()
         let sut = ImportPRViewModel(pullRequestService: slowMock)
@@ -357,13 +353,13 @@ struct ImportPRViewModelTests {
         let firstLoad = Task { @MainActor in await sut.loadPRs() }
 
         // Wait for the first load to reach the suspension point.
-        while !slowMock.isSuspended { await Task.yield() }
+        try await pollUntil { slowMock.isSuspended }
 
         // Start second load — invalidates first load's generation.
         let secondLoad = Task { @MainActor in await sut.loadPRs() }
 
         // Wait for second load to reach the suspension point.
-        while slowMock.suspendCount < 2 { await Task.yield() }
+        try await pollUntil { slowMock.suspendCount >= 2 }
 
         // Resume first call — it should see generation mismatch.
         slowMock.resume()

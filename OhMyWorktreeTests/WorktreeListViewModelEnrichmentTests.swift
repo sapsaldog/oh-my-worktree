@@ -51,6 +51,7 @@ private final class ConcurrencyTrackingExecutor: GitCommandExecuting, @unchecked
         }
         if arguments.first == "log" {
             await tracker.enter()
+            // swiftlint:disable:next no_arbitrary_delay
             try? await Task.sleep(for: logCallDelay)
             await tracker.exit()
             let ts = commitTimestampsByPath[workingDirectory ?? ""] ?? defaultTimestamp

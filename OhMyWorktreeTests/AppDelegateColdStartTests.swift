@@ -70,8 +70,7 @@ final class AppDelegateColdStartTests {
         let testRepoID = self.testRepo.id
         try await pollUntil { vm.repositories.contains(where: { $0.id == testRepoID }) }
 
-        try await Task.sleep(for: .milliseconds(100))
-
+        appDelegate.rebuildMenu()
         let menu = try #require(appDelegate.statusItem?.menu, "Status item menu should exist")
         let repoItem = menu.items.first(where: { $0.title == testRepo.name })
         #expect(repoItem != nil, "Menu should contain the repository after cold-start loading")
@@ -122,10 +121,7 @@ final class AppDelegateColdStartTests {
         let menuItem = NSMenuItem(title: "Import from GitHub PR…", action: nil, keyEquivalent: "")
         appDelegate.importFromGitHubPRClicked(menuItem)
 
-        // Give DispatchQueue.main.async time to execute
-        try await Task.sleep(for: .milliseconds(100))
-
-        #expect(worktreeVM.isShowingImportPR)
+        try await pollUntil { worktreeVM.isShowingImportPR }
     }
 
     // MARK: - Window reuse (no duplicates)
@@ -194,7 +190,7 @@ final class AppDelegateColdStartTests {
 
         // selectedRepository should have been set and synced to worktreeVM
         if let selected = repoVM.selectedRepository {
-            try await Task.sleep(for: .milliseconds(200))
+            try await pollUntil { worktreeVM.repository?.id == selected.id }
             #expect(worktreeVM.repository?.id == selected.id,
                    "worktreeViewModel.repository should sync with selectedRepository")
         }
@@ -265,15 +261,20 @@ final class AppDelegateColdStartTests {
         appDelegate.worktreeViewModel = worktreeVM
         appDelegate.repoViewModel = repoVM
 
-        // Wait for any eager repo loading to settle
-        try await Task.sleep(for: .milliseconds(200))
+        // Explicitly complete the eager load so the observation chain stabilizes
+        await repoVM.loadRepositories()
 
-        // Act: change selectedRepository — triggers the observation callback
+        // Wait for the observation cycle to complete (onChange → sync worktreeVM → re-register)
+        if repoVM.selectedRepository != nil {
+            try await pollUntil { worktreeVM.repository != nil }
+        }
+
+        // Act: change selectedRepository — triggers the (re-registered) observation callback
         let repo = Repository(name: "no-eager-test", path: "/tmp/no-eager-test")
         repoVM.selectedRepository = repo
 
-        // Wait for any async tasks to fire
-        try await Task.sleep(for: .milliseconds(300))
+        // Wait for the observer to sync worktreeViewModel.repository
+        try await pollUntil { worktreeVM.repository?.id == repo.id }
 
         // Assert: repository should be synced by the observer
         #expect(worktreeVM.repository?.id == repo.id,

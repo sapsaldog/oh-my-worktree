@@ -56,3 +56,9 @@ cyclomatic_complexity:
 nesting:
   type_level:
     warning: 2
+
+custom_rules:
+  no_arbitrary_delay:
+    regex: "Task\\.sleep\\(|Task\\.yield\\(\\)"
+    message: "Avoid arbitrary delays. Use deterministic synchronization (waitUntilIdle, confirmation, pollUntil) or document why a delay is necessary with swiftlint:disable"
+    severity: warning

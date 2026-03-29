@@ -252,6 +252,7 @@ final class BackgroundTaskQueue {
         try await withThrowingTaskGroup(of: Void.self) { group in
             group.addTask { try await operation() }
             group.addTask {
+                // swiftlint:disable:next no_arbitrary_delay
                 try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
                 throw BackgroundJobTimeoutError(seconds: Int(seconds))
             }

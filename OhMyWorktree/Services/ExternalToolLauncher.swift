@@ -93,10 +93,7 @@ final class ExternalToolLauncher {
             try launchProcess.run()
             launchProcess.waitUntilExit()
 
-            for _ in 0..<50 {
-                if FileManager.default.fileExists(atPath: socketPath) { break }
-                try await Task.sleep(nanoseconds: 100_000_000)
-            }
+            try await waitForFile(atPath: socketPath, timeout: 5)
             guard FileManager.default.fileExists(atPath: socketPath) else {
                 throw OhMyWorktreeError.commandExecutionFailed(
                     command: "cmux",
@@ -213,4 +210,59 @@ final class ExternalToolLauncher {
         try commands(sendCommand)
     }
 
+    // MARK: - File Monitoring
+
+    /// Waits for a file to appear using DispatchSource file system monitoring.
+    /// No polling or arbitrary delays — reacts to actual file system events.
+    private func waitForFile(atPath path: String, timeout: TimeInterval) async throws {
+        if FileManager.default.fileExists(atPath: path) { return }
+
+        let directory = (path as NSString).deletingLastPathComponent
+        let fd = open(directory, O_EVTONLY)
+        guard fd >= 0 else { return }
+
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask {
+                await withCheckedContinuation { continuation in
+                    let source = DispatchSource.makeFileSystemObjectSource(
+                        fileDescriptor: fd, eventMask: .write, queue: .global()
+                    )
+                    source.setEventHandler {
+                        if FileManager.default.fileExists(atPath: path) {
+                            source.cancel()
+                            close(fd)
+                            continuation.resume()
+                        }
+                    }
+                    source.setCancelHandler {
+                        close(fd)
+                    }
+                    source.resume()
+
+                    // Check again after setting up the source in case the file appeared
+                    // between the initial check and source activation.
+                    if FileManager.default.fileExists(atPath: path) {
+                        source.cancel()
+                        continuation.resume()
+                    }
+                }
+            }
+            group.addTask {
+                // swiftlint:disable:next no_arbitrary_delay
+                try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+                throw OhMyWorktreeError.commandExecutionFailed(
+                    command: "waitForFile",
+                    stderr: "File did not appear within \(Int(timeout)) seconds: \(path)"
+                )
+            }
+            do {
+                _ = try await group.next()
+                group.cancelAll()
+                while !group.isEmpty { _ = try? await group.next() }
+            } catch {
+                group.cancelAll()
+                throw error
+            }
+        }
+    }
 }

@@ -15,9 +15,8 @@ struct TableViewFocuser: NSViewRepresentable {
 
     func updateNSView(_ nsView: NSView, context: Context) {
         guard worktreeCount > 0 else { return }
-        // Delay to avoid layout recursion when called during view layout
+        // Defer to next main actor tick to avoid layout recursion
         Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(100))
             guard let window = nsView.window,
                   let tableView = Self.findTableView(in: window.contentView)
             else { return }

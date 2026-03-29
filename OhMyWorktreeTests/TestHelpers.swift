@@ -16,6 +16,7 @@ func pollUntil(
             }
             throw PollTimeoutError()
         }
+        // swiftlint:disable:next no_arbitrary_delay
         try await Task.sleep(for: interval)
     }
 }
