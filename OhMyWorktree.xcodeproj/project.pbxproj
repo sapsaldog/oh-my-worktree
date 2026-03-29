@@ -31,6 +31,7 @@
 		653587B67AD671EEE36C6C93 /* OhMyWorktreeError.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFCCF64227A4F11AF7BA80B6 /* OhMyWorktreeError.swift */; };
 		671DEF7953036D7C339F1C16 /* WorktreeFileCopierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45E90BF743990ABDF5F54752 /* WorktreeFileCopierTests.swift */; };
 		69D877CD7133DCC2B86870EC /* WorktreeRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C48E8BD55146561E170E91A /* WorktreeRowView.swift */; };
+		6E910BF7F1044EC6205BEBE8 /* WorktreeListViewModelEnrichedTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F1C9F86B57A3ECFEF3DD6DE /* WorktreeListViewModelEnrichedTests.swift */; };
 		761A6C6DF0BA861B384B7BBA /* PullRequestInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F95F0D684BC863684D8241 /* PullRequestInfo.swift */; };
 		78CA79D990B38BC4BA845726 /* MockGitExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D17D255D9C03D39E65FC37E5 /* MockGitExecutor.swift */; };
 		7DC6228DB15054EE52B4F8CB /* WorktreeManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2A39FCA55BDC5AFC0131335 /* WorktreeManagerTests.swift */; };
@@ -105,6 +106,7 @@
 		6F7C98BC9064213F12D218E3 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		71C73C1DDF96F9DBDBE34C9D /* Date+RelativeTime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+RelativeTime.swift"; sourceTree = "<group>"; };
 		73CCA7E1C1ACBAF4E4291EA8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		7F1C9F86B57A3ECFEF3DD6DE /* WorktreeListViewModelEnrichedTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeListViewModelEnrichedTests.swift; sourceTree = "<group>"; };
 		811A9D3615B46E7D12735276 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 		8C48E8BD55146561E170E91A /* WorktreeRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeRowView.swift; sourceTree = "<group>"; };
 		8D0B554A7A3F05F099599D36 /* GitHeadMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHeadMonitor.swift; sourceTree = "<group>"; };
@@ -199,6 +201,7 @@
 				038E188FA5528808D1BCFCC7 /* PullRequestServiceTests.swift */,
 				13A81FF314A143B73B1AB7C8 /* RepositoryStoreRenameTests.swift */,
 				45E90BF743990ABDF5F54752 /* WorktreeFileCopierTests.swift */,
+				7F1C9F86B57A3ECFEF3DD6DE /* WorktreeListViewModelEnrichedTests.swift */,
 				F6949AB98960591D37ABCC59 /* WorktreeListViewModelImportTests.swift */,
 				6460930465C1945BB9E708A7 /* WorktreeListViewModelSelectionTests.swift */,
 				ABF450885A0658CB279EE089 /* WorktreeListViewModelTests.swift */,
@@ -427,6 +430,7 @@
 				38723E3C67DD58A9D57EAD4B /* PullRequestServiceTests.swift in Sources */,
 				A00DF8B5591361457887300F /* RepositoryStoreRenameTests.swift in Sources */,
 				671DEF7953036D7C339F1C16 /* WorktreeFileCopierTests.swift in Sources */,
+				6E910BF7F1044EC6205BEBE8 /* WorktreeListViewModelEnrichedTests.swift in Sources */,
 				8C7C7074832657257E597751 /* WorktreeListViewModelImportTests.swift in Sources */,
 				3E3BC079BCB09601CF331D43 /* WorktreeListViewModelSelectionTests.swift in Sources */,
 				80092B38847E833C625A2FC9 /* WorktreeListViewModelTests.swift in Sources */,

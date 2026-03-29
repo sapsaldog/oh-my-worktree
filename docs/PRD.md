@@ -1219,6 +1219,7 @@ let nouns = ["ocean", "river", "mountain", "forest", "sky", "lunch", "pizza", ..
 - `git worktree add`: 3초 이내
 - `git worktree remove`: 2초 이내
 - 타임아웃: 30초 (사용자에게 취소 옵션 제공)
+- `git log -1 --format=%ct` (커밋 날짜 조회): worktree 목록 로드 시 `withTaskGroup`을 사용하여 모든 worktree에 대해 **병렬로** 실행. 직렬 실행 대비 N개의 worktree에서 약 N배 빠름.
 
 **NFR-003: UI 반응성 (P0)**
 - 클릭에서 반응까지: 100ms 이내

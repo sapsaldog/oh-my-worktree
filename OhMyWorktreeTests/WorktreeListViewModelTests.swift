@@ -7,12 +7,18 @@ import XCTest
 final class MockWorktreeExecutor: GitCommandExecuting, @unchecked Sendable {
     var worktreeListOutput: String = ""
     var lastCommitTimestamp: String = ""
+    /// Per-path commit timestamps. When set, overrides `lastCommitTimestamp`
+    /// for paths matching the workingDirectory of `git log` calls.
+    var commitTimestampsByPath: [String: String] = [:]
 
     func execute(command: String, arguments: [String], workingDirectory: String?) async throws -> CommandResult {
         if arguments == ["worktree", "list", "--porcelain"] {
             return CommandResult(stdout: worktreeListOutput, stderr: "", exitCode: 0)
         }
         if arguments.first == "log" {
+            if let dir = workingDirectory, let ts = commitTimestampsByPath[dir] {
+                return CommandResult(stdout: ts, stderr: "", exitCode: 0)
+            }
             return CommandResult(stdout: lastCommitTimestamp, stderr: "", exitCode: 0)
         }
         return CommandResult(stdout: "", stderr: "", exitCode: 0)

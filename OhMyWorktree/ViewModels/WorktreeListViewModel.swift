@@ -209,6 +209,23 @@ final class WorktreeListViewModel: ObservableObject {
 
     private func enriched(_ worktrees: [Worktree], metadata: [WorktreeMetadata]) async -> [Worktree] {
         var result = worktrees
+
+        // Fetch all commit dates concurrently using TaskGroup
+        let commitDates: [Int: Date?] = await withTaskGroup(of: (Int, Date?).self) { group in
+            for i in result.indices {
+                group.addTask { [worktreeManager] in
+                    let date = await worktreeManager.lastCommitDate(worktreePath: result[i].path)
+                    return (i, date)
+                }
+            }
+            var dict = [Int: Date?]()
+            for await (index, date) in group {
+                dict[index] = date
+            }
+            return dict
+        }
+
+        // Merge with metadata (serial, fast)
         for i in result.indices {
             guard !Task.isCancelled else { return result }
             let wt = result[i]
@@ -216,7 +233,7 @@ final class WorktreeListViewModel: ObservableObject {
             result[i].customName = meta?.customName
             result[i].prRemoteBranch = meta?.prRemoteBranch
             let metaActivity = meta?.lastActivityAt
-            let commitDate = await worktreeManager.lastCommitDate(worktreePath: wt.path)
+            let commitDate = commitDates[i] ?? nil
             switch (metaActivity, commitDate) {
             case let (date1?, date2?): result[i].lastActivityAt = max(date1, date2)
             case let (date1?, nil):    result[i].lastActivityAt = date1
