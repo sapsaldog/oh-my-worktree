@@ -156,6 +156,9 @@ final class WorktreeManager: Sendable {
 
     /// Creates a worktree with a brand-new local branch (`localBranch`) starting at
     /// the given `startPoint` (defaults to `origin/<remoteBranch>`).
+    ///
+    /// If the local branch already exists (e.g. orphaned after a previous worktree
+    /// removal), falls back to checking out the existing branch without `-b`.
     func addWorktreeFromRemoteBranch(
         repositoryPath: String,
         folderName: String,
@@ -181,8 +184,19 @@ final class WorktreeManager: Sendable {
             workingDirectory: repositoryPath
         )
 
-        guard result.exitCode == 0 else {
+        if result.exitCode != 0 {
             let stderr = result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            // GitHub #23: An orphaned local branch (left behind after worktree removal)
+            // causes `-b` to fail. Fall back to checking out the existing branch.
+            if stderr.contains("already exists") {
+                return try await addWorktreeFromExistingBranch(
+                    repositoryPath: repositoryPath,
+                    folderName: folderName,
+                    branch: localBranch
+                )
+            }
+
             throw OhMyWorktreeError.commandExecutionFailed(command: "git worktree add", stderr: stderr)
         }
 
