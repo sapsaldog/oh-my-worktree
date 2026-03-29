@@ -157,6 +157,56 @@ extension AppDelegate {
     }
 }
 
+// MARK: - Keyboard Shortcut Actions (from NSApp.mainMenu)
+
+extension AppDelegate {
+
+    @objc func addRepositoryShortcut(_ sender: NSMenuItem) {
+        showOrCreateMainWindow()
+        DispatchQueue.main.async { [weak self] in
+            self?.repoViewModel?.showingFileDialog = true
+        }
+    }
+
+    @objc func removeWorktreeShortcut(_ sender: NSMenuItem) {
+        worktreeViewModel?.removeSelectedWorktrees(force: false)
+    }
+
+    @objc func refreshWorktreesShortcut(_ sender: NSMenuItem) {
+        Task { @MainActor [weak self] in
+            await self?.worktreeViewModel?.loadWorktrees()
+        }
+    }
+
+    @objc func openInITermShortcut(_ sender: NSMenuItem) {
+        openSelectedWorktreeViaShortcut { vm, wt in await vm.openInITerm(wt) }
+    }
+
+    @objc func openInGhosttyShortcut(_ sender: NSMenuItem) {
+        openSelectedWorktreeViaShortcut { vm, wt in await vm.openInGhostty(wt) }
+    }
+
+    @objc func openInVSCodeShortcut(_ sender: NSMenuItem) {
+        openSelectedWorktreeViaShortcut { vm, wt in await vm.openInVSCode(wt) }
+    }
+
+    @objc func openInCursorShortcut(_ sender: NSMenuItem) {
+        openSelectedWorktreeViaShortcut { vm, wt in await vm.openInCursor(wt) }
+    }
+
+    @objc func openInCmuxShortcut(_ sender: NSMenuItem) {
+        openSelectedWorktreeViaShortcut { vm, wt in await vm.openInCmux(wt) }
+    }
+
+    private func openSelectedWorktreeViaShortcut(
+        action: @escaping @MainActor (WorktreeListViewModel, Worktree) async -> Void
+    ) {
+        guard let vm = worktreeViewModel,
+              let worktree = vm.selectedWorktree else { return }
+        Task { await action(vm, worktree) }
+    }
+}
+
 // MARK: - Shortcut Manager Observation
 
 extension AppDelegate {

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WorktreeListView: View {
     @ObservedObject var viewModel: WorktreeListViewModel
+    @EnvironmentObject var shortcutManager: ShortcutManager
     @State private var selectedIDs: Set<UUID> = []
     @State private var renamingWorktreeID: UUID?
     @State private var forceRemoveTarget: ForceRemoveTarget?
@@ -211,15 +212,15 @@ struct WorktreeListView: View {
 
         Divider()
 
-        Button("Open in iTerm") { Task { await viewModel.openInITerm(worktree) } }
+        contextMenuButton("Open in iTerm", action: .openITerm) { Task { await viewModel.openInITerm(worktree) } }
             .disabled(!viewModel.isITermAvailable || !actions.canOpen)
-        Button("Open in Ghostty") { Task { await viewModel.openInGhostty(worktree) } }
+        contextMenuButton("Open in Ghostty", action: .openGhostty) { Task { await viewModel.openInGhostty(worktree) } }
             .disabled(!viewModel.isGhosttyAvailable || !actions.canOpen)
-        Button("Open in VSCode") { Task { await viewModel.openInVSCode(worktree) } }
+        contextMenuButton("Open in VSCode", action: .openVSCode) { Task { await viewModel.openInVSCode(worktree) } }
             .disabled(!viewModel.isVSCodeAvailable || !actions.canOpen)
-        Button("Open in Cursor") { Task { await viewModel.openInCursor(worktree) } }
+        contextMenuButton("Open in Cursor", action: .openCursor) { Task { await viewModel.openInCursor(worktree) } }
             .disabled(!viewModel.isCursorAvailable || !actions.canOpen)
-        Button("Open in cmux") { Task { await viewModel.openInCmux(worktree) } }
+        contextMenuButton("Open in cmux", action: .openCmux) { Task { await viewModel.openInCmux(worktree) } }
             .disabled(!viewModel.isCmuxAvailable || !actions.canOpen)
 
         if !isMultiSelected, let pr = pullRequest(for: worktree) {
@@ -247,6 +248,20 @@ struct WorktreeListView: View {
         .disabled(!actions.canCopyPath)
 
         removalMenuItems(for: worktree, actions: actions, isMultiSelected: isMultiSelected)
+    }
+
+    @ViewBuilder
+    private func contextMenuButton(
+        _ title: String,
+        action: ShortcutAction,
+        perform: @escaping () -> Void
+    ) -> some View {
+        if let shortcut = shortcutManager.keyboardShortcut(for: action) {
+            Button(title, action: perform)
+                .keyboardShortcut(shortcut.key, modifiers: shortcut.modifiers)
+        } else {
+            Button(title, action: perform)
+        }
     }
 
     @ViewBuilder

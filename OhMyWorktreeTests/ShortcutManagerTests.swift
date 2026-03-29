@@ -136,6 +136,41 @@ final class ShortcutManagerTests: XCTestCase {
         XCTAssertGreaterThan(manager.version, before)
     }
 
+    // MARK: - NSMenuItem Key Equivalent Helper
+
+    @MainActor
+    func testMenuItemKeyEquivalent_commandComma() {
+        let result = manager.menuItemKeyEquivalent(for: .openSettings)
+        XCTAssertNotNil(result)
+        XCTAssertEqual(result?.key, ",")
+        XCTAssertEqual(result?.modifiers, [.command])
+    }
+
+    @MainActor
+    func testMenuItemKeyEquivalent_commandShiftI() {
+        let result = manager.menuItemKeyEquivalent(for: .openITerm)
+        XCTAssertNotNil(result)
+        XCTAssertEqual(result?.key, "i")
+        XCTAssertTrue(result?.modifiers.contains(.command) ?? false)
+        XCTAssertTrue(result?.modifiers.contains(.shift) ?? false)
+    }
+
+    @MainActor
+    func testMenuItemKeyEquivalent_emptyCombo_returnsNil() {
+        manager.setCombo("", for: .openSettings)
+        let result = manager.menuItemKeyEquivalent(for: .openSettings)
+        XCTAssertNil(result)
+    }
+
+    @MainActor
+    func testMenuItemKeyEquivalent_backspace() {
+        let result = manager.menuItemKeyEquivalent(for: .removeWorktree)
+        XCTAssertNotNil(result)
+        // Backspace maps to NSBackspaceCharacter (0x08) for NSMenuItem
+        XCTAssertEqual(result?.key, String(Character(UnicodeScalar(8))))
+        XCTAssertEqual(result?.modifiers, [.command])
+    }
+
     // MARK: - Migration
 
     @MainActor
