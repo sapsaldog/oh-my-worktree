@@ -262,17 +262,17 @@ struct WorktreeListView: View {
             }
         } else if let repository = viewModel.repository, !worktree.isRoot(of: repository) {
             Divider()
-            Button("Remove Worktree  ⌫", role: .destructive) {
+            Button("Remove Worktree", role: .destructive) {
                 triggerRemove()
             }
             .disabled(!actions.canRemove)
 
-            Button("Force Remove Worktree  ⌘⌫", role: .destructive) {
+            Button("Force Remove Worktree", role: .destructive) {
                 triggerForceRemove()
             }
             .disabled(!actions.canForceRemove)
 
-            Button("Quick Remove Worktree  ⇧⌘⌫", role: .destructive) {
+            Button("Quick Remove Worktree", role: .destructive) {
                 triggerQuickRemove()
             }
             .disabled(!actions.canQuickRemove)
