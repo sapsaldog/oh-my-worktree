@@ -70,27 +70,36 @@ extension AppDelegate {
 
 extension AppDelegate {
 
-    /// Patches the existing application menu that macOS creates automatically.
-    /// Instead of replacing NSApp.mainMenu (which macOS overrides on policy
-    /// transitions), we find the Settings/Preferences item and rewire its action.
+    /// Sets up NSApp.mainMenu after macOS finishes its own menu bar setup.
+    /// Must run via DispatchQueue.main.async to avoid being overwritten by
+    /// macOS during .accessory → .regular activation policy transitions.
     func setupMainMenu() {
         DispatchQueue.main.async { [weak self] in
-            guard let self, let appMenu = NSApp.mainMenu?.item(at: 0)?.submenu else { return }
+            guard let self else { return }
 
-            // Find existing Cmd+, item (macOS creates "Settings..." or "Preferences...")
-            if let existing = appMenu.items.first(where: { $0.keyEquivalent == "," }) {
-                existing.action = #selector(self.settingsClicked(_:))
-                existing.target = self
-            } else {
-                // No Settings item found — add one
-                let item = NSMenuItem(
-                    title: "Settings...",
-                    action: #selector(self.settingsClicked(_:)),
-                    keyEquivalent: ","
-                )
-                item.target = self
-                appMenu.insertItem(item, at: min(1, appMenu.numberOfItems))
-            }
+            let mainMenu = NSMenu()
+
+            let appMenuItem = NSMenuItem()
+            let appMenu = NSMenu(title: "OhMyWorktree")
+            let settingsItem = NSMenuItem(
+                title: "Settings...",
+                action: #selector(self.settingsClicked(_:)),
+                keyEquivalent: ","
+            )
+            settingsItem.target = self
+            appMenu.addItem(settingsItem)
+            appMenu.addItem(.separator())
+            let quitItem = NSMenuItem(
+                title: "Quit Oh My Worktree",
+                action: #selector(self.quitClicked(_:)),
+                keyEquivalent: "q"
+            )
+            quitItem.target = self
+            appMenu.addItem(quitItem)
+            appMenuItem.submenu = appMenu
+            mainMenu.addItem(appMenuItem)
+
+            NSApp.mainMenu = mainMenu
         }
     }
 }
