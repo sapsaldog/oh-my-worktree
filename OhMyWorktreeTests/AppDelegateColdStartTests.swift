@@ -7,7 +7,7 @@ import XCTest
 /// and no SwiftUI window exists yet.
 ///
 /// Architecture: AppDelegate manages windows directly via NSWindow +
-/// NSHostingController, and opens Settings via NSApp.sendAction.
+/// NSHostingView, bypassing SwiftUI Scene lifecycle entirely.
 /// No @Environment closures are needed, so cold start works identically
 /// to a normal launch.
 @MainActor
@@ -98,9 +98,13 @@ final class AppDelegateColdStartTests: XCTestCase {
     func testSettingsClickedDoesNotCrash() async throws {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
+        appDelegate.updaterManager = UpdaterManager()
 
         let menuItem = NSMenuItem(title: "Settings...", action: nil, keyEquivalent: "")
         appDelegate.settingsClicked(menuItem)
+
+        let settingsWindows = NSApp.windows.filter { $0.title == AppDelegate.settingsWindowTitle }
+        XCTAssertEqual(settingsWindows.count, 1, "Settings window should be created on cold start")
     }
 
     // MARK: - Import PR triggers sheet flag
@@ -134,7 +138,7 @@ final class AppDelegateColdStartTests: XCTestCase {
         appDelegate.settingsClicked(menuItem)
         appDelegate.settingsClicked(menuItem)
 
-        let settingsWindows = NSApp.windows.filter { $0.title == "OhMyWorktree Settings" }
+        let settingsWindows = NSApp.windows.filter { $0.title == AppDelegate.settingsWindowTitle }
         XCTAssertEqual(settingsWindows.count, 1, "Clicking Settings twice should reuse the same window")
     }
 
@@ -147,7 +151,7 @@ final class AppDelegateColdStartTests: XCTestCase {
         appDelegate.showOrCreateMainWindow()
         appDelegate.showOrCreateMainWindow()
 
-        let mainWindows = NSApp.windows.filter { $0.title == "Oh My Worktree" }
+        let mainWindows = NSApp.windows.filter { $0.title == AppDelegate.mainWindowTitle }
         XCTAssertEqual(mainWindows.count, 1, "Calling showOrCreateMainWindow twice should reuse the same window")
     }
 
@@ -161,7 +165,7 @@ final class AppDelegateColdStartTests: XCTestCase {
 
         appDelegate.showOrCreateMainWindow()
 
-        guard let window = NSApp.windows.first(where: { $0.title == "Oh My Worktree" }) else {
+        guard let window = NSApp.windows.first(where: { $0.title == AppDelegate.mainWindowTitle }) else {
             XCTFail("Main window should exist")
             return
         }
@@ -196,5 +200,32 @@ final class AppDelegateColdStartTests: XCTestCase {
             XCTAssertEqual(worktreeVM.repository?.id, selected.id,
                            "worktreeViewModel.repository should sync with selectedRepository")
         }
+    }
+
+    // MARK: - Window title consistency
+
+    func testSettingsWindowUsesExpectedTitle() async throws {
+        let appDelegate = AppDelegate()
+        appDelegate.setupStatusItem()
+        appDelegate.updaterManager = UpdaterManager()
+
+        appDelegate.showOrCreateSettingsWindow()
+
+        let settingsWindows = NSApp.windows.filter { $0.title == AppDelegate.settingsWindowTitle }
+        XCTAssertEqual(settingsWindows.count, 1,
+                       "Settings window title should match AppDelegate.settingsWindowTitle")
+    }
+
+    func testMainWindowUsesExpectedTitle() async throws {
+        let appDelegate = AppDelegate()
+        appDelegate.setupStatusItem()
+        appDelegate.repoViewModel = RepositoryListViewModel()
+        appDelegate.worktreeViewModel = WorktreeListViewModel()
+
+        appDelegate.showOrCreateMainWindow()
+
+        let mainWindows = NSApp.windows.filter { $0.title == AppDelegate.mainWindowTitle }
+        XCTAssertEqual(mainWindows.count, 1,
+                       "Main window title should match AppDelegate.mainWindowTitle")
     }
 }

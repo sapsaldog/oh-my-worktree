@@ -5,6 +5,11 @@ import SwiftUI
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
+    // MARK: - Constants
+
+    static let mainWindowTitle = "Oh My Worktree"
+    static let settingsWindowTitle = "OhMyWorktree Settings"
+
     // MARK: - Properties
 
     var statusItem: NSStatusItem?
@@ -370,7 +375,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
               let worktreeVM = worktreeViewModel else { return }
 
         showOrCreateWindow(
-            title: "Oh My Worktree",
+            title: Self.mainWindowTitle,
             size: NSSize(width: 500, height: 400)
         ) {
             ContentView(repoViewModel: repoVM, worktreeViewModel: worktreeVM)
@@ -382,7 +387,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard let updaterManager else { return }
 
         showOrCreateWindow(
-            title: "OhMyWorktree Settings",
+            title: Self.settingsWindowTitle,
             size: NSSize(width: 400, height: 500),
             styleMask: [.titled, .closable]
         ) {

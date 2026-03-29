@@ -49,7 +49,9 @@ struct ContentView: View {
             Text(repoViewModel.errorMessage ?? worktreeViewModel.errorMessage ?? "")
         }
         .task {
-            await repoViewModel.loadRepositories()
+            if repoViewModel.repositories.isEmpty {
+                await repoViewModel.loadRepositories()
+            }
             // On cold start, selectedRepository may already be set by
             // AppDelegate's eager loading, so .onChange won't fire.
             // Sync worktreeViewModel manually in that case.
