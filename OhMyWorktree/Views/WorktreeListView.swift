@@ -72,13 +72,10 @@ struct WorktreeListView: View {
             if newIDs != selectedIDs { selectedIDs = newIDs }
         }
         .focused($isListFocused)
+        .defaultFocus($isListFocused, true)
         .onDeleteCommand {
             viewModel.removeSelectedWorktrees(force: false)
         }
-        .modifier(ListFocusModifier(
-            worktrees: viewModel.worktrees,
-            isListFocused: $isListFocused
-        ))
         .modifier(DeleteKeyModifier(
             selectedIDs: selectedIDs,
             worktrees: viewModel.worktrees,
@@ -345,21 +342,6 @@ private struct SingleQuickRemoveDialog: ViewModifier {
             Button("Cancel", role: .cancel) { target = nil }
         } message: {
             Text("Directory will be moved to Trash. Uncommitted changes will not be checked.")
-        }
-    }
-}
-
-// MARK: - List Focus
-
-private struct ListFocusModifier: ViewModifier {
-    let worktrees: [Worktree]
-    var isListFocused: FocusState<Bool>.Binding
-
-    func body(content: Content) -> some View {
-        content.onChange(of: worktrees) { _, newValue in
-            if !newValue.isEmpty {
-                isListFocused.wrappedValue = true
-            }
         }
     }
 }
