@@ -137,13 +137,14 @@ extension AppDelegate {
     }
 
     @objc func importFromGitHubPRClicked(_ sender: NSMenuItem) {
-        NSApp.activate(ignoringOtherApps: true)
-        openImportPRWindow?()
+        showOrCreateMainWindow()
+        DispatchQueue.main.async { [weak self] in
+            self?.worktreeViewModel?.isShowingImportPR = true
+        }
     }
 
     @objc func settingsClicked(_ sender: NSMenuItem) {
-        NSApp.activate(ignoringOtherApps: true)
-        openSettings?()
+        showOrCreateSettingsWindow()
     }
 
     @objc func checkForUpdatesClicked(_ sender: NSMenuItem) {

@@ -34,6 +34,13 @@ targets:
             echo "warning: SwiftLint not installed. Run: brew install swiftlint"
           fi
         basedOnDependencyAnalysis: false
+    postCompileScripts:
+      - name: Embed Git Commit Hash
+        script: |
+          GIT_HASH=$(git -C "${PROJECT_DIR}" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+          /usr/libexec/PlistBuddy -c "Add :GitCommitHash string ${GIT_HASH}" "${TARGET_BUILD_DIR}/${INFOPLIST_PATH}" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :GitCommitHash ${GIT_HASH}" "${TARGET_BUILD_DIR}/${INFOPLIST_PATH}"
+        basedOnDependencyAnalysis: false
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.ohmyworktree.app
       INFOPLIST_KEY_CFBundleDisplayName: OhMyWorktree

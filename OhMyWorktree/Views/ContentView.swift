@@ -24,6 +24,9 @@ struct ContentView: View {
         }
         .frame(minWidth: 400, minHeight: 300)
         .navigationTitle("Oh My Worktree")
+        .sheet(isPresented: $worktreeViewModel.isShowingImportPR) {
+            ImportPRView(worktreeViewModel: worktreeViewModel)
+        }
         .alert(
             "Error",
             isPresented: .init(
@@ -46,7 +49,16 @@ struct ContentView: View {
             Text(repoViewModel.errorMessage ?? worktreeViewModel.errorMessage ?? "")
         }
         .task {
-            await repoViewModel.loadRepositories()
+            if repoViewModel.repositories.isEmpty {
+                await repoViewModel.loadRepositories()
+            }
+            // On cold start, selectedRepository may already be set by
+            // AppDelegate's eager loading, so .onChange won't fire.
+            // Sync worktreeViewModel manually in that case.
+            if worktreeViewModel.repository == nil, let selected = repoViewModel.selectedRepository {
+                worktreeViewModel.repository = selected
+                await worktreeViewModel.loadWorktrees()
+            }
         }
         .onChange(of: repoViewModel.selectedRepository) { _, newValue in
             Task {

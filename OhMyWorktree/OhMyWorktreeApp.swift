@@ -8,55 +8,23 @@ struct OhMyWorktreeApp: App {
     @StateObject private var updaterManager = UpdaterManager()
 
     var body: some Scene {
+        // Connect view models to AppDelegate during Scene body evaluation,
+        // so the menu bar works even if the main window hasn't appeared yet
+        // (e.g. cold start after reboot with Login Items).
+        // swiftlint:disable:next redundant_discardable_let
+        let _ = connectAppDelegate()
+
         WindowGroup(id: "main") {
             ContentView(repoViewModel: repoViewModel, worktreeViewModel: worktreeViewModel)
                 .frame(minWidth: 400, minHeight: 300)
-                .sheet(isPresented: $worktreeViewModel.isShowingImportPR) {
-                    ImportPRView(worktreeViewModel: worktreeViewModel)
-                }
-                .modifier(OpenWindowModifier(appDelegate: appDelegate, worktreeViewModel: worktreeViewModel))
-                .onAppear {
-                    appDelegate.repoViewModel = repoViewModel
-                    appDelegate.worktreeViewModel = worktreeViewModel
-                    appDelegate.updaterManager = updaterManager
-                }
         }
         .defaultSize(width: 500, height: 400)
         .windowResizability(.contentSize)
-
-        Settings {
-            SettingsView(updaterManager: updaterManager)
-        }
     }
-}
 
-/// Captures `@Environment(\.openWindow)` and `@Environment(\.openSettings)`
-/// from the SwiftUI environment and stores the actions in AppDelegate
-/// so they can be triggered from the menu bar even after the window is closed.
-private struct OpenWindowModifier: ViewModifier {
-    let appDelegate: AppDelegate
-    let worktreeViewModel: WorktreeListViewModel
-    @Environment(\.openWindow) private var openWindow
-    @Environment(\.openSettings) private var openSettings
-
-    func body(content: Content) -> some View {
-        content
-            .onAppear {
-                appDelegate.openMainWindow = { [openWindow] in
-                    openWindow(id: "main")
-                }
-                appDelegate.openImportPRWindow = { [openWindow, worktreeViewModel] in
-                    openWindow(id: "main")
-                    // Dispatch to the next run-loop tick so SwiftUI finishes setting
-                    // up the window's view hierarchy (including the .sheet modifier)
-                    // before we present the sheet.
-                    DispatchQueue.main.async {
-                        worktreeViewModel.isShowingImportPR = true
-                    }
-                }
-                appDelegate.openSettings = { [openSettings] in
-                    openSettings()
-                }
-            }
+    private func connectAppDelegate() {
+        appDelegate.repoViewModel = repoViewModel
+        appDelegate.worktreeViewModel = worktreeViewModel
+        appDelegate.updaterManager = updaterManager
     }
 }
