@@ -35,11 +35,11 @@ struct OhMyWorktreeApp: App {
             }
             CommandMenu("Navigate") {
                 Button("Previous Repository") {
-                    repoViewModel.selectPreviousRepository()
+                    Task { await repoViewModel.selectPreviousRepository() }
                 }
                 .keyboardShortcut(.upArrow, modifiers: [.command, .shift])
                 Button("Next Repository") {
-                    repoViewModel.selectNextRepository()
+                    Task { await repoViewModel.selectNextRepository() }
                 }
                 .keyboardShortcut(.downArrow, modifiers: [.command, .shift])
             }

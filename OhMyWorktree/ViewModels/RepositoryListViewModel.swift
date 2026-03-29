@@ -103,28 +103,32 @@ final class RepositoryListViewModel: ObservableObject {
 
     // MARK: - Navigation
 
-    func selectNextRepository() {
+    func selectNextRepository() async {
         guard !repositories.isEmpty else { return }
         guard let current = selectedRepository,
               let index = repositories.firstIndex(where: { $0.id == current.id }) else {
-            selectedRepository = repositories.first
+            if let first = repositories.first {
+                await selectRepository(first)
+            }
             return
         }
         let nextIndex = index + 1
         guard nextIndex < repositories.count else { return }
-        selectedRepository = repositories[nextIndex]
+        await selectRepository(repositories[nextIndex])
     }
 
-    func selectPreviousRepository() {
+    func selectPreviousRepository() async {
         guard !repositories.isEmpty else { return }
         guard let current = selectedRepository,
               let index = repositories.firstIndex(where: { $0.id == current.id }) else {
-            selectedRepository = repositories.first
+            if let first = repositories.first {
+                await selectRepository(first)
+            }
             return
         }
         let prevIndex = index - 1
         guard prevIndex >= 0 else { return }
-        selectedRepository = repositories[prevIndex]
+        await selectRepository(repositories[prevIndex])
     }
 
     // MARK: - Error Handling

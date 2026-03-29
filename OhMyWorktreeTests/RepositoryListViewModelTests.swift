@@ -73,8 +73,11 @@ final class RepositoryListViewModelTests: XCTestCase {
 
         await sut.loadRepositories()
 
-        // Should select something (falls back to first available)
-        XCTAssertNotNil(sut.selectedRepository)
+        // Should fall back to a valid repository from the list
+        XCTAssertNotNil(sut.selectedRepository,
+                        "Should select a fallback repository")
+        XCTAssertTrue(sut.repositories.contains(where: { $0.id == sut.selectedRepository?.id }),
+                      "Selected repository should be in the repositories list")
 
         // Cleanup
         await sut.store.removeRepository(id: repo1.id)
@@ -88,8 +91,11 @@ final class RepositoryListViewModelTests: XCTestCase {
         // No saved ID in UserDefaults
         await sut.loadRepositories()
 
-        // Should select something
-        XCTAssertNotNil(sut.selectedRepository)
+        // Should fall back to a valid repository from the list
+        XCTAssertNotNil(sut.selectedRepository,
+                        "Should select a fallback repository")
+        XCTAssertTrue(sut.repositories.contains(where: { $0.id == sut.selectedRepository?.id }),
+                      "Selected repository should be in the repositories list")
 
         // Cleanup
         await sut.store.removeRepository(id: repo1.id)
@@ -117,18 +123,19 @@ final class RepositoryListViewModelTests: XCTestCase {
 
     // MARK: - addRepository persists selection to UserDefaults
 
-    func testAddRepository_persistsSelectionToUserDefaults() async {
+    func testAddRepository_persistsSelectionToUserDefaults() async throws {
         let uuid = UUID().uuidString
         let path = "/tmp/test-add-persist-\(uuid)"
 
         // Create a real git repo so addRepository validation passes
         let fm = FileManager.default
-        try? fm.createDirectory(atPath: path, withIntermediateDirectories: true, attributes: nil)
+        try fm.createDirectory(atPath: path, withIntermediateDirectories: true, attributes: nil)
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
         process.arguments = ["init", path]
-        try? process.run()
+        try process.run()
         process.waitUntilExit()
+        XCTAssertEqual(process.terminationStatus, 0, "git init must succeed for this test to be valid")
 
         // Act
         await sut.addRepository(at: path)
@@ -173,6 +180,38 @@ final class RepositoryListViewModelTests: XCTestCase {
 
         // Cleanup
         await sut.store.removeRepository(id: repo.id)
+    }
+
+    // MARK: - selectNextRepository persists to UserDefaults
+
+    func testSelectNextRepository_persistsToUserDefaults() async {
+        let repo1 = Repository(name: "repo-1", path: "/tmp/repo-next-persist-1")
+        let repo2 = Repository(name: "repo-2", path: "/tmp/repo-next-persist-2")
+
+        sut.repositories = [repo1, repo2]
+        sut.selectedRepository = repo1
+
+        await sut.selectNextRepository()
+
+        let savedID = testDefaults.string(forKey: RepositoryListViewModel.lastSelectedRepositoryIDKey)
+        XCTAssertEqual(savedID, repo2.id.uuidString,
+                       "selectNextRepository should persist the new selection to UserDefaults")
+    }
+
+    // MARK: - selectPreviousRepository persists to UserDefaults
+
+    func testSelectPreviousRepository_persistsToUserDefaults() async {
+        let repo1 = Repository(name: "repo-1", path: "/tmp/repo-prev-persist-1")
+        let repo2 = Repository(name: "repo-2", path: "/tmp/repo-prev-persist-2")
+
+        sut.repositories = [repo1, repo2]
+        sut.selectedRepository = repo2
+
+        await sut.selectPreviousRepository()
+
+        let savedID = testDefaults.string(forKey: RepositoryListViewModel.lastSelectedRepositoryIDKey)
+        XCTAssertEqual(savedID, repo1.id.uuidString,
+                       "selectPreviousRepository should persist the new selection to UserDefaults")
     }
 
     // MARK: - loadRepositories persists fallback selection
