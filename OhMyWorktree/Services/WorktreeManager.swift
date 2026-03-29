@@ -9,7 +9,8 @@ struct GitPullResult: Sendable {
     let summary: String
 }
 
-/// Abstraction over FileManager for testability (trash operations).
+/// Abstraction over FileManager for testability (trash and existence-check operations only).
+/// Directory creation uses FileManager.default directly as it is not part of the test surface.
 protocol FileManaging: Sendable {
     func fileExists(atPath path: String) -> Bool
     func trashItem(at url: URL, resultingItemURL outResultingURL: AutoreleasingUnsafeMutablePointer<NSURL?>?) throws
@@ -18,6 +19,7 @@ protocol FileManaging: Sendable {
 extension FileManager: FileManaging, @unchecked Sendable {}
 
 final class WorktreeManager: Sendable {
+    // Internal (not private) so that same-module extensions (+GitOps, +Parsing) can access.
     let executor: GitCommandExecuting
     let fileManager: FileManaging
 

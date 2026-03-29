@@ -112,7 +112,8 @@ struct WorktreeListView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Directories will be moved to Trash. Git worktree registration will be removed immediately.")
+            // swiftlint:disable:next line_length
+            Text("Directories will be moved to Trash. Uncommitted changes will not be checked. Git worktree registration will be removed immediately.")
         }
         .confirmationDialog(
             "Quick Remove '\(quickRemoveTarget?.displayName ?? "")'?",
@@ -130,7 +131,8 @@ struct WorktreeListView: View {
             }
             Button("Cancel", role: .cancel) { quickRemoveTarget = nil }
         } message: {
-            Text("The directory will be moved to Trash. Uncommitted changes will not be checked.")
+            // swiftlint:disable:next line_length
+            Text("The directory will be moved to Trash. Uncommitted changes will not be checked. Git worktree registration will be removed immediately.")
         }
     }
 
@@ -258,7 +260,7 @@ struct WorktreeListView: View {
                 Button("Force Remove Selected Worktrees", role: .destructive) {
                     forceRemoveTarget = .selectedWorktrees(count: viewModel.selectedWorktreeIDs.count)
                 }
-                Button("Quick Remove Selected Worktrees") {
+                Button("Quick Remove Selected Worktrees", role: .destructive) {
                     confirmBulkQuickRemove = true
                 }
             }
@@ -274,7 +276,7 @@ struct WorktreeListView: View {
             }
             .disabled(!actions.canForceRemove)
 
-            Button("Quick Remove Worktree") {
+            Button("Quick Remove Worktree", role: .destructive) {
                 quickRemoveTarget = worktree
             }
             .disabled(!actions.canQuickRemove)

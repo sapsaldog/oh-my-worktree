@@ -181,6 +181,36 @@ final class WorktreeListViewModelSelectionTests: XCTestCase {
 
         XCTAssertTrue(sut.selectedWorktreeIDs.isEmpty)
     }
+
+    func testQuickRemoveSelectedWorktrees_excludesLockedWorktree() async {
+        mockExecutor.worktreeListOutput = """
+        worktree /tmp/sel-test
+        HEAD abc1111
+        branch refs/heads/main
+
+        worktree /tmp/sel-test/wt-feature
+        HEAD abc2222
+        branch refs/heads/feature/x
+
+        worktree /tmp/sel-test/wt-locked
+        HEAD abc3333
+        branch refs/heads/feature/locked
+        locked
+
+        """
+        await sut.loadWorktrees()
+
+        let feature = sut.worktrees.first(where: { $0.folderName == "wt-feature" })!
+        let locked = sut.worktrees.first(where: { $0.isLocked })!
+        sut.selectedWorktreeIDs = [feature.id, locked.id]
+
+        sut.quickRemoveSelectedWorktrees()
+
+        // Only feature should be enqueued — locked must be excluded
+        let quickJobs = sut.jobQueue.jobs.filter { $0.kind == .quickRemove }
+        XCTAssertEqual(quickJobs.count, 1, "Only non-locked worktree should be quick-removed")
+        XCTAssertEqual(quickJobs.first?.worktreeID, feature.id)
+    }
 }
 
 // MockNoPRService is defined in MockGitExecutor.swift

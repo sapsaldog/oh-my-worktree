@@ -358,6 +358,50 @@ extension WorktreeListViewModelTests {
         XCTAssertTrue(actions.canShowInFinder)
         XCTAssertTrue(actions.canCopyPath)
     }
+
+    // MARK: Locked worktree — quick remove must be blocked
+
+    func testContextMenuActions_lockedWorktree_canQuickRemoveIsFalse() {
+        let lockedWorktree = Worktree(
+            path: "/tmp/worktrees/locked-wt",
+            folderName: "locked-wt",
+            branch: "feature/locked",
+            isLocked: true
+        )
+        sut.worktrees = [rootWorktree, lockedWorktree]
+        sut.selectedWorktreeIDs = []
+
+        let actions = sut.contextMenuActions(for: lockedWorktree)
+
+        XCTAssertFalse(actions.canQuickRemove, "Locked worktree must not be quick-removable")
+        // canRemove and canForceRemove should also be false for locked worktrees
+        XCTAssertFalse(actions.canRemove, "Locked worktree must not be removable")
+        XCTAssertFalse(actions.canForceRemove, "Locked worktree must not be force-removable")
+        // Other actions should still work
+        XCTAssertTrue(actions.canOpen)
+        XCTAssertTrue(actions.canRename)
+        XCTAssertTrue(actions.canGitPull)
+        XCTAssertTrue(actions.canShowInFinder)
+        XCTAssertTrue(actions.canCopyPath)
+    }
+
+    func testContextMenuActions_multiSelected_withLockedWorktree_removeDisabled() {
+        let lockedWorktree = Worktree(
+            path: "/tmp/worktrees/locked-wt",
+            folderName: "locked-wt",
+            branch: "feature/locked",
+            isLocked: true
+        )
+        sut.worktrees = [rootWorktree, featureWorktree, lockedWorktree]
+        sut.selectedWorktreeIDs = [featureWorktree.id, lockedWorktree.id]
+
+        let actions = sut.contextMenuActions(for: featureWorktree)
+
+        // Selection contains a locked worktree → all remove actions disabled
+        XCTAssertFalse(actions.canRemove, "Multi-select with locked worktree must disable remove")
+        XCTAssertFalse(actions.canForceRemove, "Multi-select with locked worktree must disable force remove")
+        XCTAssertFalse(actions.canQuickRemove, "Multi-select with locked worktree must disable quick remove")
+    }
 }
 
 // MARK: - addWorktreeFromPR

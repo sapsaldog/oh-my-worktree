@@ -24,6 +24,7 @@ extension WorktreeListViewModel {
             selectedWorktreeIDs.contains(worktree.id)
                 && !worktree.isRoot(of: repository)
                 && !worktree.isBare
+                && !worktree.isLocked
                 && !jobQueue.busyWorktreeIDs.contains(worktree.id)
         }
         let jobs = targets.map { worktree in
