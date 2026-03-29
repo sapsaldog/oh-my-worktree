@@ -7,6 +7,7 @@ struct WorktreeListView: View {
     @State private var forceRemoveTarget: ForceRemoveTarget?
     @State private var confirmBulkRemove = false
     @State private var confirmBulkQuickRemove = false
+    @State private var quickRemoveTarget: Worktree?
 
     private enum ForceRemoveTarget {
         case single(Worktree)
@@ -112,6 +113,24 @@ struct WorktreeListView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Directories will be moved to Trash. Git worktree registration will be removed immediately.")
+        }
+        .confirmationDialog(
+            "Quick Remove '\(quickRemoveTarget?.displayName ?? "")'?",
+            isPresented: Binding(
+                get: { quickRemoveTarget != nil },
+                set: { if !$0 { quickRemoveTarget = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Quick Remove", role: .destructive) {
+                if let worktree = quickRemoveTarget {
+                    viewModel.quickRemoveWorktree(worktree)
+                }
+                quickRemoveTarget = nil
+            }
+            Button("Cancel", role: .cancel) { quickRemoveTarget = nil }
+        } message: {
+            Text("The directory will be moved to Trash. Uncommitted changes will not be checked.")
         }
     }
 
@@ -246,7 +265,7 @@ struct WorktreeListView: View {
         } else if let repository = viewModel.repository, !worktree.isRoot(of: repository) {
             Divider()
             Button("Quick Remove Worktree") {
-                viewModel.quickRemoveWorktree(worktree)
+                quickRemoveTarget = worktree
             }
             .disabled(!actions.canQuickRemove)
 

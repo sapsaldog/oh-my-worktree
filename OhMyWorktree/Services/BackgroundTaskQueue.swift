@@ -7,6 +7,9 @@ final class BackgroundTaskQueue: ObservableObject {
     /// UserDefaults key for the configurable job timeout (shared with SettingsView).
     static let jobTimeoutSecondsKey = "jobTimeoutSeconds"
 
+    /// Default timeout in seconds when no UserDefaults value is set.
+    static let defaultJobTimeoutSeconds: TimeInterval = 60
+
     /// Called whenever a job transitions to completed/failed/cancelled.
     var onJobStateChange: (@MainActor (BackgroundJob) -> Void)?
 
@@ -23,7 +26,7 @@ final class BackgroundTaskQueue: ObservableObject {
     var jobTimeoutSeconds: TimeInterval {
         if let override = jobTimeoutOverride { return override }
         let stored = UserDefaults.standard.integer(forKey: Self.jobTimeoutSecondsKey)
-        return stored > 0 ? TimeInterval(stored) : 60
+        return stored > 0 ? TimeInterval(stored) : Self.defaultJobTimeoutSeconds
     }
 
     init(worktreeManager: WorktreeManager, store: RepositoryStore, jobTimeoutSeconds: TimeInterval? = nil) {

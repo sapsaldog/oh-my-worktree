@@ -460,6 +460,10 @@ final class BackgroundTaskQueueTests: XCTestCase {
         XCTAssertEqual(BackgroundTaskQueue.jobTimeoutSecondsKey, "jobTimeoutSeconds")
     }
 
+    func testDefaultJobTimeoutSeconds_isSixty() {
+        XCTAssertEqual(BackgroundTaskQueue.defaultJobTimeoutSeconds, 60)
+    }
+
     // MARK: - BackgroundJobTimeoutError
 
     func testTimeoutError_hasDescriptiveMessage() {
