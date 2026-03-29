@@ -28,7 +28,7 @@ cd oh-my-worktree
 open OhMyWorktree.xcodeproj
 ```
 
-Select the `OhMyWorktree` scheme, then **Build & Run** (⌘R).
+Select the `OhMyWorktree` scheme, then **Build & Run** (⌘R). Requires **Xcode 16** or later.
 
 ## First Launch
 

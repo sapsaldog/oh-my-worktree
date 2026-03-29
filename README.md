@@ -26,7 +26,7 @@ A native macOS menu bar app for managing Git worktrees with speed and elegance.
 
 - **macOS 15.0** (Sequoia) or later
 - **Git 2.30** or later
-- **Xcode 15** or later (for building from source)
+- **Xcode 16** or later (for building from source)
 
 ## Installation
 
