@@ -117,7 +117,7 @@ struct WorktreeListViewModelTests {
         await sut.loadWorktrees()
 
         #expect(sut.worktrees.count == 2)
-        #expect(!sut.isLoading)
+        #expect(false == sut.isLoading)
         #expect(sut.errorMessage == nil)
     }
 
@@ -266,7 +266,7 @@ extension WorktreeListViewModelTests {
         #expect(remote == "feature/a")
         #expect(local == "feature/a-v2")
         // Folder name is now a random name, not branch-derived.
-        #expect(!sut.jobQueue.jobs[0].folderName.isEmpty)
+        #expect(false == sut.jobQueue.jobs[0].folderName.isEmpty)
     }
 }
 

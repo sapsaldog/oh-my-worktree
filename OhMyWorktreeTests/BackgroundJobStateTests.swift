@@ -13,23 +13,23 @@ import Testing
     }
 
     @Test func isActive_completed() {
-        #expect(!BackgroundJobState.completed.isActive)
+        #expect(false == BackgroundJobState.completed.isActive)
     }
 
     @Test func isActive_failed() {
-        #expect(!BackgroundJobState.failed("error").isActive)
+        #expect(false == BackgroundJobState.failed("error").isActive)
     }
 
     @Test func isActive_cancelled() {
-        #expect(!BackgroundJobState.cancelled.isActive)
+        #expect(false == BackgroundJobState.cancelled.isActive)
     }
 
     @Test func isTerminal_isOppositeOfIsActive() {
         #expect(BackgroundJobState.completed.isTerminal)
         #expect(BackgroundJobState.failed("error").isTerminal)
         #expect(BackgroundJobState.cancelled.isTerminal)
-        #expect(!BackgroundJobState.pending.isTerminal)
-        #expect(!BackgroundJobState.inProgress.isTerminal)
+        #expect(false == BackgroundJobState.pending.isTerminal)
+        #expect(false == BackgroundJobState.inProgress.isTerminal)
     }
 
     // MARK: - displayLabel

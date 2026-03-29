@@ -32,8 +32,8 @@ extension WorktreeListViewModelTests {
         #expect(job1.folderName != job2.folderName,
                "Second import must use a different random folder name")
         // Folder names are random; verify they are non-empty and distinct.
-        #expect(!job1.folderName.isEmpty)
-        #expect(!job2.folderName.isEmpty)
+        #expect(false == job1.folderName.isEmpty)
+        #expect(false == job2.folderName.isEmpty)
         guard case .addWorktreeFromPR(_, let local2, _) = job2.kind else {
             Issue.record("Expected addWorktreeFromPR kind"); return
         }
@@ -69,7 +69,7 @@ extension WorktreeListViewModelTests {
 
         await sut.renameWorktree(worktree, newName: "My Feature")
 
-        #expect(!received.isEmpty,
+        #expect(false == received.isEmpty,
                "selectedWorktreeSubject must emit after rename")
         #expect(received.last??.customName == "My Feature")
     }

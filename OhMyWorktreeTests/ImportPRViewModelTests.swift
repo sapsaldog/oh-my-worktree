@@ -194,12 +194,12 @@ struct ImportPRViewModelTests {
 
     @Test func initialState_notLoading() {
         let sut = ImportPRViewModel()
-        #expect(!sut.isLoading)
+        #expect(false == sut.isLoading)
     }
 
     @Test func initialState_loadFailedFalse() {
         let sut = ImportPRViewModel()
-        #expect(!sut.loadFailed)
+        #expect(false == sut.loadFailed)
     }
 
     // MARK: - Search/tab clearing selectedPR
@@ -217,7 +217,7 @@ struct ImportPRViewModelTests {
         await sut.loadPRs()
 
         #expect(sut.allPRs.count == 2)
-        #expect(!sut.loadFailed)
+        #expect(false == sut.loadFailed)
     }
 
     @Test func loadPRs_emptySuccess_doesNotSetLoadFailed() async {
@@ -229,7 +229,7 @@ struct ImportPRViewModelTests {
         await sut.loadPRs()
 
         #expect(sut.allPRs.isEmpty)
-        #expect(!sut.loadFailed)
+        #expect(false == sut.loadFailed)
     }
 
     @Test func loadPRs_failure_setsLoadFailed() async {
@@ -256,7 +256,7 @@ struct ImportPRViewModelTests {
         mock.listResult = [makePR(number: 1)]
         await sut.loadPRs()
 
-        #expect(!sut.loadFailed)
+        #expect(false == sut.loadFailed)
         #expect(sut.allPRs.count == 1)
     }
 
@@ -269,7 +269,7 @@ struct ImportPRViewModelTests {
 
         await sut.loadPRs()
 
-        #expect(!sut.isLoading)
+        #expect(false == sut.isLoading)
     }
 
     // MARK: - retry (RED: verifies retry() actually updates state)
@@ -294,7 +294,7 @@ struct ImportPRViewModelTests {
             try? await Task.sleep(nanoseconds: 10_000_000)
         }
 
-        #expect(!sut.loadFailed, "retry() should clear loadFailed on success")
+        #expect(false == sut.loadFailed, "retry() should clear loadFailed on success")
         #expect(sut.allPRs.count == 1, "retry() should populate allPRs")
     }
 
@@ -378,7 +378,7 @@ struct ImportPRViewModelTests {
         // Resume second call to clean up.
         slowMock.resume()
         await secondLoad.value
-        #expect(!sut.isLoading)
+        #expect(false == sut.isLoading)
     }
 }
 

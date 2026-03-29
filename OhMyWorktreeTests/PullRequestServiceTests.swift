@@ -338,7 +338,7 @@ private final class MockGitCommandExecutor: GitCommandExecuting, @unchecked Send
 
         let result = await sut.isGitHubAvailable(repositoryPath: "/tmp/repo")
 
-        #expect(!result)
+        #expect(false == result)
     }
 
     @Test func isGitHubAvailable_withNoGhCli_returnsFalse() async {
@@ -348,7 +348,7 @@ private final class MockGitCommandExecutor: GitCommandExecuting, @unchecked Send
 
         let result = await sut.isGitHubAvailable(repositoryPath: "/tmp/repo")
 
-        #expect(!result)
+        #expect(false == result)
     }
 
     // MARK: - fetchPullRequestList (FR-031)
@@ -380,7 +380,7 @@ private final class MockGitCommandExecutor: GitCommandExecuting, @unchecked Send
         #expect(pr.title == "Add dark mode support")
         #expect(pr.author == "alice")
         #expect(pr.state == .open)
-        #expect(!pr.isDraft)
+        #expect(false == pr.isDraft)
         #expect(pr.updatedAt != nil)
     }
 

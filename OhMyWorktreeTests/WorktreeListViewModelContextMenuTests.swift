@@ -60,9 +60,9 @@ extension WorktreeListViewModelTests {
         #expect(actions.canOpen)
         #expect(actions.canRename)
         #expect(actions.canGitPull)
-        #expect(!actions.canRemove)
-        #expect(!actions.canForceRemove)
-        #expect(!actions.canQuickRemove)
+        #expect(false == actions.canRemove)
+        #expect(false == actions.canForceRemove)
+        #expect(false == actions.canQuickRemove)
         #expect(actions.canShowInFinder)
         #expect(actions.canCopyPath)
     }
@@ -75,9 +75,9 @@ extension WorktreeListViewModelTests {
 
         #expect(actions.canOpen)
         #expect(actions.canRename)
-        #expect(!actions.canGitPull)
-        #expect(!actions.canRemove)
-        #expect(!actions.canForceRemove)
+        #expect(false == actions.canGitPull)
+        #expect(false == actions.canRemove)
+        #expect(false == actions.canForceRemove)
         #expect(actions.canShowInFinder)
         #expect(actions.canCopyPath)
     }
@@ -90,13 +90,13 @@ extension WorktreeListViewModelTests {
 
         let actions = sut.contextMenuActions(for: featureWorktree)
 
-        #expect(!actions.canOpen)
-        #expect(!actions.canRename)
-        #expect(!actions.canGitPull)
+        #expect(false == actions.canOpen)
+        #expect(false == actions.canRename)
+        #expect(false == actions.canGitPull)
         #expect(actions.canRemove)
         #expect(actions.canForceRemove)
-        #expect(!actions.canShowInFinder)
-        #expect(!actions.canCopyPath)
+        #expect(false == actions.canShowInFinder)
+        #expect(false == actions.canCopyPath)
     }
 
     @Test func contextMenuActions_multiSelected_withRootIncluded_removeDisabled() {
@@ -106,13 +106,13 @@ extension WorktreeListViewModelTests {
 
         let actions = sut.contextMenuActions(for: featureWorktree)
 
-        #expect(!actions.canOpen)
-        #expect(!actions.canRename)
-        #expect(!actions.canGitPull)
-        #expect(!actions.canRemove)
-        #expect(!actions.canForceRemove)
-        #expect(!actions.canShowInFinder)
-        #expect(!actions.canCopyPath)
+        #expect(false == actions.canOpen)
+        #expect(false == actions.canRename)
+        #expect(false == actions.canGitPull)
+        #expect(false == actions.canRemove)
+        #expect(false == actions.canForceRemove)
+        #expect(false == actions.canShowInFinder)
+        #expect(false == actions.canCopyPath)
     }
 
     @Test func contextMenuActions_multiSelected_allNonRemovable_removeDisabled() {
@@ -122,13 +122,13 @@ extension WorktreeListViewModelTests {
 
         let actions = sut.contextMenuActions(for: bareWorktree)
 
-        #expect(!actions.canOpen)
-        #expect(!actions.canRename)
-        #expect(!actions.canGitPull)
-        #expect(!actions.canRemove)
-        #expect(!actions.canForceRemove)
-        #expect(!actions.canShowInFinder)
-        #expect(!actions.canCopyPath)
+        #expect(false == actions.canOpen)
+        #expect(false == actions.canRename)
+        #expect(false == actions.canGitPull)
+        #expect(false == actions.canRemove)
+        #expect(false == actions.canForceRemove)
+        #expect(false == actions.canShowInFinder)
+        #expect(false == actions.canCopyPath)
     }
 
     @Test func contextMenuActions_multiSelected_rightClickedNotInSelection_singleBehavior() {
@@ -142,8 +142,8 @@ extension WorktreeListViewModelTests {
         #expect(actions.canOpen)
         #expect(actions.canRename)
         #expect(actions.canGitPull)
-        #expect(!actions.canRemove)       // root cannot be removed
-        #expect(!actions.canForceRemove)
+        #expect(false == actions.canRemove)       // root cannot be removed
+        #expect(false == actions.canForceRemove)
         #expect(actions.canShowInFinder)
         #expect(actions.canCopyPath)
     }
@@ -162,10 +162,10 @@ extension WorktreeListViewModelTests {
 
         let actions = sut.contextMenuActions(for: lockedWorktree)
 
-        #expect(!actions.canQuickRemove, "Locked worktree must not be quick-removable")
+        #expect(false == actions.canQuickRemove, "Locked worktree must not be quick-removable")
         // canRemove and canForceRemove should also be false for locked worktrees
-        #expect(!actions.canRemove, "Locked worktree must not be removable")
-        #expect(!actions.canForceRemove, "Locked worktree must not be force-removable")
+        #expect(false == actions.canRemove, "Locked worktree must not be removable")
+        #expect(false == actions.canForceRemove, "Locked worktree must not be force-removable")
         // Other actions should still work
         #expect(actions.canOpen)
         #expect(actions.canRename)
@@ -187,8 +187,8 @@ extension WorktreeListViewModelTests {
         let actions = sut.contextMenuActions(for: featureWorktree)
 
         // Selection contains a locked worktree → all remove actions disabled
-        #expect(!actions.canRemove, "Multi-select with locked worktree must disable remove")
-        #expect(!actions.canForceRemove, "Multi-select with locked worktree must disable force remove")
-        #expect(!actions.canQuickRemove, "Multi-select with locked worktree must disable quick remove")
+        #expect(false == actions.canRemove, "Multi-select with locked worktree must disable remove")
+        #expect(false == actions.canForceRemove, "Multi-select with locked worktree must disable force remove")
+        #expect(false == actions.canQuickRemove, "Multi-select with locked worktree must disable quick remove")
     }
 }

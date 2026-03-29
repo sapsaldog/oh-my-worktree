@@ -72,9 +72,9 @@ struct WorktreeManagerTests {
         #expect(result[0].folderName == "repo")
         #expect(result[0].branch == "main")
         #expect(result[0].commitHash == "abc1234567890abcdef")
-        #expect(!result[0].isDetached)
-        #expect(!result[0].isBare)
-        #expect(!result[0].isLocked)
+        #expect(false == result[0].isDetached)
+        #expect(false == result[0].isBare)
+        #expect(false == result[0].isLocked)
     }
 
     @Test func listWorktrees_branchWithRefsHeadsPrefix_stripsPrefix() async throws {
@@ -255,7 +255,7 @@ struct WorktreeManagerTests {
         let result = try await sut.listWorktrees(repositoryPath: "/tmp/repo")
 
         #expect(result.count == 2)
-        #expect(!result.contains { $0.folderName == "stale-wt" })
+        #expect(false == result.contains { $0.folderName == "stale-wt" })
         #expect(result.contains { $0.folderName == "good-wt" })
     }
 
@@ -280,7 +280,7 @@ struct WorktreeManagerTests {
 
         let result = try await sut.gitPull(worktreePath: "/tmp/repo")
 
-        #expect(!result.alreadyUpToDate)
+        #expect(false == result.alreadyUpToDate)
         #expect(result.summary == "3 files changed, 5 insertions(+), 2 deletions(-)")
     }
 
@@ -354,14 +354,14 @@ struct WorktreeManagerQuickRemoveTests {
     @Test func fileExists_delegatesToInjectedFileManager() {
         #expect(sut.fileExists(atPath: "/tmp/worktree"))
 
-        #expect(!sut.fileExists(atPath: "/nonexistent/path"))
+        #expect(false == sut.fileExists(atPath: "/nonexistent/path"))
     }
 
     @Test func fileExists_reflectsCustomExistingPaths() {
         mockFileManager.existingPaths = ["/custom/a", "/custom/b"]
         #expect(sut.fileExists(atPath: "/custom/a"))
         #expect(sut.fileExists(atPath: "/custom/b"))
-        #expect(!sut.fileExists(atPath: "/custom/c"))
+        #expect(false == sut.fileExists(atPath: "/custom/c"))
     }
 
     @Test func quickRemove_pruneFailure_doesNotThrowAfterSuccessfulTrash() async throws {

@@ -27,17 +27,17 @@ final class AppDelegateColdStartTests {
     }
 
     deinit {
-        // Close any windows created during the test to prevent cross-test
-        // interference via title-based window lookup in showOrCreateWindow.
-        let testWindowTitles: Set<String> = [
-            AppDelegate.mainWindowTitle,
-            AppDelegate.settingsWindowTitle
-        ]
-        for window in NSApp.windows where testWindowTitles.contains(window.title) {
-            window.close()
-        }
-
+        // All cleanup must happen on @MainActor because NSApp.windows
+        // and window.close() are main-thread-only AppKit APIs.
+        // deinit is nonisolated, so we dispatch everything into a Task.
         Task { @MainActor [testRepo] in
+            let testWindowTitles: Set<String> = [
+                AppDelegate.mainWindowTitle,
+                AppDelegate.settingsWindowTitle
+            ]
+            for window in NSApp.windows where testWindowTitles.contains(window.title) {
+                window.close()
+            }
             await RepositoryStore.shared.removeRepository(id: testRepo.id)
         }
     }
@@ -120,7 +120,7 @@ final class AppDelegateColdStartTests {
         appDelegate.repoViewModel = RepositoryListViewModel()
         appDelegate.worktreeViewModel = worktreeVM
 
-        #expect(!worktreeVM.isShowingImportPR)
+        #expect(false == worktreeVM.isShowingImportPR)
 
         let menuItem = NSMenuItem(title: "Import from GitHub PR…", action: nil, keyEquivalent: "")
         appDelegate.importFromGitHubPRClicked(menuItem)
@@ -177,7 +177,7 @@ final class AppDelegateColdStartTests {
             return
         }
 
-        #expect(!window.isReleasedWhenClosed,
+        #expect(false == window.isReleasedWhenClosed,
                "Window must not be released on close to prevent crash in AppKit animations")
     }
 
@@ -320,7 +320,7 @@ final class AppDelegateColdStartTests {
             \(intrinsicSize.width)x\(intrinsicSize.height), which matches \
             the .frame(400,500).padding() overflow pattern.
             """
-        #expect(!hasRedundantFrame, message)
+        #expect(false == hasRedundantFrame, message)
     }
 
     // MARK: - Silent guard failures don't crash
@@ -357,22 +357,5 @@ final class AppDelegateColdStartTests {
 
         let afterCount = NSApp.windows.filter { $0.title == AppDelegate.settingsWindowTitle }.count
         #expect(afterCount == beforeCount, "No window should be created when updaterManager is nil")
-    }
-
-    // MARK: - Helpers
-
-    private func pollUntil(
-        timeout: TimeInterval = 5,
-        interval: Duration = .milliseconds(50),
-        _ condition: @MainActor () -> Bool
-    ) async throws {
-        let deadline = Date().addingTimeInterval(timeout)
-        while !condition() {
-            guard Date() < deadline else {
-                Issue.record("pollUntil timed out after \(timeout)s")
-                return
-            }
-            try await Task.sleep(for: interval)
-        }
     }
 }

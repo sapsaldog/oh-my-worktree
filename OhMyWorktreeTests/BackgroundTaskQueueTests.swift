@@ -90,7 +90,7 @@ struct BackgroundTaskQueueTests {
 
     @Test func busyWorktreeIDs_updatesOnEnqueue() {
         let job = makeJob(kind: .pull)
-        #expect(!sut.busyWorktreeIDs.contains(job.worktreeID))
+        #expect(false == sut.busyWorktreeIDs.contains(job.worktreeID))
         sut.enqueue(job)
         #expect(sut.busyWorktreeIDs.contains(job.worktreeID))
     }
@@ -98,7 +98,7 @@ struct BackgroundTaskQueueTests {
     @Test func busyWorktreeIDs_clearsAfterIdle() async {
         let job = makeJob(kind: .pull)
         sut.enqueue(job)
-        #expect(!sut.busyWorktreeIDs.isEmpty)
+        #expect(false == sut.busyWorktreeIDs.isEmpty)
         await waitForIdle()
         #expect(sut.busyWorktreeIDs.isEmpty)
     }
@@ -112,7 +112,7 @@ struct BackgroundTaskQueueTests {
             let worktreeID = pendingJob.worktreeID
             #expect(sut.busyWorktreeIDs.contains(worktreeID))
             sut.cancel(pendingJob.id)
-            #expect(!sut.busyWorktreeIDs.contains(worktreeID))
+            #expect(false == sut.busyWorktreeIDs.contains(worktreeID))
         }
     }
 
@@ -134,7 +134,7 @@ struct BackgroundTaskQueueTests {
         sut.enqueue(job)
         await waitForIdle()
 
-        #expect(!sut.busyWorktreeIDs.contains(job.worktreeID),
+        #expect(false == sut.busyWorktreeIDs.contains(job.worktreeID),
                "Failed job should not keep worktree in busy set")
         #expect(sut.hasFailedJobs)
     }
@@ -176,12 +176,12 @@ struct BackgroundTaskQueueTests {
         sut.enqueue(makeJob(kind: .pull))
         await waitForIdle()
 
-        #expect(!sut.hasActiveJobs, "hasActiveJobs should be false for failed jobs")
+        #expect(false == sut.hasActiveJobs, "hasActiveJobs should be false for failed jobs")
         #expect(sut.hasFailedJobs)
     }
 
     @Test func hasFailedJobs_noJobs_returnsFalse() {
-        #expect(!sut.hasFailedJobs)
+        #expect(false == sut.hasFailedJobs)
     }
 
     @Test func hasFailedJobs_afterFailure_returnsTrue() async {
@@ -194,7 +194,7 @@ struct BackgroundTaskQueueTests {
     @Test func hasFailedJobs_afterSuccess_returnsFalse() async {
         sut.enqueue(makeJob(kind: .pull))
         await waitForIdle()
-        #expect(!sut.hasFailedJobs)
+        #expect(false == sut.hasFailedJobs)
     }
 
     // MARK: - clearFailed
@@ -207,7 +207,7 @@ struct BackgroundTaskQueueTests {
 
         sut.clearFailed()
 
-        #expect(!sut.hasFailedJobs)
+        #expect(false == sut.hasFailedJobs)
         #expect(sut.jobs.isEmpty)
     }
 
@@ -221,7 +221,7 @@ struct BackgroundTaskQueueTests {
         await waitForIdle()
 
         sut.clearFailed()
-        #expect(!sut.hasFailedJobs)
+        #expect(false == sut.hasFailedJobs)
     }
 
     // MARK: - onJobStateChange
@@ -281,7 +281,7 @@ struct BackgroundTaskQueueTests {
 
         let pendingCount = sut.jobs.filter { $0.state == .pending }.count
         #expect(pendingCount == 0, "No jobs should remain pending after cancelPending")
-        #expect(!sut.hasActiveJobs)
+        #expect(false == sut.hasActiveJobs)
     }
 
     @Test func rapidEnqueueMultipleRepos_eachProcessedIndependently() async {
@@ -301,7 +301,7 @@ struct BackgroundTaskQueueTests {
         sut.enqueue(jobs1 + jobs2)
         await waitForIdle(timeout: 5)
 
-        #expect(!sut.hasActiveJobs)
+        #expect(false == sut.hasActiveJobs)
         #expect(sut.busyWorktreeIDs.isEmpty)
     }
 
@@ -309,7 +309,7 @@ struct BackgroundTaskQueueTests {
         for _ in 0..<5 {
             sut.enqueue(makeJob(kind: .pull))
             await waitForIdle()
-            #expect(!sut.hasActiveJobs)
+            #expect(false == sut.hasActiveJobs)
             #expect(sut.busyWorktreeIDs.isEmpty)
         }
         #expect(sut.jobs.isEmpty)
@@ -340,22 +340,22 @@ struct BackgroundTaskQueueTests {
         sut.enqueue(jobs1 + jobs2 + jobs3)
         await waitForIdle(timeout: 10)
 
-        #expect(!sut.hasActiveJobs, "All jobs should reach terminal state")
+        #expect(false == sut.hasActiveJobs, "All jobs should reach terminal state")
         #expect(sut.busyWorktreeIDs.isEmpty, "No worktrees should remain busy")
-        #expect(!sut.hasFailedJobs, "No jobs should fail with a succeeding mock")
+        #expect(false == sut.hasFailedJobs, "No jobs should fail with a succeeding mock")
     }
 
     @Test func cancelAll_thenReenqueue_processesNewJobs() async {
         sut.enqueue((0..<5).map { _ in makeJob(kind: .pull) })
         sut.cancelPending()
         await waitForIdle()
-        #expect(!sut.hasActiveJobs)
+        #expect(false == sut.hasActiveJobs)
 
         sut.enqueue(makeJob(kind: .pull))
         await waitForIdle(timeout: 5)
 
-        #expect(!sut.hasActiveJobs)
-        #expect(!sut.hasFailedJobs)
+        #expect(false == sut.hasActiveJobs)
+        #expect(false == sut.hasFailedJobs)
     }
 
     // MARK: - progressFraction with stale failed jobs
@@ -420,7 +420,7 @@ struct BackgroundTaskQueueTests {
         await waitForIdle()
 
         #expect(sut.activeJobs.isEmpty)
-        #expect(!sut.jobs.isEmpty, "Failed jobs should still be in jobs array")
+        #expect(false == sut.jobs.isEmpty, "Failed jobs should still be in jobs array")
     }
 
     // MARK: - Quick Remove
@@ -430,8 +430,8 @@ struct BackgroundTaskQueueTests {
         sut.enqueue(job)
         await waitForIdle()
 
-        #expect(!sut.hasActiveJobs)
-        #expect(!sut.hasFailedJobs, "Quick remove should succeed with mock executor")
+        #expect(false == sut.hasActiveJobs)
+        #expect(false == sut.hasFailedJobs, "Quick remove should succeed with mock executor")
     }
 
     @Test func quickRemoveJob_callbackFiredOnCompletion() async {

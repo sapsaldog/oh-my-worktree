@@ -53,7 +53,7 @@ final class WorktreeFileCopierTests {
         #expect(result.errors.isEmpty)
         #expect(fileExists(".env"))
         #expect(fileExists(".env.local"))
-        #expect(!fileExists("README.md"))
+        #expect(false == fileExists("README.md"))
     }
 
     @Test func legacyFallback_copiesNestedEnvFiles() {
@@ -116,7 +116,7 @@ final class WorktreeFileCopierTests {
         let result = sut.copyFiles(from: repoDir, to: worktreeDir)
 
         #expect(Set(result.copiedFiles) == [".env", ".env.local"])
-        #expect(!fileExists("README.md"))
+        #expect(false == fileExists("README.md"))
     }
 
     @Test func worktreeInclude_filenamePatternMatchesNestedFiles() {
@@ -157,7 +157,7 @@ final class WorktreeFileCopierTests {
             "deep/nested/app.local.json",
             "settings.local.json"
         ])
-        #expect(!fileExists("config/db.production.json"))
+        #expect(false == fileExists("config/db.production.json"))
     }
 
     @Test func worktreeInclude_vscodeSettingsPattern() {

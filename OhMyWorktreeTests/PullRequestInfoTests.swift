@@ -44,7 +44,7 @@ import Testing
         #expect(pr.title == "")
         #expect(pr.author == "")
         #expect(pr.updatedAt == nil)
-        #expect(!pr.isDraft)
+        #expect(false == pr.isDraft)
     }
 
     @Test func init_withAllFields() {
