@@ -52,17 +52,9 @@ extension AppDelegate {
         }
     }
 
-    func showOrCreateSettingsWindow() {
-        guard let updaterManager else { return }
-        guard let shortcutManager else { return }
-
-        showOrCreateWindow(
-            title: Self.settingsWindowTitle,
-            size: NSSize(width: 500, height: 450),
-            styleMask: [.titled, .closable]
-        ) {
-            SettingsView(updaterManager: updaterManager, shortcutManager: shortcutManager)
-        }
+    @objc func showOrCreateSettingsWindow() {
+        NSApp.activate(ignoringOtherApps: true)
+        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
     }
 }
 
