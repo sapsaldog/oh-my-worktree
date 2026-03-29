@@ -125,7 +125,7 @@ final class ShortcutManager: ObservableObject {
         UInt16(kVK_ANSI_Comma): ",",
         UInt16(kVK_ANSI_Period): ".",
         UInt16(kVK_ANSI_Slash): "/",
-        UInt16(kVK_Delete): Character(Unicode.Scalar(0x232B)!)  // ⌫
+        UInt16(kVK_Delete): Character(UnicodeScalar(8))  // matches KeyEquivalent.delete
     ]
 
     /// Character mapping for NSMenuItem key equivalents.

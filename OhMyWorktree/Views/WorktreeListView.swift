@@ -86,17 +86,14 @@ struct WorktreeListView: View {
             selectedIDs = []
             return .handled
         }
-        .onKeyPress(.delete, phases: .down) { press in
-            guard !selectedIDs.isEmpty else { return .ignored }
-            let mods = press.modifiers
-            if mods.contains(.command) && mods.contains(.shift) {
-                triggerQuickRemove()
-            } else if mods.contains(.command) {
-                triggerForceRemove()
-            } else {
-                triggerRemove()
+        .onChange(of: viewModel.pendingDelete) { _, pending in
+            guard let pending else { return }
+            viewModel.pendingDelete = nil
+            switch pending {
+            case .remove: triggerRemove()
+            case .forceRemove: triggerForceRemove()
+            case .quickRemove: triggerQuickRemove()
             }
-            return .handled
         }
         .background(TableViewFocuser(worktreeCount: viewModel.worktrees.count))
     }
@@ -262,17 +259,17 @@ struct WorktreeListView: View {
             }
         } else if let repository = viewModel.repository, !worktree.isRoot(of: repository) {
             Divider()
-            Button("Remove Worktree", role: .destructive) {
+            contextMenuButton("Remove Worktree", action: .removeWorktree) {
                 triggerRemove()
             }
             .disabled(!actions.canRemove)
 
-            Button("Force Remove Worktree", role: .destructive) {
+            contextMenuButton("Force Remove Worktree", action: .forceRemoveWorktree) {
                 triggerForceRemove()
             }
             .disabled(!actions.canForceRemove)
 
-            Button("Quick Remove Worktree", role: .destructive) {
+            contextMenuButton("Quick Remove Worktree", action: .quickRemoveWorktree) {
                 triggerQuickRemove()
             }
             .disabled(!actions.canQuickRemove)

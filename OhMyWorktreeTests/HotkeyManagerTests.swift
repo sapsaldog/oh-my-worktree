@@ -35,8 +35,15 @@ final class HotkeyManagerTests: XCTestCase {
 
     func testParseKeyCombo_invalidString_returnsNil() {
         XCTAssertNil(KeyCombo.from(string: ""))
-        XCTAssertNil(KeyCombo.from(string: "W"))
         XCTAssertNil(KeyCombo.from(string: "⌥"))
+    }
+
+    func testParseKeyCombo_singleKeyWithoutModifier_parsesSuccessfully() {
+        // modifier-less single key is allowed (e.g. "⌫" for delete)
+        let combo = KeyCombo.from(string: "W")
+        XCTAssertNotNil(combo)
+        XCTAssertEqual(combo?.keyCode, UInt16(kVK_ANSI_W))
+        XCTAssertTrue(combo?.modifiers.isEmpty ?? false)
     }
 
     func testParseKeyCombo_unknownKey_returnsNil() {

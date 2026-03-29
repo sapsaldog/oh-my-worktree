@@ -31,6 +31,12 @@ final class WorktreeListViewModel: ObservableObject {
     // FR-031: Controls the Import from GitHub PR sheet
     @Published var isShowingImportPR = false
 
+    // Delete confirmation triggers (set by hidden shortcut buttons, observed by WorktreeListView)
+    enum PendingDelete: Equatable {
+        case remove, forceRemove, quickRemove
+    }
+    @Published var pendingDelete: PendingDelete?
+
     private let worktreeManager: WorktreeManager
     // internal for WorktreeListViewModel+ExternalTools extension
     let toolLauncher: ExternalToolLauncher

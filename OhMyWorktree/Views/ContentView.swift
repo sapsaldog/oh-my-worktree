@@ -99,7 +99,13 @@ struct ContentView: View {
                 Task { await worktreeViewModel.addWorktree() }
             }
             shortcutButton(for: .removeWorktree) {
-                worktreeViewModel.removeSelectedWorktrees(force: false)
+                worktreeViewModel.pendingDelete = .remove
+            }
+            shortcutButton(for: .forceRemoveWorktree) {
+                worktreeViewModel.pendingDelete = .forceRemove
+            }
+            shortcutButton(for: .quickRemoveWorktree) {
+                worktreeViewModel.pendingDelete = .quickRemove
             }
             shortcutButton(for: .openITerm) {
                 openSelectedWorktree { vm, wt in await vm.openInITerm(wt) }

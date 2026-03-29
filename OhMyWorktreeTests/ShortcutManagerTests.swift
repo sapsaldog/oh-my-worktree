@@ -60,17 +60,17 @@ final class ShortcutManagerTests: XCTestCase {
         manager.setCombo("⌘⇧Y", for: .addRepository)
         manager.resetAllToDefaults()
         XCTAssertEqual(manager.combo(for: .openSettings), "⌘,")
-        XCTAssertEqual(manager.combo(for: .addRepository), "⌘N")
+        XCTAssertEqual(manager.combo(for: .addRepository), "⌘⇧N")
     }
 
     // MARK: - Conflict Detection
 
     @MainActor
     func testConflict_detectsSameComboOnDifferentActions() {
-        // addRepository default is "⌘N", so assigning "⌘N" to refreshWorktrees should conflict
+        // addWorktree default is "⌘N", so assigning "⌘N" to refreshWorktrees should conflict
         manager.setCombo("⌘N", for: .refreshWorktrees)
         let conflict = manager.conflictingAction(for: "⌘N", excluding: .refreshWorktrees)
-        XCTAssertEqual(conflict, .addRepository)
+        XCTAssertEqual(conflict, .addWorktree)
     }
 
     @MainActor
@@ -104,12 +104,11 @@ final class ShortcutManagerTests: XCTestCase {
     }
 
     @MainActor
-    func testKeyboardShortcutForAction_commandShiftN() {
+    func testKeyboardShortcutForAction_commandN() {
         let shortcut = manager.keyboardShortcut(for: .addWorktree)
         XCTAssertNotNil(shortcut)
         XCTAssertEqual(shortcut?.key, "n")
-        XCTAssertTrue(shortcut?.modifiers.contains(.command) ?? false)
-        XCTAssertTrue(shortcut?.modifiers.contains(.shift) ?? false)
+        XCTAssertEqual(shortcut?.modifiers, .command)
     }
 
     @MainActor
@@ -168,7 +167,7 @@ final class ShortcutManagerTests: XCTestCase {
         XCTAssertNotNil(result)
         // Backspace maps to NSBackspaceCharacter (0x08) for NSMenuItem
         XCTAssertEqual(result?.key, String(Character(UnicodeScalar(8))))
-        XCTAssertEqual(result?.modifiers, [.command])
+        XCTAssertTrue(result?.modifiers.isEmpty ?? false)
     }
 
     // MARK: - Migration

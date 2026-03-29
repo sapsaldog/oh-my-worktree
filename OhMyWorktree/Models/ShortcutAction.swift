@@ -7,6 +7,8 @@ enum ShortcutAction: String, CaseIterable {
     case addRepository
     case addWorktree
     case removeWorktree
+    case forceRemoveWorktree
+    case quickRemoveWorktree
     case openITerm
     case openGhostty
     case openVSCode
@@ -19,9 +21,11 @@ enum ShortcutAction: String, CaseIterable {
         switch self {
         case .globalHotkey: "⌥⇧W"
         case .openSettings: "⌘,"
-        case .addRepository: "⌘N"
-        case .addWorktree: "⌘⇧N"
-        case .removeWorktree: "⌘⌫"
+        case .addRepository: "⌘⇧N"
+        case .addWorktree: "⌘N"
+        case .removeWorktree: "⌫"
+        case .forceRemoveWorktree: "⌘⌫"
+        case .quickRemoveWorktree: "⇧⌘⌫"
         case .openITerm: "⌘⇧I"
         case .openGhostty: "⌘⇧G"
         case .openVSCode: "⌘⇧V"
@@ -44,6 +48,8 @@ enum ShortcutAction: String, CaseIterable {
         case .addRepository: "Add Repository"
         case .addWorktree: "New Worktree"
         case .removeWorktree: "Remove Worktree"
+        case .forceRemoveWorktree: "Force Remove Worktree"
+        case .quickRemoveWorktree: "Quick Remove Worktree"
         case .openITerm: "Open in iTerm"
         case .openGhostty: "Open in Ghostty"
         case .openVSCode: "Open in VSCode"

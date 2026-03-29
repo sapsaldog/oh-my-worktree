@@ -25,8 +25,8 @@ struct KeyCombo: Equatable {
             remaining.removeFirst()
         }
 
-        // Must have at least one modifier and exactly one key character left
-        guard !flags.isEmpty, remaining.count == 1 else { return nil }
+        // Must have exactly one key character left (modifiers optional for special keys like ⌫)
+        guard remaining.count == 1 else { return nil }
 
         // Try the raw character first (for non-alpha keys like , . ⌫), then uppercased
         let keyChar = Self.keyCodeMap[remaining] != nil ? remaining : remaining.uppercased()

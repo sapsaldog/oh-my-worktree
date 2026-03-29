@@ -1160,8 +1160,8 @@ Force Remove Worktree
 | 단축키 | 기능 |
 |--------|------|
 | `Cmd+,` | Settings 창 열기 |
-| `Cmd+N` | Repository 셀렉터에서 '+ New Repository' 선택 |
-| `Cmd+Shift+N` | Worktree 리스트에서 '+ New Worktree' 선택 |
+| `Cmd+N` | Worktree 리스트에서 '+ New Worktree' 선택 |
+| `Cmd+Shift+N` | Repository 셀렉터에서 '+ New Repository' 선택 |
 | `Cmd+Backspace` | 선택 항목 삭제 |
 | `Cmd+Shift+I` | iTerm에서 열기 |
 | `Cmd+Shift+G` | Ghostty에서 열기 |

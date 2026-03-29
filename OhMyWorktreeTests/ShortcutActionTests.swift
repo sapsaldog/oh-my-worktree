@@ -41,16 +41,24 @@ final class ShortcutActionTests: XCTestCase {
         XCTAssertEqual(ShortcutAction.openSettings.defaultCombo, "⌘,")
     }
 
-    func testAddRepositoryDefault_isCommandN() {
-        XCTAssertEqual(ShortcutAction.addRepository.defaultCombo, "⌘N")
+    func testAddRepositoryDefault_isCommandShiftN() {
+        XCTAssertEqual(ShortcutAction.addRepository.defaultCombo, "⌘⇧N")
     }
 
-    func testAddWorktreeDefault_isCommandShiftN() {
-        XCTAssertEqual(ShortcutAction.addWorktree.defaultCombo, "⌘⇧N")
+    func testAddWorktreeDefault_isCommandN() {
+        XCTAssertEqual(ShortcutAction.addWorktree.defaultCombo, "⌘N")
     }
 
-    func testRemoveWorktreeDefault_isCommandBackspace() {
-        XCTAssertEqual(ShortcutAction.removeWorktree.defaultCombo, "⌘⌫")
+    func testRemoveWorktreeDefault_isBackspace() {
+        XCTAssertEqual(ShortcutAction.removeWorktree.defaultCombo, "⌫")
+    }
+
+    func testForceRemoveWorktreeDefault() {
+        XCTAssertEqual(ShortcutAction.forceRemoveWorktree.defaultCombo, "⌘⌫")
+    }
+
+    func testQuickRemoveWorktreeDefault() {
+        XCTAssertEqual(ShortcutAction.quickRemoveWorktree.defaultCombo, "⇧⌘⌫")
     }
 
     func testOpenITermDefault() {

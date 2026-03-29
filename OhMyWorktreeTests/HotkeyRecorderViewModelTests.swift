@@ -110,7 +110,7 @@ final class HotkeyRecorderViewModelTests: XCTestCase {
 
         if case .conflict(let actionName, let combo) = vm.state {
             XCTAssertEqual(combo, "⌘N")
-            XCTAssertEqual(actionName, ShortcutAction.addRepository.displayName)
+            XCTAssertEqual(actionName, ShortcutAction.addWorktree.displayName)
         } else {
             XCTFail("Expected conflict state, got \(vm.state)")
         }
