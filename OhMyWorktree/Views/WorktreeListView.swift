@@ -303,16 +303,17 @@ private struct SingleRemoveDialog: ViewModifier {
     @Binding var target: Worktree?
 
     func body(content: Content) -> some View {
-        content.confirmationDialog(
+        content.alert(
             "Remove '\(target?.displayName ?? "")'?",
-            isPresented: Binding(get: { target != nil }, set: { if !$0 { target = nil } }),
-            titleVisibility: .visible
+            isPresented: Binding(get: { target != nil }, set: { if !$0 { target = nil } })
         ) {
             Button("Remove", role: .destructive) {
                 if let wt = target { viewModel.removeWorktree(wt) }
                 target = nil
             }
+            .keyboardShortcut(.defaultAction)
             Button("Cancel", role: .cancel) { target = nil }
+                .keyboardShortcut(.cancelAction)
         } message: {
             Text("Worktrees with uncommitted changes will not be removed.")
         }
@@ -324,10 +325,9 @@ private struct ForceRemoveDialog: ViewModifier {
     @Binding var target: WorktreeListView.ForceRemoveTarget?
 
     func body(content: Content) -> some View {
-        content.confirmationDialog(
+        content.alert(
             title,
-            isPresented: Binding(get: { target != nil }, set: { if !$0 { target = nil } }),
-            titleVisibility: .visible
+            isPresented: Binding(get: { target != nil }, set: { if !$0 { target = nil } })
         ) {
             Button("Force Remove", role: .destructive) {
                 switch target {
@@ -337,7 +337,9 @@ private struct ForceRemoveDialog: ViewModifier {
                 }
                 target = nil
             }
+            .keyboardShortcut(.defaultAction)
             Button("Cancel", role: .cancel) { target = nil }
+                .keyboardShortcut(.cancelAction)
         } message: {
             Text("Uncommitted changes will be lost. This cannot be undone.")
         }
@@ -357,13 +359,14 @@ private struct BulkRemoveDialog: ViewModifier {
     @Binding var isPresented: Bool
 
     func body(content: Content) -> some View {
-        content.confirmationDialog(
+        content.alert(
             "Remove \(viewModel.selectedWorktreeIDs.count) Worktrees?",
-            isPresented: $isPresented,
-            titleVisibility: .visible
+            isPresented: $isPresented
         ) {
             Button("Remove", role: .destructive) { viewModel.removeSelectedWorktrees(force: false) }
+                .keyboardShortcut(.defaultAction)
             Button("Cancel", role: .cancel) {}
+                .keyboardShortcut(.cancelAction)
         } message: {
             Text("Worktrees with uncommitted changes will not be removed.")
         }
@@ -375,13 +378,14 @@ private struct BulkQuickRemoveDialog: ViewModifier {
     @Binding var isPresented: Bool
 
     func body(content: Content) -> some View {
-        content.confirmationDialog(
+        content.alert(
             "Quick Remove \(viewModel.selectedWorktreeIDs.count) Worktrees?",
-            isPresented: $isPresented,
-            titleVisibility: .visible
+            isPresented: $isPresented
         ) {
             Button("Quick Remove", role: .destructive) { viewModel.quickRemoveSelectedWorktrees() }
+                .keyboardShortcut(.defaultAction)
             Button("Cancel", role: .cancel) {}
+                .keyboardShortcut(.cancelAction)
         } message: {
             Text("Directories will be moved to Trash. Uncommitted changes will not be checked.")
         }
@@ -393,16 +397,17 @@ private struct SingleQuickRemoveDialog: ViewModifier {
     @Binding var target: Worktree?
 
     func body(content: Content) -> some View {
-        content.confirmationDialog(
+        content.alert(
             "Quick Remove '\(target?.displayName ?? "")'?",
-            isPresented: Binding(get: { target != nil }, set: { if !$0 { target = nil } }),
-            titleVisibility: .visible
+            isPresented: Binding(get: { target != nil }, set: { if !$0 { target = nil } })
         ) {
             Button("Quick Remove", role: .destructive) {
                 if let wt = target { viewModel.quickRemoveWorktree(wt) }
                 target = nil
             }
+            .keyboardShortcut(.defaultAction)
             Button("Cancel", role: .cancel) { target = nil }
+                .keyboardShortcut(.cancelAction)
         } message: {
             Text("Directory will be moved to Trash. Uncommitted changes will not be checked.")
         }
@@ -424,12 +429,11 @@ private struct TableViewFocuser: NSViewRepresentable {
 
     func updateNSView(_ nsView: NSView, context: Context) {
         guard worktreeCount > 0 else { return }
-        DispatchQueue.main.async {
+        // Delay to avoid layout recursion when called during view layout
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             guard let window = nsView.window,
                   let tableView = Self.findTableView(in: window.contentView)
             else { return }
-            // Only focus if nothing else is currently the first responder
-            // (e.g., user is typing in a text field)
             if window.firstResponder === window || window.firstResponder === window.contentView {
                 window.makeFirstResponder(tableView)
             }

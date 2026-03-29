@@ -1162,7 +1162,9 @@ Force Remove Worktree
 | `Cmd+,` | Settings 창 열기 |
 | `Cmd+N` | Worktree 리스트에서 '+ New Worktree' 선택 |
 | `Cmd+Shift+N` | Repository 셀렉터에서 '+ New Repository' 선택 |
-| `Cmd+Backspace` | 선택 항목 삭제 |
+| `Delete(⌫)` | 선택 항목 삭제 |
+| `Cmd+Delete(⌘⌫)` | 선택 항목 강제 삭제 (Force Remove) |
+| `Cmd+Shift+Delete(⇧⌘⌫)` | 선택 항목 빠른 삭제 (Quick Remove) |
 | `Cmd+Shift+I` | iTerm에서 열기 |
 | `Cmd+Shift+G` | Ghostty에서 열기 |
 | `Cmd+Shift+V` | VSCode에서 열기 |
@@ -1179,6 +1181,12 @@ Force Remove Worktree
 - `Cmd+Shift+Delete`: 선택된 worktree 빠른 삭제 (Quick Remove)
 - `Enter`: 선택된 worktree 이름 변경 (기존 동작 유지)
 - `Escape`: 선택 해제 (기존 동작 유지)
+
+**확인 다이얼로그 키보드 조작**:
+- 삭제 확인 다이얼로그에서 키보드만으로 확인/취소 가능
+- `Enter` 또는 `Space`: 포커스된 버튼 실행
+- `Escape`: 취소
+- `Tab`: 버튼 간 포커스 이동
 
 **컨텍스트 메뉴 단축키 표기**:
 - Worktree 컨텍스트 메뉴(우클릭)의 각 항목 옆에 해당 단축키 조합 표시
@@ -1210,6 +1218,7 @@ Force Remove Worktree
 - [ ] 메인 윈도우 포커스 시 화살표 키로 Worktree 리스트를 탐색할 수 있어야 함
 - [ ] `Cmd+Shift+↑`/`Cmd+Shift+↓`로 Repository를 전환할 수 있어야 함
 - [ ] `Delete`/`Cmd+Delete`/`Cmd+Shift+Delete`로 각각 일반/강제/빠른 삭제가 되어야 함
+- [ ] 삭제 확인 다이얼로그에서 키보드로 확인/취소가 가능해야 함
 
 ---
 
