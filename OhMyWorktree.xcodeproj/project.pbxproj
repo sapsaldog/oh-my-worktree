@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		018CEB4BA33463D66FC56390 /* BackgroundTaskQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04943FBE79E108AEA932BE7A /* BackgroundTaskQueueTests.swift */; };
+		027FC3EDE8B7872FE5985BEC /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 357788F755345191A8549BDD /* HotkeyManager.swift */; };
 		0349E56A97431ED05B90B995 /* BackgroundTaskQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 688E52A50119AE1D61EBC870 /* BackgroundTaskQueue.swift */; };
 		069FE3565BC42960E0CFBDEA /* BackgroundJob.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E235697287DAAC0D8A697C /* BackgroundJob.swift */; };
 		0DCEB362F2A309D8F5E5360D /* BackgroundJobStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA1521E4788D6CDF1C92F4C9 /* BackgroundJobStateTests.swift */; };
@@ -19,6 +20,7 @@
 		1D280B90168CDB181DC5FAE4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 73CCA7E1C1ACBAF4E4291EA8 /* Assets.xcassets */; };
 		1D5329DDE42009E76C2650C5 /* ExternalToolLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 155B3645306233DD226910E8 /* ExternalToolLauncher.swift */; };
 		24D6FB5B97F04ECE5DC221BF /* WorktreeManager+GitOps.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08B45C279C31CE3F9F048056 /* WorktreeManager+GitOps.swift */; };
+		2E75657635769738BAE6D205 /* HotkeyManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBE71833015D389E58D69922 /* HotkeyManagerTests.swift */; };
 		322D1AFDBFEEBF607E12181D /* PullRequestStateIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1024573DB028DE97085DF606 /* PullRequestStateIcon.swift */; };
 		360142061D0A4B3D4350737F /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 9C6FD25E01D2C241945E1D05 /* Sparkle */; };
 		38723E3C67DD58A9D57EAD4B /* PullRequestServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 038E188FA5528808D1BCFCC7 /* PullRequestServiceTests.swift */; };
@@ -96,6 +98,7 @@
 		284A4CA5F96802A6098EA38B /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		3195095F418AC2222D8892EB /* QueueStatusBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueStatusBarView.swift; sourceTree = "<group>"; };
 		31E4C67AC16118B79418121C /* OhMyWorktreeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OhMyWorktreeApp.swift; sourceTree = "<group>"; };
+		357788F755345191A8549BDD /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
 		38E89BED48AC12D1BE0AA667 /* WorktreeListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeListViewModel.swift; sourceTree = "<group>"; };
 		3C1B43B188C597C61F1DC2EA /* Repository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Repository.swift; sourceTree = "<group>"; };
 		3E110EB7715E49CA580231B2 /* WorktreeListViewModel+ExternalTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WorktreeListViewModel+ExternalTools.swift"; sourceTree = "<group>"; };
@@ -126,6 +129,7 @@
 		AFE7A83D915B984C5F6EEEAC /* Worktree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Worktree.swift; sourceTree = "<group>"; };
 		B344DBF698890D1B13BB69D6 /* WorktreeFileCopier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeFileCopier.swift; sourceTree = "<group>"; };
 		B8362992DEC2BA4D89D03E2A /* PullRequestService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PullRequestService.swift; sourceTree = "<group>"; };
+		BBE71833015D389E58D69922 /* HotkeyManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManagerTests.swift; sourceTree = "<group>"; };
 		BDCFA92CC6D4F4BDC422F3E2 /* MenuBarIcon.svg */ = {isa = PBXFileReference; path = MenuBarIcon.svg; sourceTree = "<group>"; };
 		C219D40D70456373AB9C842E /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		C49FD4751640C27A346AD443 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -184,6 +188,7 @@
 				155B3645306233DD226910E8 /* ExternalToolLauncher.swift */,
 				E12BD14A8E992E6A9B4668B7 /* GitCommandExecutor.swift */,
 				8D0B554A7A3F05F099599D36 /* GitHeadMonitor.swift */,
+				357788F755345191A8549BDD /* HotkeyManager.swift */,
 				811A9D3615B46E7D12735276 /* NotificationManager.swift */,
 				B8362992DEC2BA4D89D03E2A /* PullRequestService.swift */,
 				A200952D514CDC6E761D7D31 /* RandomNameGenerator.swift */,
@@ -204,6 +209,7 @@
 				48C7BE2DF5F955131E669BE3 /* AppDelegateColdStartTests.swift */,
 				CA1521E4788D6CDF1C92F4C9 /* BackgroundJobStateTests.swift */,
 				04943FBE79E108AEA932BE7A /* BackgroundTaskQueueTests.swift */,
+				BBE71833015D389E58D69922 /* HotkeyManagerTests.swift */,
 				8D4E99B69FBE28C8558EEC50 /* ImportPRViewModelTests.swift */,
 				D17D255D9C03D39E65FC37E5 /* MockGitExecutor.swift */,
 				C9F3D7DAE61099FF17488E05 /* PullRequestInfoTests.swift */,
@@ -433,6 +439,7 @@
 				454889617A7D8475686FA15A /* AppDelegateColdStartTests.swift in Sources */,
 				0DCEB362F2A309D8F5E5360D /* BackgroundJobStateTests.swift in Sources */,
 				018CEB4BA33463D66FC56390 /* BackgroundTaskQueueTests.swift in Sources */,
+				2E75657635769738BAE6D205 /* HotkeyManagerTests.swift in Sources */,
 				BF12B0124F855ED64994FC08 /* ImportPRViewModelTests.swift in Sources */,
 				78CA79D990B38BC4BA845726 /* MockGitExecutor.swift in Sources */,
 				A04EF872B11EC64861D1931F /* PullRequestInfoTests.swift in Sources */,
@@ -463,6 +470,7 @@
 				1D5329DDE42009E76C2650C5 /* ExternalToolLauncher.swift in Sources */,
 				D13B27C586A4730DF2924206 /* GitCommandExecutor.swift in Sources */,
 				A1B84A7C2495A084A1A9A9C3 /* GitHeadMonitor.swift in Sources */,
+				027FC3EDE8B7872FE5985BEC /* HotkeyManager.swift in Sources */,
 				59C9E6B4357FF5942927E09E /* ImportPRView.swift in Sources */,
 				87214B7F1DF98D6DDC0902D3 /* ImportPRViewModel.swift in Sources */,
 				83D7231E6DC8D4F148FC9F67 /* NotificationManager.swift in Sources */,

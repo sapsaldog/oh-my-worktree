@@ -1148,6 +1148,14 @@ Force Remove Worktree
 **설명**: 주요 기능에 대한 키보드 단축키 제공
 
 **상세 요구사항**:
+
+**글로벌 핫키 (Phase 1)**:
+- `⌥⇧W` (기본값): 메뉴 바 팝업 토글 (앱이 백그라운드에 있어도 동작)
+- Settings에서 글로벌 핫키 활성화/비활성화 토글
+- 핫키 조합은 `AppSettings`에 저장
+- `NSEvent.addGlobalMonitorForEvents` 기반 구현
+
+**인앱 단축키 (Phase 2, 미구현)**:
 - `Cmd+N`: Repository 셀렉터에서 '+ New Repository' 항목 선택
 - `Cmd+Shift+N`: Worktree 리스트에서 '+ New Worktree' 항목 선택
 - `Cmd+Backspace`: 선택 항목 삭제
@@ -1156,6 +1164,12 @@ Force Remove Worktree
 - `Cmd+E`: VSCode에서 열기
 - `Cmd+R`: 목록 새로고침
 - `Cmd+,`: Settings 창 열기
+
+**인수 기준 (글로벌 핫키)**:
+- [ ] `⌥⇧W` 핫키로 메뉴 바 팝업이 토글되어야 함
+- [ ] Settings에서 글로벌 핫키를 활성화/비활성화할 수 있어야 함
+- [ ] 비활성화 시 글로벌 핫키가 동작하지 않아야 함
+- [ ] 앱 재시작 후에도 설정이 유지되어야 함
 
 ---
 

@@ -32,6 +32,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
     var updaterManager: UpdaterManager?
+    let hotkeyManager = HotkeyManager()
 
     private var menuRefreshTask: Task<Void, Never>?
     private var cancellables = Set<AnyCancellable>()
@@ -45,6 +46,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         setupStatusItem()
+        setupGlobalHotkey()
         // Skip WindowObserver during tests — each test-created window would
         // trigger .regular activation policy, spawning Dock icons that pile up
         // across repeated xcodebuild runs.
@@ -151,6 +153,24 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let menu = NSMenu()
         menu.delegate = self
         statusItem?.menu = menu
+    }
+
+    // MARK: - Global Hotkey Setup
+
+    func setupGlobalHotkey() {
+        let enabled = UserDefaults.standard.object(forKey: "globalHotkeyEnabled") as? Bool ?? true
+        let combo = UserDefaults.standard.string(forKey: "globalHotkeyKeyCombo") ?? "⌥⇧W"
+
+        guard enabled else { return }
+
+        hotkeyManager.register(keyCombo: combo) { [weak self] in
+            self?.toggleStatusItemMenu()
+        }
+    }
+
+    private func toggleStatusItemMenu() {
+        guard let button = statusItem?.button else { return }
+        button.performClick(nil)
     }
 
     // MARK: - Update Title

@@ -9,6 +9,8 @@ struct SettingsView: View {
     @AppStorage("copyEnvFilesEnabled") private var copyEnvFilesEnabled = true
     @AppStorage(BackgroundTaskQueue.jobTimeoutSecondsKey)
     private var jobTimeoutSeconds = Int(BackgroundTaskQueue.defaultJobTimeoutSeconds)
+    @AppStorage("globalHotkeyEnabled") private var globalHotkeyEnabled = true
+    @AppStorage("globalHotkeyKeyCombo") private var globalHotkeyKeyCombo = "⌥⇧W"
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
     private var appVersion: String {
@@ -41,6 +43,31 @@ struct SettingsView: View {
                         }
                     }
                 Text("Automatically start Oh My Worktree when you log in.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Global Hotkey") {
+                Toggle("Enable global hotkey", isOn: $globalHotkeyEnabled)
+                    .onChange(of: globalHotkeyEnabled) { _, newValue in
+                        if let appDelegate = NSApp.delegate as? AppDelegate {
+                            appDelegate.hotkeyManager.setEnabled(newValue)
+                            if newValue {
+                                appDelegate.setupGlobalHotkey()
+                            }
+                        }
+                    }
+                HStack {
+                    Text("Shortcut")
+                    Spacer()
+                    Text(globalHotkeyKeyCombo)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.secondary.opacity(0.15))
+                        .cornerRadius(6)
+                        .font(.system(.body, design: .monospaced))
+                }
+                Text("Press the global hotkey to toggle the menu bar popup from anywhere.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
