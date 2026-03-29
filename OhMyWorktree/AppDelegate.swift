@@ -40,6 +40,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var repoCancellables = Set<AnyCancellable>()
     private let headMonitor = GitHeadMonitor()
     private let windowObserver = WindowObserver()
+    private var settingsKeyMonitor: Any?
     var liveBranchName: String?
 
     // MARK: - NSApplicationDelegate
@@ -48,9 +49,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         setupStatusItem()
         setupGlobalHotkey()
-        // Skip WindowObserver during tests — each test-created window would
-        // trigger .regular activation policy, spawning Dock icons that pile up
-        // across repeated xcodebuild runs.
+        setupSettingsKeyMonitor()
         if !Self.isRunningTests {
             windowObserver.startObserving()
         }
@@ -172,6 +171,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         hotkeyManager.register(keyCombo: combo) { [weak self] in
             self?.showOrCreateMainWindow()
+        }
+    }
+
+    /// macOS reserves Cmd+, for the application menu and intercepts it before
+    /// SwiftUI's responder chain. A local event monitor catches it reliably
+    /// regardless of activation policy transitions (.accessory ↔ .regular).
+    private func setupSettingsKeyMonitor() {
+        settingsKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            let flags = event.modifierFlags.intersection([.command, .option, .shift, .control])
+            if flags == [.command] && event.charactersIgnoringModifiers == "," {
+                self?.showOrCreateSettingsWindow()
+                return nil
+            }
+            return event
         }
     }
 

@@ -90,9 +90,8 @@ struct ContentView: View {
         let _ = shortcutManager.version
 
         Group {
-            shortcutButton(for: .openSettings) {
-                (NSApp.delegate as? AppDelegate)?.showOrCreateSettingsWindow()
-            }
+            // Cmd+, is handled by AppDelegate's NSEvent monitor since macOS
+            // reserves it for the application menu and intercepts it before SwiftUI.
             shortcutButton(for: .addRepository) {
                 repoViewModel.showingFileDialog = true
             }
