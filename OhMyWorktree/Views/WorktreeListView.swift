@@ -73,16 +73,36 @@ struct WorktreeListView: View {
         }
         .focused($isListFocused)
         .defaultFocus($isListFocused, true)
-        .onDeleteCommand {
-            viewModel.removeSelectedWorktrees(force: false)
+        .onKeyPress(.delete, phases: .down) { press in
+            guard !selectedIDs.isEmpty else { return .ignored }
+            let mods = press.modifiers
+            if mods.contains(.command) && mods.contains(.shift) {
+                triggerQuickRemove()
+            } else if mods.contains(.command) {
+                triggerForceRemove()
+            } else {
+                viewModel.removeSelectedWorktrees(force: false)
+            }
+            return .handled
         }
-        .modifier(DeleteKeyModifier(
-            selectedIDs: selectedIDs,
-            worktrees: viewModel.worktrees,
-            forceRemoveTarget: $forceRemoveTarget,
-            confirmBulkQuickRemove: $confirmBulkQuickRemove,
-            quickRemoveTarget: $quickRemoveTarget
-        ))
+    }
+
+    private func triggerForceRemove() {
+        if selectedIDs.count >= 2 {
+            forceRemoveTarget = .selectedWorktrees(count: selectedIDs.count)
+        } else if let id = selectedIDs.first,
+                  let wt = viewModel.worktrees.first(where: { $0.id == id }) {
+            forceRemoveTarget = .single(wt)
+        }
+    }
+
+    private func triggerQuickRemove() {
+        if selectedIDs.count >= 2 {
+            confirmBulkQuickRemove = true
+        } else if let id = selectedIDs.first,
+                  let wt = viewModel.worktrees.first(where: { $0.id == id }) {
+            quickRemoveTarget = wt
+        }
     }
 
     // MARK: - Worktree Row
@@ -346,38 +366,3 @@ private struct SingleQuickRemoveDialog: ViewModifier {
     }
 }
 
-// MARK: - Delete Key Handling (Cmd+Delete, Cmd+Shift+Delete)
-
-private struct DeleteKeyModifier: ViewModifier {
-    let selectedIDs: Set<UUID>
-    let worktrees: [Worktree]
-    @Binding var forceRemoveTarget: WorktreeListView.ForceRemoveTarget?
-    @Binding var confirmBulkQuickRemove: Bool
-    @Binding var quickRemoveTarget: Worktree?
-
-    func body(content: Content) -> some View {
-        content
-            .onKeyPress(.delete, phases: .down) { press in
-                guard !selectedIDs.isEmpty else { return .ignored }
-                let mods = press.modifiers
-                if mods.contains(.command) && mods.contains(.shift) {
-                    if selectedIDs.count >= 2 {
-                        confirmBulkQuickRemove = true
-                    } else if let id = selectedIDs.first,
-                              let wt = worktrees.first(where: { $0.id == id }) {
-                        quickRemoveTarget = wt
-                    }
-                    return .handled
-                } else if mods.contains(.command) {
-                    if selectedIDs.count >= 2 {
-                        forceRemoveTarget = .selectedWorktrees(count: selectedIDs.count)
-                    } else if let id = selectedIDs.first,
-                              let wt = worktrees.first(where: { $0.id == id }) {
-                        forceRemoveTarget = .single(wt)
-                    }
-                    return .handled
-                }
-                return .ignored
-            }
-    }
-}
