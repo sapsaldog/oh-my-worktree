@@ -904,6 +904,36 @@ branch refs/heads/feature/new-feature
 
 ---
 
+#### FR-038: Help 메뉴 및 사용자 문서 (P2)
+
+**설명**: 메인 메뉴바의 Help 메뉴에서 온라인 사용자 문서와 이슈 트래커에 접근할 수 있도록 함. 별도의 Apple Help Book 없이 GitHub 호스팅 문서로 연결.
+
+**배경**:
+- 기존에 Help 메뉴 클릭 시 "Help isn't available for OhMyWorktree" 다이얼로그가 표시됨
+- 오픈소스 프로젝트로서 사용자 문서(Getting Started, User Guide, FAQ 등)가 필요
+- Apple Help Book은 구현 비용 대비 효과가 낮아, GitHub docs로 대체
+
+**상세 요구사항**:
+- **메인 메뉴바 Help 메뉴**:
+  - `CommandGroup(replacing: .help)`로 시스템 기본 Help 메뉴 교체
+  - "Oh My Worktree Help" → `https://github.com/sapsaldog/oh-my-worktree/tree/main/docs#readme` 열기
+  - "Report Issue..." → `https://github.com/sapsaldog/oh-my-worktree/issues` 열기
+  - `NSWorkspace.shared.open()` 사용하여 기본 브라우저에서 열기
+- **Status item 드롭다운 메뉴**: Help 항목 미포함 (드롭다운은 worktree 작업에 집중)
+- **사용자 문서 (`docs/` 폴더)**:
+  - `docs/README.md` — 문서 인덱스 (GitHub에서 docs/ 폴더 진입 시 표시)
+  - `docs/getting-started.md` — 설치, 첫 실행, 초기 설정
+  - `docs/user-guide.md` — 전체 기능 사용법
+  - `docs/keyboard-shortcuts.md` — 단축키 전체 목록 및 커스터마이즈 방법
+  - `docs/faq.md` — FAQ 및 트러블슈팅
+
+**영향받는 컴포넌트**:
+- `OhMyWorktreeApp` (`CommandGroup(replacing: .help)` 추가)
+- `docs/` 폴더 (사용자 문서 파일 추가)
+- `README.md` (Documentation 섹션 추가)
+
+---
+
 #### FR-030: Worktree 이름 변경 (Rename) (P1)
 
 **설명**: Worktree에 사용자 지정 이름(customName)을 설정하여 표시 이름을 변경할 수 있음. 이름을 비우면 기존 표기 룰(브랜치명 또는 Detached)로 복귀.
