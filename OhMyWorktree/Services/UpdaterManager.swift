@@ -1,10 +1,14 @@
+import Combine
 import Foundation
+import Observation
 import Sparkle
 
+@Observable
 @MainActor
-final class UpdaterManager: ObservableObject {
+final class UpdaterManager {
     private let controller: SPUStandardUpdaterController
-    @Published var canCheckForUpdates = false
+    var canCheckForUpdates = false
+    @ObservationIgnored private var cancellable: AnyCancellable?
 
     init() {
         controller = SPUStandardUpdaterController(
@@ -12,8 +16,10 @@ final class UpdaterManager: ObservableObject {
             updaterDelegate: nil,
             userDriverDelegate: nil
         )
-        controller.updater.publisher(for: \.canCheckForUpdates)
-            .assign(to: &$canCheckForUpdates)
+        cancellable = controller.updater.publisher(for: \.canCheckForUpdates)
+            .sink { [weak self] value in
+                self?.canCheckForUpdates = value
+            }
     }
 
     func checkForUpdates() {
@@ -23,7 +29,6 @@ final class UpdaterManager: ObservableObject {
     var automaticallyChecksForUpdates: Bool {
         get { controller.updater.automaticallyChecksForUpdates }
         set {
-            objectWillChange.send()
             controller.updater.automaticallyChecksForUpdates = newValue
         }
     }

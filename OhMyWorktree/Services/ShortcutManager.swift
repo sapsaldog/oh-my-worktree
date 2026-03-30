@@ -2,10 +2,11 @@ import SwiftUI
 
 /// Central manager for all configurable keyboard shortcuts.
 /// Reads/writes user customizations via UserDefaults and provides conflict detection.
+@Observable
 @MainActor
-final class ShortcutManager: ObservableObject {
+final class ShortcutManager {
 
-    @Published private(set) var version: UInt = 0
+    private(set) var version: UInt = 0
 
     private let defaults: UserDefaults
 

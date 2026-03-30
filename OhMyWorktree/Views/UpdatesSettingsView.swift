@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct UpdatesSettingsView: View {
-    @ObservedObject var updaterManager: UpdaterManager
+    var updaterManager: UpdaterManager
 
     var body: some View {
         Form {

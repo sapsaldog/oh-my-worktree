@@ -2,40 +2,48 @@ import Combine
 import Foundation
 import SwiftUI
 
+@Observable
 @MainActor
-final class WorktreeListViewModel: ObservableObject {
-    @Published var worktrees: [Worktree] = []
-    // WARNING: Intentionally NOT @Published. Do NOT add @Published here.
-    // No SwiftUI view reads this in body, so firing objectWillChange on changes
-    // causes "Publishing changes from within view updates" warnings.
-    // AppDelegate and other observers must use `selectedWorktreeSubject` instead
-    // of Combine's `$selectedWorktree` publisher (which doesn't exist).
-    var selectedWorktree: Worktree? {
+final class WorktreeListViewModel {
+    var worktrees: [Worktree] = []
+    // WARNING: Intentionally @ObservationIgnored. Do NOT remove @ObservationIgnored here.
+    // No SwiftUI view reads this in body, so tracking changes via @Observable
+    // causes unnecessary view updates.
+    // AppDelegate and other observers must use `selectedWorktreeSubject` instead.
+    @ObservationIgnored var selectedWorktree: Worktree? {
         didSet {
             guard selectedWorktree?.id != oldValue?.id else { return }
             selectedWorktreeSubject.send(selectedWorktree)
         }
     }
-    let selectedWorktreeSubject = PassthroughSubject<Worktree?, Never>()
-    @Published var isLoading = false
-    @Published var errorMessage: String?
-    @Published var pullRequests: [String: PullRequestInfo] = [:]
-    @Published var isGitHubRepo = false
+    @ObservationIgnored let selectedWorktreeSubject = PassthroughSubject<Worktree?, Never>()
+    var isLoading = false
+    var errorMessage: String?
+    var pullRequests: [String: PullRequestInfo] = [:]
+    var isGitHubRepo = false
 
     // FR-032: Multi-select (native ⌘+click / ⇧+click via SwiftUI List)
-    @Published var selectedWorktreeIDs: Set<UUID> = []
+    var selectedWorktreeIDs: Set<UUID> = [] {
+        didSet {
+            if selectedWorktreeIDs.count == 1, let id = selectedWorktreeIDs.first {
+                selectedWorktree = worktrees.first { $0.id == id }
+            } else {
+                selectedWorktree = nil
+            }
+        }
+    }
 
     // FR-031: BackgroundTaskQueue (exposed for views)
     let jobQueue: BackgroundTaskQueue
 
     // FR-031: Controls the Import from GitHub PR sheet
-    @Published var isShowingImportPR = false
+    var isShowingImportPR = false
 
     // Delete confirmation triggers (set by hidden shortcut buttons, observed by WorktreeListView)
     enum PendingDelete: Equatable {
         case remove, forceRemove, quickRemove
     }
-    @Published var pendingDelete: PendingDelete?
+    var pendingDelete: PendingDelete?
 
     private let worktreeManager: WorktreeManager
     // internal for WorktreeListViewModel+ExternalTools extension
@@ -44,11 +52,9 @@ final class WorktreeListViewModel: ObservableObject {
     let store: RepositoryStore
     private let fileCopier: WorktreeFileCopier
     private let pullRequestService: PullRequestFetching
-    private var loadTask: Task<Void, Never>?
-    private var prFetchTask: Task<Void, Never>?
-    private var lastLoadTime: Date?
-    private var queueCancellable: AnyCancellable?
-    private var selectionSyncCancellable: AnyCancellable?
+    @ObservationIgnored private var loadTask: Task<Void, Never>?
+    @ObservationIgnored private var prFetchTask: Task<Void, Never>?
+    @ObservationIgnored private var lastLoadTime: Date?
     private static let debounceInterval: TimeInterval = 2.0
 
     var repository: Repository? {
@@ -76,38 +82,6 @@ final class WorktreeListViewModel: ObservableObject {
         self.pullRequestService = pullRequestService
         self.jobQueue = BackgroundTaskQueue(worktreeManager: worktreeManager, store: store)
 
-        // Forward queue objectWillChange so views observing ViewModel also react to queue changes.
-        // Use Task { @MainActor in } to break the synchronous Combine delivery chain.
-        // A RunLoop- or DispatchQueue-based sink can fire during SwiftUI's rendering pass,
-        // causing "Publishing changes from within view updates" warnings. Scheduling via
-        // the MainActor cooperative queue guarantees delivery between rendering passes.
-        // SwiftUI also naturally coalesces multiple objectWillChange signals per run loop,
-        // so no explicit debounce is needed.
-        queueCancellable = jobQueue.objectWillChange
-            .sink { [weak self] _ in
-                Task { @MainActor in
-                    self?.objectWillChange.send()
-                }
-            }
-
-        // Keep selectedWorktree in sync with selectedWorktreeIDs.
-        // The @Published sink fires synchronously during SwiftUI's event-processing
-        // phase — after the binding setter stores the new value but before the
-        // rendering pass begins. Setting selectedWorktree directly here is therefore
-        // safe: objectWillChange.send() fires before any body evaluation, so SwiftUI
-        // coalesces both notifications into one render with no "Publishing changes
-        // from within view updates" warning.
-        selectionSyncCancellable = $selectedWorktreeIDs
-            .dropFirst()
-            .sink { [weak self] ids in
-                guard let self else { return }
-                if ids.count == 1, let id = ids.first {
-                    self.selectedWorktree = self.worktrees.first { $0.id == id }
-                } else {
-                    self.selectedWorktree = nil
-                }
-            }
-
         // Request notification permission early so the system prompt doesn't appear mid-task
         NotificationManager.shared.requestAuthorization()
 
@@ -120,7 +94,7 @@ final class WorktreeListViewModel: ObservableObject {
     private func handleJobStateChange(_ job: BackgroundJob) {
         switch (job.state, job.kind) {
         case (.completed, .removeWorktree), (.completed, .quickRemove):
-            // Defer @Published writes to avoid "Publishing during view update" warnings.
+            // Defer writes to avoid "Publishing during view update" warnings.
             // The callback fires synchronously inside executeJob's Task continuation;
             // wrapping in a new Task guarantees the writes land between render passes.
             Task { @MainActor [weak self] in

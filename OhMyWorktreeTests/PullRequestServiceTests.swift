@@ -1,4 +1,5 @@
-import XCTest
+import Foundation
+import Testing
 
 @testable import OhMyWorktree
 
@@ -84,13 +85,13 @@ private final class MockGitCommandExecutor: GitCommandExecuting, @unchecked Send
 
 // MARK: - Tests
 
-final class PullRequestServiceTests: XCTestCase {
+@Suite struct PullRequestServiceTests {
 
     private let ghPath = "/usr/local/bin/gh"
 
     // MARK: - Successful Fetch
 
-    func testFetchPullRequests_withValidJSON_returnsMappedPRs() async {
+    @Test func fetchPullRequests_withValidJSON_returnsMappedPRs() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
         mock.stubGhPrList(json: """
@@ -103,22 +104,22 @@ final class PullRequestServiceTests: XCTestCase {
 
         let result = await sut.fetchPullRequests(repositoryPath: "/tmp/repo")
 
-        XCTAssertEqual(result.count, 2)
+        #expect(result.count == 2)
 
         let loginPR = result["feature/login"]
-        XCTAssertNotNil(loginPR)
-        XCTAssertEqual(loginPR?.number, 42)
-        XCTAssertEqual(loginPR?.url, URL(string: "https://github.com/user/repo/pull/42"))
-        XCTAssertEqual(loginPR?.branch, "feature/login")
-        XCTAssertEqual(loginPR?.state, .open)
+        #expect(loginPR != nil)
+        #expect(loginPR?.number == 42)
+        #expect(loginPR?.url == URL(string: "https://github.com/user/repo/pull/42"))
+        #expect(loginPR?.branch == "feature/login")
+        #expect(loginPR?.state == .open)
 
         let crashPR = result["fix/crash"]
-        XCTAssertNotNil(crashPR)
-        XCTAssertEqual(crashPR?.number, 99)
-        XCTAssertEqual(crashPR?.state, .merged)
+        #expect(crashPR != nil)
+        #expect(crashPR?.number == 99)
+        #expect(crashPR?.state == .merged)
     }
 
-    func testFetchPullRequests_withSinglePR_returnsOnePR() async {
+    @Test func fetchPullRequests_withSinglePR_returnsOnePR() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "https://github.com/user/repo.git")
         mock.stubGhPrList(json: """
@@ -128,12 +129,12 @@ final class PullRequestServiceTests: XCTestCase {
 
         let result = await sut.fetchPullRequests(repositoryPath: "/tmp/repo")
 
-        XCTAssertEqual(result.count, 1)
-        XCTAssertEqual(result["main-patch"]?.number, 1)
-        XCTAssertEqual(result["main-patch"]?.state, .open)
+        #expect(result.count == 1)
+        #expect(result["main-patch"]?.number == 1)
+        #expect(result["main-patch"]?.state == .open)
     }
 
-    func testFetchPullRequests_withEmptyArray_returnsEmpty() async {
+    @Test func fetchPullRequests_withEmptyArray_returnsEmpty() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
         mock.stubGhPrList(json: "[]")
@@ -141,56 +142,56 @@ final class PullRequestServiceTests: XCTestCase {
 
         let result = await sut.fetchPullRequests(repositoryPath: "/tmp/repo")
 
-        XCTAssertTrue(result.isEmpty)
+        #expect(result.isEmpty)
     }
 
     // MARK: - GitHub Detection
 
-    func testFetchPullRequests_withNonGitHubRemote_returnsEmpty() async {
+    @Test func fetchPullRequests_withNonGitHubRemote_returnsEmpty() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@gitlab.com:user/repo.git")
         let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
 
         let result = await sut.fetchPullRequests(repositoryPath: "/tmp/repo")
 
-        XCTAssertTrue(result.isEmpty)
+        #expect(result.isEmpty)
     }
 
-    func testFetchPullRequests_withBitbucketRemote_returnsEmpty() async {
+    @Test func fetchPullRequests_withBitbucketRemote_returnsEmpty() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@bitbucket.org:user/repo.git")
         let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
 
         let result = await sut.fetchPullRequests(repositoryPath: "/tmp/repo")
 
-        XCTAssertTrue(result.isEmpty)
+        #expect(result.isEmpty)
     }
 
-    func testFetchPullRequests_withGitConfigFailure_returnsEmpty() async {
+    @Test func fetchPullRequests_withGitConfigFailure_returnsEmpty() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfigFailure()
         let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
 
         let result = await sut.fetchPullRequests(repositoryPath: "/tmp/repo")
 
-        XCTAssertTrue(result.isEmpty)
+        #expect(result.isEmpty)
     }
 
     // MARK: - gh CLI Missing
 
-    func testFetchPullRequests_withNonExistentGhPath_returnsEmpty() async {
+    @Test func fetchPullRequests_withNonExistentGhPath_returnsEmpty() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
         let sut = PullRequestService(gitExecutor: mock, ghCliPath: "/nonexistent/path/to/gh")
 
         let result = await sut.fetchPullRequests(repositoryPath: "/tmp/repo")
 
-        XCTAssertTrue(result.isEmpty)
+        #expect(result.isEmpty)
     }
 
     // MARK: - gh Command Failures
 
-    func testFetchPullRequests_withNonZeroExitCode_returnsEmpty() async {
+    @Test func fetchPullRequests_withNonZeroExitCode_returnsEmpty() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
         mock.stubGhPrListFailure()
@@ -198,10 +199,10 @@ final class PullRequestServiceTests: XCTestCase {
 
         let result = await sut.fetchPullRequests(repositoryPath: "/tmp/repo")
 
-        XCTAssertTrue(result.isEmpty)
+        #expect(result.isEmpty)
     }
 
-    func testFetchPullRequests_whenExecutorThrows_returnsEmpty() async {
+    @Test func fetchPullRequests_whenExecutorThrows_returnsEmpty() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
         mock.stubGhPrListThrows()
@@ -209,12 +210,12 @@ final class PullRequestServiceTests: XCTestCase {
 
         let result = await sut.fetchPullRequests(repositoryPath: "/tmp/repo")
 
-        XCTAssertTrue(result.isEmpty)
+        #expect(result.isEmpty)
     }
 
     // MARK: - Invalid JSON
 
-    func testFetchPullRequests_withInvalidJSON_returnsEmpty() async {
+    @Test func fetchPullRequests_withInvalidJSON_returnsEmpty() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
         mock.stubGhPrList(json: "not valid json")
@@ -222,10 +223,10 @@ final class PullRequestServiceTests: XCTestCase {
 
         let result = await sut.fetchPullRequests(repositoryPath: "/tmp/repo")
 
-        XCTAssertTrue(result.isEmpty)
+        #expect(result.isEmpty)
     }
 
-    func testFetchPullRequests_withMissingFields_returnsEmpty() async {
+    @Test func fetchPullRequests_withMissingFields_returnsEmpty() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
         mock.stubGhPrList(json: """
@@ -235,10 +236,10 @@ final class PullRequestServiceTests: XCTestCase {
 
         let result = await sut.fetchPullRequests(repositoryPath: "/tmp/repo")
 
-        XCTAssertTrue(result.isEmpty)
+        #expect(result.isEmpty)
     }
 
-    func testFetchPullRequests_withEmptyString_returnsEmpty() async {
+    @Test func fetchPullRequests_withEmptyString_returnsEmpty() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
         mock.stubGhPrList(json: "")
@@ -246,12 +247,12 @@ final class PullRequestServiceTests: XCTestCase {
 
         let result = await sut.fetchPullRequests(repositoryPath: "/tmp/repo")
 
-        XCTAssertTrue(result.isEmpty)
+        #expect(result.isEmpty)
     }
 
     // MARK: - Branch Mapping
 
-    func testFetchPullRequests_duplicateBranch_mostRecentWins() async {
+    @Test func fetchPullRequests_duplicateBranch_mostRecentWins() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
         // gh pr list returns most recent first
@@ -265,11 +266,11 @@ final class PullRequestServiceTests: XCTestCase {
 
         let result = await sut.fetchPullRequests(repositoryPath: "/tmp/repo")
 
-        XCTAssertEqual(result.count, 1)
-        XCTAssertEqual(result["feature/x"]?.number, 1)
+        #expect(result.count == 1)
+        #expect(result["feature/x"]?.number == 1)
     }
 
-    func testFetchPullRequests_duplicateBranch_openTakesPriority() async {
+    @Test func fetchPullRequests_duplicateBranch_openTakesPriority() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
         mock.stubGhPrList(json: """
@@ -282,12 +283,12 @@ final class PullRequestServiceTests: XCTestCase {
 
         let result = await sut.fetchPullRequests(repositoryPath: "/tmp/repo")
 
-        XCTAssertEqual(result.count, 1)
-        XCTAssertEqual(result["feature/x"]?.number, 1)
-        XCTAssertEqual(result["feature/x"]?.state, .open)
+        #expect(result.count == 1)
+        #expect(result["feature/x"]?.number == 1)
+        #expect(result["feature/x"]?.state == .open)
     }
 
-    func testFetchPullRequests_withMissingState_defaultsToOpen() async {
+    @Test func fetchPullRequests_withMissingState_defaultsToOpen() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
         mock.stubGhPrList(json: """
@@ -297,13 +298,13 @@ final class PullRequestServiceTests: XCTestCase {
 
         let result = await sut.fetchPullRequests(repositoryPath: "/tmp/repo")
 
-        XCTAssertEqual(result.count, 1)
-        XCTAssertEqual(result["legacy"]?.state, .open)
+        #expect(result.count == 1)
+        #expect(result["legacy"]?.state == .open)
     }
 
     // MARK: - HTTPS Remote URL
 
-    func testFetchPullRequests_withHTTPSGitHubRemote_succeeds() async {
+    @Test func fetchPullRequests_withHTTPSGitHubRemote_succeeds() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "https://github.com/user/repo.git")
         mock.stubGhPrList(json: """
@@ -313,13 +314,13 @@ final class PullRequestServiceTests: XCTestCase {
 
         let result = await sut.fetchPullRequests(repositoryPath: "/tmp/repo")
 
-        XCTAssertEqual(result.count, 1)
-        XCTAssertEqual(result["dev"]?.number, 10)
+        #expect(result.count == 1)
+        #expect(result["dev"]?.number == 10)
     }
 
     // MARK: - isGitHubAvailable (FR-031)
 
-    func testIsGitHubAvailable_withGitHubRemote_returnsTrue() async {
+    @Test func isGitHubAvailable_withGitHubRemote_returnsTrue() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
         // Use /bin/sh as a stand-in for an executable gh CLI (always present on macOS)
@@ -327,32 +328,32 @@ final class PullRequestServiceTests: XCTestCase {
 
         let result = await sut.isGitHubAvailable(repositoryPath: "/tmp/repo")
 
-        XCTAssertTrue(result)
+        #expect(result)
     }
 
-    func testIsGitHubAvailable_withNonGitHubRemote_returnsFalse() async {
+    @Test func isGitHubAvailable_withNonGitHubRemote_returnsFalse() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@gitlab.com:user/repo.git")
         let sut = PullRequestService(gitExecutor: mock, ghCliPath: "/bin/sh")
 
         let result = await sut.isGitHubAvailable(repositoryPath: "/tmp/repo")
 
-        XCTAssertFalse(result)
+        #expect(false == result)
     }
 
-    func testIsGitHubAvailable_withNoGhCli_returnsFalse() async {
+    @Test func isGitHubAvailable_withNoGhCli_returnsFalse() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
         let sut = PullRequestService(gitExecutor: mock, ghCliPath: "/nonexistent/gh")
 
         let result = await sut.isGitHubAvailable(repositoryPath: "/tmp/repo")
 
-        XCTAssertFalse(result)
+        #expect(false == result)
     }
 
     // MARK: - fetchPullRequestList (FR-031)
 
-    func testFetchPullRequestList_withValidJSON_parsesAllFields() async throws {
+    @Test func fetchPullRequestList_withValidJSON_parsesAllFields() async throws {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
         mock.stubGhPrListFull(json: """
@@ -370,20 +371,20 @@ final class PullRequestServiceTests: XCTestCase {
         let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
 
         let rawResult = await sut.fetchPullRequestList(repositoryPath: "/tmp/repo")
-        let result = try XCTUnwrap(rawResult)
+        let result = try #require(rawResult)
 
-        XCTAssertEqual(result.count, 1)
+        #expect(result.count == 1)
         let pr = result[0]
-        XCTAssertEqual(pr.number, 42)
-        XCTAssertEqual(pr.branch, "feature/dark-mode")
-        XCTAssertEqual(pr.title, "Add dark mode support")
-        XCTAssertEqual(pr.author, "alice")
-        XCTAssertEqual(pr.state, .open)
-        XCTAssertFalse(pr.isDraft)
-        XCTAssertNotNil(pr.updatedAt)
+        #expect(pr.number == 42)
+        #expect(pr.branch == "feature/dark-mode")
+        #expect(pr.title == "Add dark mode support")
+        #expect(pr.author == "alice")
+        #expect(pr.state == .open)
+        #expect(false == pr.isDraft)
+        #expect(pr.updatedAt != nil)
     }
 
-    func testFetchPullRequestList_withDraftPR_setsDraftFlag() async throws {
+    @Test func fetchPullRequestList_withDraftPR_setsDraftFlag() async throws {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
         mock.stubGhPrListFull(json: """
@@ -401,13 +402,13 @@ final class PullRequestServiceTests: XCTestCase {
         let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
 
         let rawResult = await sut.fetchPullRequestList(repositoryPath: "/tmp/repo")
-        let result = try XCTUnwrap(rawResult)
+        let result = try #require(rawResult)
 
-        XCTAssertEqual(result.count, 1)
-        XCTAssertTrue(result[0].isDraft)
+        #expect(result.count == 1)
+        #expect(result[0].isDraft)
     }
 
-    func testFetchPullRequestList_withMissingAuthor_usesEmptyString() async throws {
+    @Test func fetchPullRequestList_withMissingAuthor_usesEmptyString() async throws {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
         mock.stubGhPrListFull(json: """
@@ -424,13 +425,13 @@ final class PullRequestServiceTests: XCTestCase {
         let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
 
         let rawResult = await sut.fetchPullRequestList(repositoryPath: "/tmp/repo")
-        let result = try XCTUnwrap(rawResult)
+        let result = try #require(rawResult)
 
-        XCTAssertEqual(result.count, 1)
-        XCTAssertEqual(result[0].author, "")
+        #expect(result.count == 1)
+        #expect(result[0].author == "")
     }
 
-    func testFetchPullRequestList_preservesOrder() async throws {
+    @Test func fetchPullRequestList_preservesOrder() async throws {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
         mock.stubGhPrListFull(json: """
@@ -446,34 +447,34 @@ final class PullRequestServiceTests: XCTestCase {
         let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
 
         let rawResult = await sut.fetchPullRequestList(repositoryPath: "/tmp/repo")
-        let result = try XCTUnwrap(rawResult)
+        let result = try #require(rawResult)
 
-        XCTAssertEqual(result.count, 2)
-        XCTAssertEqual(result[0].number, 10)
-        XCTAssertEqual(result[1].number, 5)
+        #expect(result.count == 2)
+        #expect(result[0].number == 10)
+        #expect(result[1].number == 5)
     }
 
-    func testFetchPullRequestList_withNonGitHubRemote_returnsNil() async {
+    @Test func fetchPullRequestList_withNonGitHubRemote_returnsNil() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@gitlab.com:user/repo.git")
         let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
 
         let result = await sut.fetchPullRequestList(repositoryPath: "/tmp/repo")
 
-        XCTAssertNil(result)
+        #expect(result == nil)
     }
 
-    func testFetchPullRequestList_withNoGhCli_returnsNil() async {
+    @Test func fetchPullRequestList_withNoGhCli_returnsNil() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
         let sut = PullRequestService(gitExecutor: mock, ghCliPath: "/nonexistent/gh")
 
         let result = await sut.fetchPullRequestList(repositoryPath: "/tmp/repo")
 
-        XCTAssertNil(result)
+        #expect(result == nil)
     }
 
-    func testFetchPullRequestList_withCommandFailure_returnsNil() async {
+    @Test func fetchPullRequestList_withCommandFailure_returnsNil() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
         mock.stubGhPrListFullFailure()
@@ -481,10 +482,10 @@ final class PullRequestServiceTests: XCTestCase {
 
         let result = await sut.fetchPullRequestList(repositoryPath: "/tmp/repo")
 
-        XCTAssertNil(result)
+        #expect(result == nil)
     }
 
-    func testFetchPullRequestList_withInvalidJSON_returnsNil() async {
+    @Test func fetchPullRequestList_withInvalidJSON_returnsNil() async {
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
         mock.stubGhPrListFull(json: "not json")
@@ -492,6 +493,6 @@ final class PullRequestServiceTests: XCTestCase {
 
         let result = await sut.fetchPullRequestList(repositoryPath: "/tmp/repo")
 
-        XCTAssertNil(result)
+        #expect(result == nil)
     }
 }

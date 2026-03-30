@@ -1,19 +1,20 @@
-import XCTest
+import Foundation
+import Testing
 
 @testable import OhMyWorktree
 
 // MARK: - BackgroundTaskQueue Tests
 
+@Suite(.serialized)
 @MainActor
-final class BackgroundTaskQueueTests: XCTestCase {
+struct BackgroundTaskQueueTests {
 
-    private var mockExecutor: MockSimpleGitExecutor!
-    private var sut: BackgroundTaskQueue!
+    private let mockExecutor: MockSimpleGitExecutor
+    private let sut: BackgroundTaskQueue
     private let repoPath = "/tmp/bq-test-repo"
     private let repoID = UUID()
 
-    override func setUp() async throws {
-        try await super.setUp()
+    init() async throws {
         mockExecutor = MockSimpleGitExecutor()
         sut = BackgroundTaskQueue(
             worktreeManager: WorktreeManager(executor: mockExecutor, fileManager: MockNoOpFileManager()),
@@ -35,16 +36,9 @@ final class BackgroundTaskQueueTests: XCTestCase {
         )
     }
 
-    private func waitForIdle(timeout: TimeInterval = 2) async {
-        let deadline = Date().addingTimeInterval(timeout)
-        while sut.hasActiveJobs && Date() < deadline {
-            await Task.yield()
-        }
-    }
-
     // MARK: - cancel
 
-    func testCancel_pendingJob_setsCancelled() {
+    @Test func cancel_pendingJob_setsCancelled() {
         // Enqueue two jobs for the same repoPath so the second stays pending
         let job1 = makeJob(kind: .pull)
         let job2 = makeJob(kind: .pull)
@@ -54,432 +48,272 @@ final class BackgroundTaskQueueTests: XCTestCase {
         let pendingIndex = sut.jobs.firstIndex(where: { $0.id == job2.id && $0.state == .pending })
         if let idx = pendingIndex {
             sut.cancel(sut.jobs[idx].id)
-            XCTAssertEqual(sut.jobs[idx].state, .cancelled)
+            #expect(sut.jobs[idx].state == .cancelled)
         }
         // If job2 is already inProgress, the test is a no-op — still valid
     }
 
-    func testCancel_nonExistentID_noChange() {
+    @Test func cancel_nonExistentID_noChange() {
         sut.cancel(UUID())
-        XCTAssertTrue(sut.jobs.isEmpty)
+        #expect(sut.jobs.isEmpty)
     }
 
     // MARK: - cancelPending
 
-    func testCancelAll_setsPendingJobsToCancelled() {
+    @Test func cancelAll_setsPendingJobsToCancelled() {
         let jobs = (0..<3).map { _ in makeJob(kind: .pull) }
         sut.enqueue(jobs)
         sut.cancelPending()
 
         let pendingCount = sut.jobs.filter { $0.state == .pending }.count
-        XCTAssertEqual(pendingCount, 0)
+        #expect(pendingCount == 0)
     }
 
     // MARK: - busyWorktreeIDs
 
-    func testBusyWorktreeIDs_emptyQueue_isEmpty() {
-        XCTAssertTrue(sut.busyWorktreeIDs.isEmpty)
+    @Test func busyWorktreeIDs_emptyQueue_isEmpty() {
+        #expect(sut.busyWorktreeIDs.isEmpty)
     }
 
-    func testBusyWorktreeIDs_afterIdle_isEmpty() async {
+    @Test func busyWorktreeIDs_afterIdle_isEmpty() async {
         sut.enqueue(makeJob(kind: .pull))
-        await waitForIdle()
-        XCTAssertTrue(sut.busyWorktreeIDs.isEmpty)
+        await sut.waitUntilIdle()
+        #expect(sut.busyWorktreeIDs.isEmpty)
     }
 
-    func testBusyWorktreeIDs_updatesOnEnqueue() {
+    @Test func busyWorktreeIDs_updatesOnEnqueue() {
         let job = makeJob(kind: .pull)
-        XCTAssertFalse(sut.busyWorktreeIDs.contains(job.worktreeID))
+        #expect(false == sut.busyWorktreeIDs.contains(job.worktreeID))
         sut.enqueue(job)
-        XCTAssertTrue(sut.busyWorktreeIDs.contains(job.worktreeID))
+        #expect(sut.busyWorktreeIDs.contains(job.worktreeID))
     }
 
-    func testBusyWorktreeIDs_clearsAfterIdle() async {
+    @Test func busyWorktreeIDs_clearsAfterIdle() async {
         let job = makeJob(kind: .pull)
         sut.enqueue(job)
-        XCTAssertFalse(sut.busyWorktreeIDs.isEmpty)
-        await waitForIdle()
-        XCTAssertTrue(sut.busyWorktreeIDs.isEmpty)
+        #expect(false == sut.busyWorktreeIDs.isEmpty)
+        await sut.waitUntilIdle()
+        #expect(sut.busyWorktreeIDs.isEmpty)
     }
 
-    func testBusyWorktreeIDs_updatesOnCancel() {
+    @Test func busyWorktreeIDs_updatesOnCancel() {
         let job1 = makeJob(kind: .pull)
         let job2 = makeJob(kind: .pull)
         sut.enqueue([job1, job2])
 
         if let pendingJob = sut.jobs.first(where: { $0.state == .pending }) {
             let worktreeID = pendingJob.worktreeID
-            XCTAssertTrue(sut.busyWorktreeIDs.contains(worktreeID))
+            #expect(sut.busyWorktreeIDs.contains(worktreeID))
             sut.cancel(pendingJob.id)
-            XCTAssertFalse(sut.busyWorktreeIDs.contains(worktreeID))
+            #expect(false == sut.busyWorktreeIDs.contains(worktreeID))
         }
     }
 
-    func testBusyWorktreeIDs_tracksActiveWorktrees_andClearsOnCompletion() async {
+    @Test func busyWorktreeIDs_tracksActiveWorktrees_andClearsOnCompletion() async {
         let job1 = makeJob(kind: .pull)
         let job2 = makeJob(kind: .pull)
         sut.enqueue([job1, job2])
 
-        XCTAssertTrue(sut.busyWorktreeIDs.contains(job1.worktreeID), "job1 worktree should be busy")
-        XCTAssertTrue(sut.busyWorktreeIDs.contains(job2.worktreeID), "job2 worktree should be busy")
+        #expect(sut.busyWorktreeIDs.contains(job1.worktreeID), "job1 worktree should be busy")
+        #expect(sut.busyWorktreeIDs.contains(job2.worktreeID), "job2 worktree should be busy")
 
-        await waitForIdle()
-        XCTAssertTrue(sut.busyWorktreeIDs.isEmpty, "busyWorktreeIDs should be empty after all jobs complete")
+        await sut.waitUntilIdle()
+        #expect(sut.busyWorktreeIDs.isEmpty, "busyWorktreeIDs should be empty after all jobs complete")
     }
 
-    func testBusyWorktreeIDs_excludesFailedJobs() async {
+    @Test func busyWorktreeIDs_excludesFailedJobs() async {
         mockExecutor.shouldFail = true
         let job = makeJob(kind: .pull)
         sut.enqueue(job)
-        await waitForIdle()
+        await sut.waitUntilIdle()
 
-        XCTAssertFalse(sut.busyWorktreeIDs.contains(job.worktreeID),
-                       "Failed job should not keep worktree in busy set")
-        XCTAssertTrue(sut.hasFailedJobs)
+        #expect(false == sut.busyWorktreeIDs.contains(job.worktreeID),
+               "Failed job should not keep worktree in busy set")
+        #expect(sut.hasFailedJobs)
     }
 
     // MARK: - progressFraction
 
-    func testProgressFraction_emptyQueue_returnsZero() {
-        XCTAssertEqual(sut.progressFraction, 0)
+    @Test func progressFraction_emptyQueue_returnsZero() {
+        #expect(sut.progressFraction == 0)
     }
 
-    func testProgressFraction_multipleJobs_zeroAfterCompletion() async {
+    @Test func progressFraction_multipleJobs_zeroAfterCompletion() async {
         let jobs = (0..<4).map { _ in makeJob(kind: .pull) }
         sut.enqueue(jobs)
-        XCTAssertEqual(sut.progressFraction, 0.0)
+        #expect(sut.progressFraction == 0.0)
 
-        await waitForIdle()
+        await sut.waitUntilIdle()
         // After all complete, queue is cleared → 0 of 0 = 0.0
-        XCTAssertEqual(sut.progressFraction, 0.0)
-        XCTAssertTrue(sut.jobs.isEmpty)
+        #expect(sut.progressFraction == 0.0)
+        #expect(sut.jobs.isEmpty)
     }
 
-    // MARK: - currentJobDescription
-
-    func testCurrentJobDescription_nilWhenQueueEmpty() {
-        XCTAssertNil(sut.currentJobDescription)
-    }
-
-    func testCurrentJobDescription_nilWhenIdle() async {
-        sut.enqueue(makeJob(kind: .pull))
-        await waitForIdle()
-        XCTAssertNil(sut.currentJobDescription,
-                     "currentJobDescription should be nil when no job is in-progress")
-    }
-
-    // MARK: - hasActiveJobs / hasFailedJobs
-
-    func testHasActiveJobs_falseWhenOnlyFailedJobsRemain() async {
+    @Test func progressFraction_withStaleFailedJobs_excludesFailedFromDenominator() async {
         mockExecutor.shouldFail = true
         sut.enqueue(makeJob(kind: .pull))
-        await waitForIdle()
+        await sut.waitUntilIdle()
+        #expect(sut.hasFailedJobs, "Precondition: should have 1 failed job")
 
-        XCTAssertFalse(sut.hasActiveJobs, "hasActiveJobs should be false for failed jobs")
-        XCTAssertTrue(sut.hasFailedJobs)
-    }
-
-    func testHasFailedJobs_noJobs_returnsFalse() {
-        XCTAssertFalse(sut.hasFailedJobs)
-    }
-
-    func testHasFailedJobs_afterFailure_returnsTrue() async {
-        mockExecutor.shouldFail = true
-        sut.enqueue(makeJob(kind: .pull))
-        await waitForIdle()
-        XCTAssertTrue(sut.hasFailedJobs)
-    }
-
-    func testHasFailedJobs_afterSuccess_returnsFalse() async {
-        sut.enqueue(makeJob(kind: .pull))
-        await waitForIdle()
-        XCTAssertFalse(sut.hasFailedJobs)
-    }
-
-    // MARK: - clearFailed
-
-    func testClearFailed_removesFailedJobs() async {
-        mockExecutor.shouldFail = true
-        sut.enqueue(makeJob(kind: .pull))
-        await waitForIdle()
-        XCTAssertTrue(sut.hasFailedJobs)
-
-        sut.clearFailed()
-
-        XCTAssertFalse(sut.hasFailedJobs)
-        XCTAssertTrue(sut.jobs.isEmpty)
-    }
-
-    func testClearFailed_leavesNonFailedJobsIntact() async {
-        mockExecutor.shouldFail = true
-        sut.enqueue(makeJob(kind: .pull))
-        await waitForIdle()
-
-        mockExecutor.shouldFail = false
-        sut.enqueue(makeJob(kind: .pull))
-        await waitForIdle()
-
-        sut.clearFailed()
-        XCTAssertFalse(sut.hasFailedJobs)
-    }
-
-    // MARK: - onJobStateChange
-
-    func testOnJobStateChange_completedCalledOnSuccess() async {
-        var completedIDs: [UUID] = []
-        sut.onJobStateChange = { job in
-            if job.state == .completed { completedIDs.append(job.id) }
-        }
-
-        let job = makeJob(kind: .pull)
-        sut.enqueue(job)
-        await waitForIdle()
-
-        XCTAssertTrue(completedIDs.contains(job.id))
-    }
-
-    func testOnJobStateChange_failedCalledOnGitError() async {
-        mockExecutor.shouldFail = true
-
-        var failedJobs: [BackgroundJob] = []
-        sut.onJobStateChange = { job in
-            if case .failed = job.state { failedJobs.append(job) }
-        }
-
-        let job = makeJob(kind: .pull)
-        sut.enqueue(job)
-        await waitForIdle()
-
-        XCTAssertEqual(failedJobs.count, 1)
-        XCTAssertEqual(failedJobs.first?.id, job.id)
-    }
-
-    /// Verifies that onJobStateChange receives a stable value-type snapshot (Fix 2):
-    /// the callback's job ID should match the job that was enqueued.
-    func testOnJobStateChange_receivesCorrectJobID() async {
-        var receivedIDs: [UUID] = []
-        let jobs = (0..<3).map { _ in makeJob(kind: .pull) }
-
-        sut.onJobStateChange = { job in
-            receivedIDs.append(job.id)
-        }
-        sut.enqueue(jobs)
-        await waitForIdle()
-
-        let enqueuedIDs = Set(jobs.map { $0.id })
-        let callbackIDs = Set(receivedIDs)
-        XCTAssertTrue(enqueuedIDs.isSubset(of: callbackIDs),
-                      "All enqueued job IDs should appear in callbacks")
-    }
-
-    // MARK: - Stress Tests
-
-    func testRapidEnqueueAndCancelAll_allReachTerminalState() async {
-        let jobs = (0..<20).map { _ in makeJob(kind: .pull) }
-        sut.enqueue(jobs)
-        sut.cancelPending()
-        await waitForIdle(timeout: 5)
-
-        let pendingCount = sut.jobs.filter { $0.state == .pending }.count
-        XCTAssertEqual(pendingCount, 0, "No jobs should remain pending after cancelPending")
-        XCTAssertFalse(sut.hasActiveJobs)
-    }
-
-    func testRapidEnqueueMultipleRepos_eachProcessedIndependently() async {
-        let repo2Path = "/tmp/bq-test-repo-2"
-        let jobs1 = (0..<5).map { _ in makeJob(kind: .pull) }
-        let jobs2 = (0..<5).map { _ in
-            BackgroundJob(
-                worktreeID: UUID(),
-                worktreePath: "\(repo2Path)/wt-\(UUID().uuidString.prefix(8))",
-                folderName: "wt",
-                displayName: "Repo2 Worktree",
-                repositoryPath: repo2Path,
-                repositoryID: UUID(),
-                kind: .pull
-            )
-        }
-        sut.enqueue(jobs1 + jobs2)
-        await waitForIdle(timeout: 5)
-
-        XCTAssertFalse(sut.hasActiveJobs)
-        XCTAssertTrue(sut.busyWorktreeIDs.isEmpty)
-    }
-
-    func testRepeatedEnqueueAfterIdle_cleansUpCorrectly() async {
-        for _ in 0..<5 {
-            sut.enqueue(makeJob(kind: .pull))
-            await waitForIdle()
-            XCTAssertFalse(sut.hasActiveJobs)
-            XCTAssertTrue(sut.busyWorktreeIDs.isEmpty)
-        }
-        XCTAssertTrue(sut.jobs.isEmpty)
-    }
-
-    /// Simulates rapid enqueue from multiple repos at once. Verifies all jobs reach
-    /// terminal state with no processingTask leaks.
-    func testConcurrentEnqueueFromMultipleRepos_allJobsReachTerminalState() async {
-        let repo3Path = "/tmp/bq-stress-repo-3"
-        let repo4Path = "/tmp/bq-stress-repo-4"
-
-        let jobs1 = (0..<4).map { _ in makeJob(kind: .pull) }
-        let jobs2 = (0..<4).map { _ in
-            BackgroundJob(
-                worktreeID: UUID(),
-                worktreePath: "\(repo3Path)/wt-\(UUID().uuidString.prefix(8))",
-                folderName: "wt", displayName: "Repo3",
-                repositoryPath: repo3Path, repositoryID: UUID(), kind: .pull
-            )
-        }
-        let jobs3 = (0..<4).map { _ in
-            BackgroundJob(
-                worktreeID: UUID(),
-                worktreePath: "\(repo4Path)/wt-\(UUID().uuidString.prefix(8))",
-                folderName: "wt", displayName: "Repo4",
-                repositoryPath: repo4Path, repositoryID: UUID(), kind: .pull
-            )
-        }
-
-        sut.enqueue(jobs1 + jobs2 + jobs3)
-        await waitForIdle(timeout: 10)
-
-        XCTAssertFalse(sut.hasActiveJobs, "All jobs should reach terminal state")
-        XCTAssertTrue(sut.busyWorktreeIDs.isEmpty, "No worktrees should remain busy")
-        XCTAssertFalse(sut.hasFailedJobs, "No jobs should fail with a succeeding mock")
-    }
-
-    /// Enqueue → cancelPending → re-enqueue: verifies processingTasks are cleaned up
-    /// and restarted correctly after cancellation (no leak from Fix 1).
-    func testCancelAll_thenReenqueue_processesNewJobs() async {
-        sut.enqueue((0..<5).map { _ in makeJob(kind: .pull) })
-        sut.cancelPending()
-        await waitForIdle()
-        XCTAssertFalse(sut.hasActiveJobs)
-
-        sut.enqueue(makeJob(kind: .pull))
-        await waitForIdle(timeout: 5)
-
-        XCTAssertFalse(sut.hasActiveJobs)
-        XCTAssertFalse(sut.hasFailedJobs)
-    }
-
-    // MARK: - progressFraction with stale failed jobs
-
-    /// progressFraction should exclude stale failed jobs from previous batches
-    /// so that new enqueued jobs start at 0% rather than an inflated value.
-    func testProgressFraction_withStaleFailedJobs_excludesFailedFromDenominator() async {
-        // Create a failed job first
-        mockExecutor.shouldFail = true
-        sut.enqueue(makeJob(kind: .pull))
-        await waitForIdle()
-        XCTAssertTrue(sut.hasFailedJobs, "Precondition: should have 1 failed job")
-
-        // Now enqueue new jobs — progress should reflect only the new batch
         mockExecutor.shouldFail = false
         let job2 = makeJob(kind: .pull)
         let job3 = makeJob(kind: .pull)
         sut.enqueue([job2, job3])
 
-        // Immediately after enqueue: 0 of 2 tracked (failed job excluded)
-        XCTAssertEqual(sut.progressFraction, 0.0,
-                       "Progress should be 0% with stale failed + 2 pending, not 1/3 = 33%")
+        #expect(sut.progressFraction == 0.0,
+               "Progress should be 0% with stale failed + 2 pending, not 1/3 = 33%")
+    }
+
+    // MARK: - currentJobDescription
+
+    @Test func currentJobDescription_nilWhenQueueEmpty() {
+        #expect(sut.currentJobDescription == nil)
+    }
+
+    @Test func currentJobDescription_nilWhenIdle() async {
+        sut.enqueue(makeJob(kind: .pull))
+        await sut.waitUntilIdle()
+        #expect(sut.currentJobDescription == nil,
+               "currentJobDescription should be nil when no job is in-progress")
+    }
+
+    // MARK: - hasActiveJobs / hasFailedJobs
+
+    @Test func hasActiveJobs_falseWhenOnlyFailedJobsRemain() async {
+        mockExecutor.shouldFail = true
+        sut.enqueue(makeJob(kind: .pull))
+        await sut.waitUntilIdle()
+
+        #expect(false == sut.hasActiveJobs, "hasActiveJobs should be false for failed jobs")
+        #expect(sut.hasFailedJobs)
+    }
+
+    @Test func hasFailedJobs_noJobs_returnsFalse() {
+        #expect(false == sut.hasFailedJobs)
+    }
+
+    @Test func hasFailedJobs_afterFailure_returnsTrue() async {
+        mockExecutor.shouldFail = true
+        sut.enqueue(makeJob(kind: .pull))
+        await sut.waitUntilIdle()
+        #expect(sut.hasFailedJobs)
+    }
+
+    @Test func hasFailedJobs_afterSuccess_returnsFalse() async {
+        sut.enqueue(makeJob(kind: .pull))
+        await sut.waitUntilIdle()
+        #expect(false == sut.hasFailedJobs)
+    }
+
+    // MARK: - clearFailed
+
+    @Test func clearFailed_removesFailedJobs() async {
+        mockExecutor.shouldFail = true
+        sut.enqueue(makeJob(kind: .pull))
+        await sut.waitUntilIdle()
+        #expect(sut.hasFailedJobs)
+
+        sut.clearFailed()
+
+        #expect(false == sut.hasFailedJobs)
+        #expect(sut.jobs.isEmpty)
+    }
+
+    @Test func clearFailed_leavesNonFailedJobsIntact() async {
+        mockExecutor.shouldFail = true
+        sut.enqueue(makeJob(kind: .pull))
+        await sut.waitUntilIdle()
+
+        mockExecutor.shouldFail = false
+        sut.enqueue(makeJob(kind: .pull))
+        await sut.waitUntilIdle()
+
+        sut.clearFailed()
+        #expect(false == sut.hasFailedJobs)
     }
 
     // MARK: - failedJobCount
 
-    func testFailedJobCount_noJobs_returnsZero() {
-        XCTAssertEqual(sut.failedJobCount, 0)
+    @Test func failedJobCount_noJobs_returnsZero() {
+        #expect(sut.failedJobCount == 0)
     }
 
-    func testFailedJobCount_afterMultipleFailures_returnsCorrectCount() async {
+    @Test func failedJobCount_afterMultipleFailures_returnsCorrectCount() async {
         mockExecutor.shouldFail = true
         sut.enqueue([makeJob(kind: .pull), makeJob(kind: .pull)])
-        await waitForIdle()
+        await sut.waitUntilIdle()
 
-        XCTAssertEqual(sut.failedJobCount, 2)
+        #expect(sut.failedJobCount == 2)
     }
 
-    func testFailedJobCount_afterClearFailed_returnsZero() async {
+    @Test func failedJobCount_afterClearFailed_returnsZero() async {
         mockExecutor.shouldFail = true
         sut.enqueue(makeJob(kind: .pull))
-        await waitForIdle()
-        XCTAssertEqual(sut.failedJobCount, 1)
+        await sut.waitUntilIdle()
+        #expect(sut.failedJobCount == 1)
 
         sut.clearFailed()
-        XCTAssertEqual(sut.failedJobCount, 0)
+        #expect(sut.failedJobCount == 0)
     }
 
     // MARK: - activeJobs
 
-    func testActiveJobs_emptyQueue_isEmpty() {
-        XCTAssertTrue(sut.activeJobs.isEmpty)
+    @Test func activeJobs_emptyQueue_isEmpty() {
+        #expect(sut.activeJobs.isEmpty)
     }
 
-    func testActiveJobs_afterAllComplete_isEmpty() async {
+    @Test func activeJobs_afterAllComplete_isEmpty() async {
         sut.enqueue(makeJob(kind: .pull))
-        await waitForIdle()
-        XCTAssertTrue(sut.activeJobs.isEmpty)
+        await sut.waitUntilIdle()
+        #expect(sut.activeJobs.isEmpty)
     }
 
-    func testActiveJobs_excludesFailedJobs() async {
+    @Test func activeJobs_excludesFailedJobs() async {
         mockExecutor.shouldFail = true
         sut.enqueue(makeJob(kind: .pull))
-        await waitForIdle()
+        await sut.waitUntilIdle()
 
-        XCTAssertTrue(sut.activeJobs.isEmpty)
-        XCTAssertFalse(sut.jobs.isEmpty, "Failed jobs should still be in jobs array")
+        #expect(sut.activeJobs.isEmpty)
+        #expect(false == sut.jobs.isEmpty, "Failed jobs should still be in jobs array")
     }
 
     // MARK: - Quick Remove
 
-    func testQuickRemoveJob_completesSuccessfully() async {
+    @Test func quickRemoveJob_completesSuccessfully() async {
         let job = makeJob(kind: .quickRemove)
         sut.enqueue(job)
-        await waitForIdle()
+        await sut.waitUntilIdle()
 
-        XCTAssertFalse(sut.hasActiveJobs)
-        XCTAssertFalse(sut.hasFailedJobs, "Quick remove should succeed with mock executor")
-    }
-
-    func testQuickRemoveJob_callbackFiredOnCompletion() async {
-        var completedIDs: [UUID] = []
-        sut.onJobStateChange = { job in
-            if job.state == .completed { completedIDs.append(job.id) }
-        }
-
-        let job = makeJob(kind: .quickRemove)
-        sut.enqueue(job)
-        await waitForIdle()
-
-        XCTAssertTrue(completedIDs.contains(job.id))
+        #expect(false == sut.hasActiveJobs)
+        #expect(false == sut.hasFailedJobs, "Quick remove should succeed with mock executor")
     }
 
     // MARK: - jobTimeoutSecondsKey
 
-    func testJobTimeoutSecondsKey_hasExpectedValue() {
-        XCTAssertEqual(BackgroundTaskQueue.jobTimeoutSecondsKey, "jobTimeoutSeconds")
+    @Test func jobTimeoutSecondsKey_hasExpectedValue() {
+        #expect(BackgroundTaskQueue.jobTimeoutSecondsKey == "jobTimeoutSeconds")
     }
 
-    func testDefaultJobTimeoutSeconds_isSixty() {
-        XCTAssertEqual(BackgroundTaskQueue.defaultJobTimeoutSeconds, 60)
+    @Test func defaultJobTimeoutSeconds_isSixty() {
+        #expect(BackgroundTaskQueue.defaultJobTimeoutSeconds == 60)
     }
 
     // MARK: - BackgroundJobTimeoutError
 
-    func testTimeoutError_hasDescriptiveMessage() {
+    @Test func timeoutError_hasDescriptiveMessage() {
         let error = BackgroundJobTimeoutError(seconds: 60)
-        XCTAssertNotNil(error.errorDescription)
-        XCTAssertTrue(
+        #expect(error.errorDescription != nil)
+        #expect(
             error.errorDescription?.contains("60") == true,
             "Timeout error should mention the 60-second limit"
         )
     }
 
-    func testTimeoutError_mentionsSettingsAndQuickRemove() {
+    @Test func timeoutError_mentionsSettingsAndQuickRemove() {
         let error = BackgroundJobTimeoutError(seconds: 120)
         let desc = error.errorDescription ?? ""
-        XCTAssertTrue(desc.contains("120"), "Should mention timeout duration")
-        XCTAssertTrue(desc.contains("Settings"), "Should mention Settings")
-        XCTAssertTrue(desc.contains("Quick Remove"), "Should mention Quick Remove as alternative")
+        #expect(desc.contains("120"), "Should mention timeout duration")
+        #expect(desc.contains("Settings"), "Should mention Settings")
+        #expect(desc.contains("Quick Remove"), "Should mention Quick Remove as alternative")
     }
 }

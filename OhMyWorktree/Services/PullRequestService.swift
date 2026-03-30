@@ -153,13 +153,13 @@ final class PullRequestService: PullRequestFetching, Sendable {
     /// Shared formatters — `ISO8601DateFormatter` is expensive to initialize.
     /// GitHub's `updatedAt` typically includes fractional seconds (e.g. "2024-01-15T10:30:00.000Z"),
     /// but we keep a fallback for dates without them since the format isn't guaranteed.
-    private static let isoFormatterWithFractional: ISO8601DateFormatter = {
+    nonisolated(unsafe) private static let isoFormatterWithFractional: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return formatter
     }()
 
-    private static let isoFormatterWithoutFractional: ISO8601DateFormatter = {
+    nonisolated(unsafe) private static let isoFormatterWithoutFractional: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
         return formatter

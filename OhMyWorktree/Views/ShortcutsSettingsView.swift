@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ShortcutsSettingsView: View {
-    @ObservedObject var shortcutManager: ShortcutManager
+    var shortcutManager: ShortcutManager
     @AppStorage("globalHotkeyEnabled") private var globalHotkeyEnabled = true
 
     var body: some View {

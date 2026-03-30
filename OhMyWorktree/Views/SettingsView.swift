@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @ObservedObject var updaterManager: UpdaterManager
-    @ObservedObject var shortcutManager: ShortcutManager
+    var updaterManager: UpdaterManager
+    var shortcutManager: ShortcutManager
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"

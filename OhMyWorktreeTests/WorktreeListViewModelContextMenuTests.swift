@@ -1,4 +1,4 @@
-import XCTest
+import Testing
 
 @testable import OhMyWorktree
 
@@ -20,118 +20,118 @@ extension WorktreeListViewModelTests {
 
     // MARK: Single-item behavior (0 or 1 selected)
 
-    func test_contextMenuActions_nothingSelected_nonRoot_allEnabled() {
+    @Test func contextMenuActions_nothingSelected_nonRoot_allEnabled() {
         sut.worktrees = [rootWorktree, featureWorktree]
         sut.selectedWorktreeIDs = []
 
         let actions = sut.contextMenuActions(for: featureWorktree)
 
-        XCTAssertTrue(actions.canOpen)
-        XCTAssertTrue(actions.canRename)
-        XCTAssertTrue(actions.canGitPull)
-        XCTAssertTrue(actions.canRemove)
-        XCTAssertTrue(actions.canForceRemove)
-        XCTAssertTrue(actions.canQuickRemove)
-        XCTAssertTrue(actions.canShowInFinder)
-        XCTAssertTrue(actions.canCopyPath)
+        #expect(actions.canOpen)
+        #expect(actions.canRename)
+        #expect(actions.canGitPull)
+        #expect(actions.canRemove)
+        #expect(actions.canForceRemove)
+        #expect(actions.canQuickRemove)
+        #expect(actions.canShowInFinder)
+        #expect(actions.canCopyPath)
     }
 
-    func test_contextMenuActions_singleSelected_nonRoot_allEnabled() {
+    @Test func contextMenuActions_singleSelected_nonRoot_allEnabled() {
         sut.worktrees = [rootWorktree, featureWorktree]
         sut.selectedWorktreeIDs = [featureWorktree.id]
 
         let actions = sut.contextMenuActions(for: featureWorktree)
 
-        XCTAssertTrue(actions.canOpen)
-        XCTAssertTrue(actions.canRename)
-        XCTAssertTrue(actions.canGitPull)
-        XCTAssertTrue(actions.canRemove)
-        XCTAssertTrue(actions.canForceRemove)
-        XCTAssertTrue(actions.canShowInFinder)
-        XCTAssertTrue(actions.canCopyPath)
+        #expect(actions.canOpen)
+        #expect(actions.canRename)
+        #expect(actions.canGitPull)
+        #expect(actions.canRemove)
+        #expect(actions.canForceRemove)
+        #expect(actions.canShowInFinder)
+        #expect(actions.canCopyPath)
     }
 
-    func test_contextMenuActions_singleSelected_root_removeDisabled() {
+    @Test func contextMenuActions_singleSelected_root_removeDisabled() {
         sut.worktrees = [rootWorktree, featureWorktree]
         sut.selectedWorktreeIDs = [rootWorktree.id]
 
         let actions = sut.contextMenuActions(for: rootWorktree)
 
-        XCTAssertTrue(actions.canOpen)
-        XCTAssertTrue(actions.canRename)
-        XCTAssertTrue(actions.canGitPull)
-        XCTAssertFalse(actions.canRemove)
-        XCTAssertFalse(actions.canForceRemove)
-        XCTAssertFalse(actions.canQuickRemove)
-        XCTAssertTrue(actions.canShowInFinder)
-        XCTAssertTrue(actions.canCopyPath)
+        #expect(actions.canOpen)
+        #expect(actions.canRename)
+        #expect(actions.canGitPull)
+        #expect(false == actions.canRemove)
+        #expect(false == actions.canForceRemove)
+        #expect(false == actions.canQuickRemove)
+        #expect(actions.canShowInFinder)
+        #expect(actions.canCopyPath)
     }
 
-    func test_contextMenuActions_singleSelected_bare_removeAndPullDisabled() {
+    @Test func contextMenuActions_singleSelected_bare_removeAndPullDisabled() {
         sut.worktrees = [rootWorktree, bareWorktree]
         sut.selectedWorktreeIDs = [bareWorktree.id]
 
         let actions = sut.contextMenuActions(for: bareWorktree)
 
-        XCTAssertTrue(actions.canOpen)
-        XCTAssertTrue(actions.canRename)
-        XCTAssertFalse(actions.canGitPull)
-        XCTAssertFalse(actions.canRemove)
-        XCTAssertFalse(actions.canForceRemove)
-        XCTAssertTrue(actions.canShowInFinder)
-        XCTAssertTrue(actions.canCopyPath)
+        #expect(actions.canOpen)
+        #expect(actions.canRename)
+        #expect(false == actions.canGitPull)
+        #expect(false == actions.canRemove)
+        #expect(false == actions.canForceRemove)
+        #expect(actions.canShowInFinder)
+        #expect(actions.canCopyPath)
     }
 
     // MARK: Multi-select behavior (2+ selected AND right-clicked item is in selection)
 
-    func test_contextMenuActions_multiSelected_noRoot_onlyRemoveEnabled() {
+    @Test func contextMenuActions_multiSelected_noRoot_onlyRemoveEnabled() {
         sut.worktrees = [rootWorktree, featureWorktree, fixWorktree]
         sut.selectedWorktreeIDs = [featureWorktree.id, fixWorktree.id]
 
         let actions = sut.contextMenuActions(for: featureWorktree)
 
-        XCTAssertFalse(actions.canOpen)
-        XCTAssertFalse(actions.canRename)
-        XCTAssertFalse(actions.canGitPull)
-        XCTAssertTrue(actions.canRemove)
-        XCTAssertTrue(actions.canForceRemove)
-        XCTAssertFalse(actions.canShowInFinder)
-        XCTAssertFalse(actions.canCopyPath)
+        #expect(false == actions.canOpen)
+        #expect(false == actions.canRename)
+        #expect(false == actions.canGitPull)
+        #expect(actions.canRemove)
+        #expect(actions.canForceRemove)
+        #expect(false == actions.canShowInFinder)
+        #expect(false == actions.canCopyPath)
     }
 
-    func test_contextMenuActions_multiSelected_withRootIncluded_removeDisabled() {
+    @Test func contextMenuActions_multiSelected_withRootIncluded_removeDisabled() {
         // Root is in selection → canRemove = false regardless of other removable items
         sut.worktrees = [rootWorktree, featureWorktree]
         sut.selectedWorktreeIDs = [rootWorktree.id, featureWorktree.id]
 
         let actions = sut.contextMenuActions(for: featureWorktree)
 
-        XCTAssertFalse(actions.canOpen)
-        XCTAssertFalse(actions.canRename)
-        XCTAssertFalse(actions.canGitPull)
-        XCTAssertFalse(actions.canRemove)
-        XCTAssertFalse(actions.canForceRemove)
-        XCTAssertFalse(actions.canShowInFinder)
-        XCTAssertFalse(actions.canCopyPath)
+        #expect(false == actions.canOpen)
+        #expect(false == actions.canRename)
+        #expect(false == actions.canGitPull)
+        #expect(false == actions.canRemove)
+        #expect(false == actions.canForceRemove)
+        #expect(false == actions.canShowInFinder)
+        #expect(false == actions.canCopyPath)
     }
 
-    func test_contextMenuActions_multiSelected_allNonRemovable_removeDisabled() {
+    @Test func contextMenuActions_multiSelected_allNonRemovable_removeDisabled() {
         // Root + bare: neither can be removed
         sut.worktrees = [rootWorktree, bareWorktree]
         sut.selectedWorktreeIDs = [rootWorktree.id, bareWorktree.id]
 
         let actions = sut.contextMenuActions(for: bareWorktree)
 
-        XCTAssertFalse(actions.canOpen)
-        XCTAssertFalse(actions.canRename)
-        XCTAssertFalse(actions.canGitPull)
-        XCTAssertFalse(actions.canRemove)
-        XCTAssertFalse(actions.canForceRemove)
-        XCTAssertFalse(actions.canShowInFinder)
-        XCTAssertFalse(actions.canCopyPath)
+        #expect(false == actions.canOpen)
+        #expect(false == actions.canRename)
+        #expect(false == actions.canGitPull)
+        #expect(false == actions.canRemove)
+        #expect(false == actions.canForceRemove)
+        #expect(false == actions.canShowInFinder)
+        #expect(false == actions.canCopyPath)
     }
 
-    func test_contextMenuActions_multiSelected_rightClickedNotInSelection_singleBehavior() {
+    @Test func contextMenuActions_multiSelected_rightClickedNotInSelection_singleBehavior() {
         // feature + fix are selected, but we right-click on root (not in selection)
         // → treated as single-item → root rules apply
         sut.worktrees = [rootWorktree, featureWorktree, fixWorktree]
@@ -139,18 +139,18 @@ extension WorktreeListViewModelTests {
 
         let actions = sut.contextMenuActions(for: rootWorktree)
 
-        XCTAssertTrue(actions.canOpen)
-        XCTAssertTrue(actions.canRename)
-        XCTAssertTrue(actions.canGitPull)
-        XCTAssertFalse(actions.canRemove)       // root cannot be removed
-        XCTAssertFalse(actions.canForceRemove)
-        XCTAssertTrue(actions.canShowInFinder)
-        XCTAssertTrue(actions.canCopyPath)
+        #expect(actions.canOpen)
+        #expect(actions.canRename)
+        #expect(actions.canGitPull)
+        #expect(false == actions.canRemove)       // root cannot be removed
+        #expect(false == actions.canForceRemove)
+        #expect(actions.canShowInFinder)
+        #expect(actions.canCopyPath)
     }
 
     // MARK: Locked worktree — quick remove must be blocked
 
-    func testContextMenuActions_lockedWorktree_canQuickRemoveIsFalse() {
+    @Test func contextMenuActions_lockedWorktree_canQuickRemoveIsFalse() {
         let lockedWorktree = Worktree(
             path: "/tmp/worktrees/locked-wt",
             folderName: "locked-wt",
@@ -162,19 +162,19 @@ extension WorktreeListViewModelTests {
 
         let actions = sut.contextMenuActions(for: lockedWorktree)
 
-        XCTAssertFalse(actions.canQuickRemove, "Locked worktree must not be quick-removable")
+        #expect(false == actions.canQuickRemove, "Locked worktree must not be quick-removable")
         // canRemove and canForceRemove should also be false for locked worktrees
-        XCTAssertFalse(actions.canRemove, "Locked worktree must not be removable")
-        XCTAssertFalse(actions.canForceRemove, "Locked worktree must not be force-removable")
+        #expect(false == actions.canRemove, "Locked worktree must not be removable")
+        #expect(false == actions.canForceRemove, "Locked worktree must not be force-removable")
         // Other actions should still work
-        XCTAssertTrue(actions.canOpen)
-        XCTAssertTrue(actions.canRename)
-        XCTAssertTrue(actions.canGitPull)
-        XCTAssertTrue(actions.canShowInFinder)
-        XCTAssertTrue(actions.canCopyPath)
+        #expect(actions.canOpen)
+        #expect(actions.canRename)
+        #expect(actions.canGitPull)
+        #expect(actions.canShowInFinder)
+        #expect(actions.canCopyPath)
     }
 
-    func testContextMenuActions_multiSelected_withLockedWorktree_removeDisabled() {
+    @Test func contextMenuActions_multiSelected_withLockedWorktree_removeDisabled() {
         let lockedWorktree = Worktree(
             path: "/tmp/worktrees/locked-wt",
             folderName: "locked-wt",
@@ -187,8 +187,8 @@ extension WorktreeListViewModelTests {
         let actions = sut.contextMenuActions(for: featureWorktree)
 
         // Selection contains a locked worktree → all remove actions disabled
-        XCTAssertFalse(actions.canRemove, "Multi-select with locked worktree must disable remove")
-        XCTAssertFalse(actions.canForceRemove, "Multi-select with locked worktree must disable force remove")
-        XCTAssertFalse(actions.canQuickRemove, "Multi-select with locked worktree must disable quick remove")
+        #expect(false == actions.canRemove, "Multi-select with locked worktree must disable remove")
+        #expect(false == actions.canForceRemove, "Multi-select with locked worktree must disable force remove")
+        #expect(false == actions.canQuickRemove, "Multi-select with locked worktree must disable quick remove")
     }
 }

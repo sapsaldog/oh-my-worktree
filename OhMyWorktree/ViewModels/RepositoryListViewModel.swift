@@ -1,13 +1,14 @@
 import Foundation
 import SwiftUI
 
+@Observable
 @MainActor
-final class RepositoryListViewModel: ObservableObject {
-    @Published var repositories: [Repository] = []
-    @Published var selectedRepository: Repository?
-    @Published var isLoading = false
-    @Published var errorMessage: String?
-    @Published var showingFileDialog = false
+final class RepositoryListViewModel {
+    var repositories: [Repository] = []
+    var selectedRepository: Repository?
+    var isLoading = false
+    var errorMessage: String?
+    var showingFileDialog = false
 
     let store: RepositoryStore
     private let userDefaults: UserDefaults

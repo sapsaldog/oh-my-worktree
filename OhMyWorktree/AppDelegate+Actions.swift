@@ -1,5 +1,5 @@
 import AppKit
-import Combine
+import Observation
 
 // MARK: - WorktreeRef
 
@@ -162,12 +162,18 @@ extension AppDelegate {
 extension AppDelegate {
 
     func observeShortcutChanges() {
-        shortcutCancellables.removeAll()
-        shortcutManager?.$version
-            .dropFirst()
-            .sink { [weak self] _ in
+        observeShortcutVersion()
+    }
+
+    private func observeShortcutVersion() {
+        guard let shortcutManager else { return }
+        withObservationTracking {
+            _ = shortcutManager.version
+        } onChange: {
+            Task { @MainActor [weak self] in
                 self?.setupGlobalHotkey()
+                self?.observeShortcutVersion()
             }
-            .store(in: &shortcutCancellables)
+        }
     }
 }

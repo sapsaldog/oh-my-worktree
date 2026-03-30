@@ -1,18 +1,17 @@
-import XCTest
+import Foundation
+import Testing
 
 @testable import OhMyWorktree
 
-final class WorktreeFileCopierTests: XCTestCase {
+@Suite
+final class WorktreeFileCopierTests {
 
-    private var repoDir: String!
-    private var worktreeDir: String!
+    private let repoDir: String
+    private let worktreeDir: String
     private let fm = FileManager.default
     private let sut = WorktreeFileCopier()
 
-    // MARK: - Setup / Teardown
-
-    override func setUp() {
-        super.setUp()
+    init() {
         let base = NSTemporaryDirectory() + "WorktreeFileCopierTests-\(UUID().uuidString)"
         repoDir = base + "/repo"
         worktreeDir = base + "/worktree"
@@ -20,16 +19,13 @@ final class WorktreeFileCopierTests: XCTestCase {
         try! fm.createDirectory(atPath: worktreeDir, withIntermediateDirectories: true)
     }
 
-    override func tearDown() {
+    deinit {
         let base = (repoDir as NSString).deletingLastPathComponent
         try? fm.removeItem(atPath: base)
-        super.tearDown()
     }
 
-    // MARK: - Helpers
-
     private func createFile(_ relativePath: String, in dir: String? = nil, content: String = "test") {
-        let root = dir ?? repoDir!
+        let root = dir ?? repoDir
         let fullPath = (root as NSString).appendingPathComponent(relativePath)
         let parentDir = (fullPath as NSString).deletingLastPathComponent
         try! fm.createDirectory(atPath: parentDir, withIntermediateDirectories: true)
@@ -41,13 +37,11 @@ final class WorktreeFileCopierTests: XCTestCase {
     }
 
     private func fileExists(_ relativePath: String, in dir: String? = nil) -> Bool {
-        let root = dir ?? worktreeDir!
+        let root = dir ?? worktreeDir
         return fm.fileExists(atPath: (root as NSString).appendingPathComponent(relativePath))
     }
 
-    // MARK: - Legacy Fallback (no .worktreeinclude)
-
-    func testLegacyFallback_copiesEnvFiles() {
+    @Test func legacyFallback_copiesEnvFiles() {
         createFile(".env")
         createFile(".env.local")
         createFile(".env.development")
@@ -55,26 +49,26 @@ final class WorktreeFileCopierTests: XCTestCase {
 
         let result = sut.copyFiles(from: repoDir, to: worktreeDir)
 
-        XCTAssertEqual(Set(result.copiedFiles), [".env", ".env.local", ".env.development"])
-        XCTAssertTrue(result.errors.isEmpty)
-        XCTAssertTrue(fileExists(".env"))
-        XCTAssertTrue(fileExists(".env.local"))
-        XCTAssertFalse(fileExists("README.md"))
+        #expect(Set(result.copiedFiles) == [".env", ".env.local", ".env.development"])
+        #expect(result.errors.isEmpty)
+        #expect(fileExists(".env"))
+        #expect(fileExists(".env.local"))
+        #expect(false == fileExists("README.md"))
     }
 
-    func testLegacyFallback_copiesNestedEnvFiles() {
+    @Test func legacyFallback_copiesNestedEnvFiles() {
         createFile(".env")
         createFile("apps/web/.env.local")
         createFile("packages/api/.env.development")
 
         let result = sut.copyFiles(from: repoDir, to: worktreeDir)
 
-        XCTAssertEqual(result.copiedFiles.count, 3)
-        XCTAssertTrue(fileExists("apps/web/.env.local"))
-        XCTAssertTrue(fileExists("packages/api/.env.development"))
+        #expect(result.copiedFiles.count == 3)
+        #expect(fileExists("apps/web/.env.local"))
+        #expect(fileExists("packages/api/.env.development"))
     }
 
-    func testLegacyFallback_skipsExcludedDirs() {
+    @Test func legacyFallback_skipsExcludedDirs() {
         createFile(".env")
         createFile("node_modules/.env")
         createFile(".git/.env")
@@ -88,35 +82,32 @@ final class WorktreeFileCopierTests: XCTestCase {
 
         let result = sut.copyFiles(from: repoDir, to: worktreeDir)
 
-        XCTAssertEqual(result.copiedFiles, [".env"])
+        #expect(result.copiedFiles == [".env"])
     }
 
-    func testLegacyFallback_noEnvFiles_returnsEmpty() {
+    @Test func legacyFallback_noEnvFiles_returnsEmpty() {
         createFile("README.md")
         createFile("src/main.swift")
 
         let result = sut.copyFiles(from: repoDir, to: worktreeDir)
 
-        XCTAssertTrue(result.copiedFiles.isEmpty)
-        XCTAssertTrue(result.errors.isEmpty)
+        #expect(result.copiedFiles.isEmpty)
+        #expect(result.errors.isEmpty)
     }
 
-    func testLegacyFallback_skipsExistingFiles() {
+    @Test func legacyFallback_skipsExistingFiles() {
         createFile(".env", content: "SOURCE")
         createFile(".env", in: worktreeDir, content: "EXISTING")
 
         let result = sut.copyFiles(from: repoDir, to: worktreeDir)
 
-        XCTAssertTrue(result.copiedFiles.isEmpty)
-        // Verify existing file was NOT overwritten
+        #expect(result.copiedFiles.isEmpty)
         let destPath = (worktreeDir as NSString).appendingPathComponent(".env")
         let content = try! String(contentsOfFile: destPath)
-        XCTAssertEqual(content, "EXISTING")
+        #expect(content == "EXISTING")
     }
 
-    // MARK: - .worktreeinclude — Basic Patterns
-
-    func testWorktreeInclude_simpleFilenamePattern() {
+    @Test func worktreeInclude_simpleFilenamePattern() {
         createWorktreeInclude(".env*")
         createFile(".env")
         createFile(".env.local")
@@ -124,11 +115,11 @@ final class WorktreeFileCopierTests: XCTestCase {
 
         let result = sut.copyFiles(from: repoDir, to: worktreeDir)
 
-        XCTAssertEqual(Set(result.copiedFiles), [".env", ".env.local"])
-        XCTAssertFalse(fileExists("README.md"))
+        #expect(Set(result.copiedFiles) == [".env", ".env.local"])
+        #expect(false == fileExists("README.md"))
     }
 
-    func testWorktreeInclude_filenamePatternMatchesNestedFiles() {
+    @Test func worktreeInclude_filenamePatternMatchesNestedFiles() {
         createWorktreeInclude(".env*")
         createFile(".env")
         createFile("apps/web/.env.local")
@@ -136,12 +127,12 @@ final class WorktreeFileCopierTests: XCTestCase {
 
         let result = sut.copyFiles(from: repoDir, to: worktreeDir)
 
-        XCTAssertEqual(result.copiedFiles.count, 3)
-        XCTAssertTrue(fileExists("apps/web/.env.local"))
-        XCTAssertTrue(fileExists("deep/nested/path/.env.production"))
+        #expect(result.copiedFiles.count == 3)
+        #expect(fileExists("apps/web/.env.local"))
+        #expect(fileExists("deep/nested/path/.env.production"))
     }
 
-    func testWorktreeInclude_exactPathPattern() {
+    @Test func worktreeInclude_exactPathPattern() {
         createWorktreeInclude("config/local.yml")
         createFile("config/local.yml")
         createFile("config/production.yml")
@@ -149,10 +140,10 @@ final class WorktreeFileCopierTests: XCTestCase {
 
         let result = sut.copyFiles(from: repoDir, to: worktreeDir)
 
-        XCTAssertEqual(result.copiedFiles, ["config/local.yml"])
+        #expect(result.copiedFiles == ["config/local.yml"])
     }
 
-    func testWorktreeInclude_doubleStarPattern() {
+    @Test func worktreeInclude_doubleStarPattern() {
         createWorktreeInclude("**/*.local.json")
         createFile("settings.local.json")
         createFile("config/db.local.json")
@@ -161,27 +152,25 @@ final class WorktreeFileCopierTests: XCTestCase {
 
         let result = sut.copyFiles(from: repoDir, to: worktreeDir)
 
-        XCTAssertEqual(Set(result.copiedFiles), [
+        #expect(Set(result.copiedFiles) == [
             "config/db.local.json",
             "deep/nested/app.local.json",
             "settings.local.json"
         ])
-        XCTAssertFalse(fileExists("config/db.production.json"))
+        #expect(false == fileExists("config/db.production.json"))
     }
 
-    func testWorktreeInclude_vscodeSettingsPattern() {
+    @Test func worktreeInclude_vscodeSettingsPattern() {
         createWorktreeInclude(".vscode/settings.json")
         createFile(".vscode/settings.json")
         createFile(".vscode/extensions.json")
 
         let result = sut.copyFiles(from: repoDir, to: worktreeDir)
 
-        XCTAssertEqual(result.copiedFiles, [".vscode/settings.json"])
+        #expect(result.copiedFiles == [".vscode/settings.json"])
     }
 
-    // MARK: - .worktreeinclude — Multiple Patterns
-
-    func testWorktreeInclude_multiplePatterns() {
+    @Test func worktreeInclude_multiplePatterns() {
         createWorktreeInclude("""
         .env*
         config/local.yml
@@ -199,7 +188,7 @@ final class WorktreeFileCopierTests: XCTestCase {
 
         let result = sut.copyFiles(from: repoDir, to: worktreeDir)
 
-        XCTAssertEqual(Set(result.copiedFiles), [
+        #expect(Set(result.copiedFiles) == [
             ".env",
             ".env.local",
             ".vscode/settings.json",
@@ -208,9 +197,7 @@ final class WorktreeFileCopierTests: XCTestCase {
         ])
     }
 
-    // MARK: - .worktreeinclude — Comments & Blank Lines
-
-    func testWorktreeInclude_ignoresCommentsAndBlankLines() {
+    @Test func worktreeInclude_ignoresCommentsAndBlankLines() {
         createWorktreeInclude("""
         # This is a comment
         .env*
@@ -225,23 +212,21 @@ final class WorktreeFileCopierTests: XCTestCase {
 
         let result = sut.copyFiles(from: repoDir, to: worktreeDir)
 
-        XCTAssertEqual(Set(result.copiedFiles), [".env", "config/local.yml"])
+        #expect(Set(result.copiedFiles) == [".env", "config/local.yml"])
     }
 
-    // MARK: - .worktreeinclude — Empty File
-
-    func testWorktreeInclude_emptyFile_copiesNothing() {
+    @Test func worktreeInclude_emptyFile_copiesNothing() {
         createWorktreeInclude("")
         createFile(".env")
         createFile("config/local.yml")
 
         let result = sut.copyFiles(from: repoDir, to: worktreeDir)
 
-        XCTAssertTrue(result.copiedFiles.isEmpty)
-        XCTAssertTrue(result.errors.isEmpty)
+        #expect(result.copiedFiles.isEmpty)
+        #expect(result.errors.isEmpty)
     }
 
-    func testWorktreeInclude_onlyCommentsAndBlanks_copiesNothing() {
+    @Test func worktreeInclude_onlyCommentsAndBlanks_copiesNothing() {
         createWorktreeInclude("""
         # Only comments
         # No actual patterns
@@ -251,12 +236,10 @@ final class WorktreeFileCopierTests: XCTestCase {
 
         let result = sut.copyFiles(from: repoDir, to: worktreeDir)
 
-        XCTAssertTrue(result.copiedFiles.isEmpty)
+        #expect(result.copiedFiles.isEmpty)
     }
 
-    // MARK: - .worktreeinclude — Excluded Directories
-
-    func testWorktreeInclude_skipsExcludedDirs() {
+    @Test func worktreeInclude_skipsExcludedDirs() {
         createWorktreeInclude("*.json")
         createFile("config.json")
         createFile("node_modules/package.json")
@@ -265,12 +248,10 @@ final class WorktreeFileCopierTests: XCTestCase {
 
         let result = sut.copyFiles(from: repoDir, to: worktreeDir)
 
-        XCTAssertEqual(result.copiedFiles, ["config.json"])
+        #expect(result.copiedFiles == ["config.json"])
     }
 
-    // MARK: - .worktreeinclude — Skip Existing
-
-    func testWorktreeInclude_skipsExistingFiles() {
+    @Test func worktreeInclude_skipsExistingFiles() {
         createWorktreeInclude(".env*")
         createFile(".env", content: "SOURCE_VALUE")
         createFile(".env.local", content: "LOCAL_VALUE")
@@ -278,14 +259,12 @@ final class WorktreeFileCopierTests: XCTestCase {
 
         let result = sut.copyFiles(from: repoDir, to: worktreeDir)
 
-        XCTAssertEqual(result.copiedFiles, [".env.local"])
+        #expect(result.copiedFiles == [".env.local"])
         let destContent = try! String(contentsOfFile: (worktreeDir as NSString).appendingPathComponent(".env"))
-        XCTAssertEqual(destContent, "KEEP_THIS")
+        #expect(destContent == "KEEP_THIS")
     }
 
-    // MARK: - .worktreeinclude — Wildcard Path Patterns
-
-    func testWorktreeInclude_pathWithWildcard() {
+    @Test func worktreeInclude_pathWithWildcard() {
         createWorktreeInclude("config/*.yml")
         createFile("config/local.yml")
         createFile("config/production.yml")
@@ -294,10 +273,10 @@ final class WorktreeFileCopierTests: XCTestCase {
 
         let result = sut.copyFiles(from: repoDir, to: worktreeDir)
 
-        XCTAssertEqual(Set(result.copiedFiles), ["config/local.yml", "config/production.yml"])
+        #expect(Set(result.copiedFiles) == ["config/local.yml", "config/production.yml"])
     }
 
-    func testWorktreeInclude_doubleStarWithSubdir() {
+    @Test func worktreeInclude_doubleStarWithSubdir() {
         createWorktreeInclude("**/config/*.yml")
         createFile("config/local.yml")
         createFile("apps/web/config/local.yml")
@@ -306,45 +285,43 @@ final class WorktreeFileCopierTests: XCTestCase {
 
         let result = sut.copyFiles(from: repoDir, to: worktreeDir)
 
-        XCTAssertEqual(Set(result.copiedFiles), [
+        #expect(Set(result.copiedFiles) == [
             "apps/web/config/local.yml",
             "config/local.yml",
             "packages/api/config/db.yml"
         ])
     }
 
-    // MARK: - Edge Cases
-
-    func testEmptyRepository_returnsEmpty() {
+    @Test func emptyRepository_returnsEmpty() {
         let result = sut.copyFiles(from: repoDir, to: worktreeDir)
 
-        XCTAssertTrue(result.copiedFiles.isEmpty)
-        XCTAssertTrue(result.errors.isEmpty)
+        #expect(result.copiedFiles.isEmpty)
+        #expect(result.errors.isEmpty)
     }
 
-    func testNonExistentRepoPath_returnsEmpty() {
+    @Test func nonExistentRepoPath_returnsEmpty() {
         let result = sut.copyFiles(from: "/nonexistent/path", to: worktreeDir)
 
-        XCTAssertTrue(result.copiedFiles.isEmpty)
-        XCTAssertTrue(result.errors.isEmpty)
+        #expect(result.copiedFiles.isEmpty)
+        #expect(result.errors.isEmpty)
     }
 
-    func testWorktreeInclude_whitespaceOnlyLines() {
+    @Test func worktreeInclude_whitespaceOnlyLines() {
         createWorktreeInclude("   \n.env*\n   \n")
         createFile(".env")
 
         let result = sut.copyFiles(from: repoDir, to: worktreeDir)
 
-        XCTAssertEqual(result.copiedFiles, [".env"])
+        #expect(result.copiedFiles == [".env"])
     }
 
-    func testWorktreeInclude_createsIntermediateDirectories() {
+    @Test func worktreeInclude_createsIntermediateDirectories() {
         createWorktreeInclude("**/*.yml")
         createFile("a/b/c/d/config.yml")
 
         let result = sut.copyFiles(from: repoDir, to: worktreeDir)
 
-        XCTAssertEqual(result.copiedFiles, ["a/b/c/d/config.yml"])
-        XCTAssertTrue(fileExists("a/b/c/d/config.yml"))
+        #expect(result.copiedFiles == ["a/b/c/d/config.yml"])
+        #expect(fileExists("a/b/c/d/config.yml"))
     }
 }

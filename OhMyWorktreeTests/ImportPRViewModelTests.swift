@@ -1,4 +1,5 @@
-import XCTest
+import Foundation
+import Testing
 
 @testable import OhMyWorktree
 
@@ -13,8 +14,8 @@ private final class MockPRFetching: PullRequestFetching, @unchecked Sendable {
 
 // MARK: - Helpers
 
-@MainActor
-final class ImportPRViewModelTests: XCTestCase {
+@Suite(.serialized) @MainActor
+struct ImportPRViewModelTests {
 
     private func makePR(
         number: Int,
@@ -37,7 +38,7 @@ final class ImportPRViewModelTests: XCTestCase {
 
     // MARK: - Tab Filtering
 
-    func testFilteredPRs_openTab_returnsOpenNonDraftOnly() {
+    @Test func filteredPRs_openTab_returnsOpenNonDraftOnly() {
         let sut = ImportPRViewModel()
         sut.allPRs = [
             makePR(number: 1, state: .open, isDraft: false),
@@ -47,10 +48,10 @@ final class ImportPRViewModelTests: XCTestCase {
         ]
         sut.selectedTab = .open
 
-        XCTAssertEqual(sut.filteredPRs.map(\.number), [1])
+        #expect(sut.filteredPRs.map(\.number) == [1])
     }
 
-    func testFilteredPRs_draftTab_returnsDraftPRsOnly() {
+    @Test func filteredPRs_draftTab_returnsDraftPRsOnly() {
         let sut = ImportPRViewModel()
         sut.allPRs = [
             makePR(number: 1, state: .open, isDraft: false),
@@ -61,10 +62,10 @@ final class ImportPRViewModelTests: XCTestCase {
         sut.selectedTab = .draft
 
         let numbers = sut.filteredPRs.map(\.number)
-        XCTAssertEqual(Set(numbers), [2, 3])
+        #expect(Set(numbers) == [2, 3])
     }
 
-    func testFilteredPRs_closedTab_includesMergedAndClosed() {
+    @Test func filteredPRs_closedTab_includesMergedAndClosed() {
         let sut = ImportPRViewModel()
         sut.allPRs = [
             makePR(number: 1, state: .open),
@@ -74,10 +75,10 @@ final class ImportPRViewModelTests: XCTestCase {
         sut.selectedTab = .closed
 
         let numbers = sut.filteredPRs.map(\.number)
-        XCTAssertEqual(Set(numbers), [2, 3])
+        #expect(Set(numbers) == [2, 3])
     }
 
-    func testFilteredPRs_closedTab_excludesOpen() {
+    @Test func filteredPRs_closedTab_excludesOpen() {
         let sut = ImportPRViewModel()
         sut.allPRs = [
             makePR(number: 1, state: .open),
@@ -85,20 +86,20 @@ final class ImportPRViewModelTests: XCTestCase {
         ]
         sut.selectedTab = .closed
 
-        XCTAssertTrue(sut.filteredPRs.isEmpty)
+        #expect(sut.filteredPRs.isEmpty)
     }
 
-    func testFilteredPRs_emptyPRList_returnsEmpty() {
+    @Test func filteredPRs_emptyPRList_returnsEmpty() {
         let sut = ImportPRViewModel()
         sut.allPRs = []
         sut.selectedTab = .open
 
-        XCTAssertTrue(sut.filteredPRs.isEmpty)
+        #expect(sut.filteredPRs.isEmpty)
     }
 
     // MARK: - Search Filtering
 
-    func testFilteredPRs_searchByTitle_caseInsensitive() {
+    @Test func filteredPRs_searchByTitle_caseInsensitive() {
         let sut = ImportPRViewModel()
         sut.allPRs = [
             makePR(number: 1, title: "Add Dark Mode"),
@@ -107,10 +108,10 @@ final class ImportPRViewModelTests: XCTestCase {
         sut.selectedTab = .open
         sut.searchText = "dark mode"
 
-        XCTAssertEqual(sut.filteredPRs.map(\.number), [1])
+        #expect(sut.filteredPRs.map(\.number) == [1])
     }
 
-    func testFilteredPRs_searchByNumber_matchesExact() {
+    @Test func filteredPRs_searchByNumber_matchesExact() {
         let sut = ImportPRViewModel()
         sut.allPRs = [
             makePR(number: 42, title: "Something"),
@@ -120,11 +121,11 @@ final class ImportPRViewModelTests: XCTestCase {
         sut.searchText = "42"
 
         let numbers = sut.filteredPRs.map(\.number)
-        XCTAssertTrue(numbers.contains(42))
-        XCTAssertTrue(numbers.contains(142))
+        #expect(numbers.contains(42))
+        #expect(numbers.contains(142))
     }
 
-    func testFilteredPRs_searchByBranch_matchesPartial() {
+    @Test func filteredPRs_searchByBranch_matchesPartial() {
         let sut = ImportPRViewModel()
         sut.allPRs = [
             makePR(number: 1, branch: "feature/dark-mode", title: "PR 1"),
@@ -133,10 +134,10 @@ final class ImportPRViewModelTests: XCTestCase {
         sut.selectedTab = .open
         sut.searchText = "dark"
 
-        XCTAssertEqual(sut.filteredPRs.map(\.number), [1])
+        #expect(sut.filteredPRs.map(\.number) == [1])
     }
 
-    func testFilteredPRs_emptySearch_returnsAll() {
+    @Test func filteredPRs_emptySearch_returnsAll() {
         let sut = ImportPRViewModel()
         sut.allPRs = [
             makePR(number: 1),
@@ -146,21 +147,21 @@ final class ImportPRViewModelTests: XCTestCase {
         sut.selectedTab = .open
         sut.searchText = ""
 
-        XCTAssertEqual(sut.filteredPRs.count, 3)
+        #expect(sut.filteredPRs.count == 3)
     }
 
-    func testFilteredPRs_searchWithNoMatch_returnsEmpty() {
+    @Test func filteredPRs_searchWithNoMatch_returnsEmpty() {
         let sut = ImportPRViewModel()
         sut.allPRs = [makePR(number: 1, title: "Hello world")]
         sut.selectedTab = .open
         sut.searchText = "zzz"
 
-        XCTAssertTrue(sut.filteredPRs.isEmpty)
+        #expect(sut.filteredPRs.isEmpty)
     }
 
     // MARK: - Tab + Search Combined
 
-    func testFilteredPRs_tabAndSearch_bothApplied() {
+    @Test func filteredPRs_tabAndSearch_bothApplied() {
         let sut = ImportPRViewModel()
         sut.allPRs = [
             makePR(number: 1, branch: "feature/login", state: .open, isDraft: false),
@@ -171,34 +172,34 @@ final class ImportPRViewModelTests: XCTestCase {
         sut.searchText = "feature"
 
         // Only open non-draft PRs matching "feature"
-        XCTAssertEqual(sut.filteredPRs.map(\.number), [1])
+        #expect(sut.filteredPRs.map(\.number) == [1])
     }
 
     // MARK: - Initial State
 
-    func testInitialState_defaultsToOpenTab() {
+    @Test func initialState_defaultsToOpenTab() {
         let sut = ImportPRViewModel()
-        XCTAssertEqual(sut.selectedTab, .open)
+        #expect(sut.selectedTab == .open)
     }
 
-    func testInitialState_emptySearch() {
+    @Test func initialState_emptySearch() {
         let sut = ImportPRViewModel()
-        XCTAssertTrue(sut.searchText.isEmpty)
+        #expect(sut.searchText.isEmpty)
     }
 
-    func testInitialState_noSelectedPR() {
+    @Test func initialState_noSelectedPR() {
         let sut = ImportPRViewModel()
-        XCTAssertNil(sut.selectedPR)
+        #expect(sut.selectedPR == nil)
     }
 
-    func testInitialState_notLoading() {
+    @Test func initialState_notLoading() {
         let sut = ImportPRViewModel()
-        XCTAssertFalse(sut.isLoading)
+        #expect(false == sut.isLoading)
     }
 
-    func testInitialState_loadFailedFalse() {
+    @Test func initialState_loadFailedFalse() {
         let sut = ImportPRViewModel()
-        XCTAssertFalse(sut.loadFailed)
+        #expect(false == sut.loadFailed)
     }
 
     // MARK: - Search/tab clearing selectedPR
@@ -207,7 +208,7 @@ final class ImportPRViewModelTests: XCTestCase {
 
     // MARK: - loadPRs (RED: drives protocol injection and loadFailed state)
 
-    func testLoadPRs_success_populatesAllPRs() async {
+    @Test func loadPRs_success_populatesAllPRs() async {
         let mock = MockPRFetching()
         mock.listResult = [makePR(number: 1), makePR(number: 2)]
         let sut = ImportPRViewModel(pullRequestService: mock)
@@ -215,11 +216,11 @@ final class ImportPRViewModelTests: XCTestCase {
 
         await sut.loadPRs()
 
-        XCTAssertEqual(sut.allPRs.count, 2)
-        XCTAssertFalse(sut.loadFailed)
+        #expect(sut.allPRs.count == 2)
+        #expect(false == sut.loadFailed)
     }
 
-    func testLoadPRs_emptySuccess_doesNotSetLoadFailed() async {
+    @Test func loadPRs_emptySuccess_doesNotSetLoadFailed() async {
         let mock = MockPRFetching()
         mock.listResult = [] // empty but not an error
         let sut = ImportPRViewModel(pullRequestService: mock)
@@ -227,11 +228,11 @@ final class ImportPRViewModelTests: XCTestCase {
 
         await sut.loadPRs()
 
-        XCTAssertTrue(sut.allPRs.isEmpty)
-        XCTAssertFalse(sut.loadFailed)
+        #expect(sut.allPRs.isEmpty)
+        #expect(false == sut.loadFailed)
     }
 
-    func testLoadPRs_failure_setsLoadFailed() async {
+    @Test func loadPRs_failure_setsLoadFailed() async {
         let mock = MockPRFetching()
         mock.listResult = nil // nil means error
         let sut = ImportPRViewModel(pullRequestService: mock)
@@ -239,27 +240,27 @@ final class ImportPRViewModelTests: XCTestCase {
 
         await sut.loadPRs()
 
-        XCTAssertTrue(sut.loadFailed)
-        XCTAssertTrue(sut.allPRs.isEmpty)
+        #expect(sut.loadFailed)
+        #expect(sut.allPRs.isEmpty)
     }
 
-    func testLoadPRs_afterFailure_retrySuccess_clearsLoadFailed() async {
+    @Test func loadPRs_afterFailure_retrySuccess_clearsLoadFailed() async {
         let mock = MockPRFetching()
         mock.listResult = nil
         let sut = ImportPRViewModel(pullRequestService: mock)
         sut.repositoryPath = "/tmp/repo"
 
         await sut.loadPRs()
-        XCTAssertTrue(sut.loadFailed)
+        #expect(sut.loadFailed)
 
         mock.listResult = [makePR(number: 1)]
         await sut.loadPRs()
 
-        XCTAssertFalse(sut.loadFailed)
-        XCTAssertEqual(sut.allPRs.count, 1)
+        #expect(false == sut.loadFailed)
+        #expect(sut.allPRs.count == 1)
     }
 
-    func testLoadPRs_setsIsLoadingDuringFetch() async {
+    @Test func loadPRs_setsIsLoadingDuringFetch() async {
         // Verify loading state is reset after completion (loadFailed case)
         let mock = MockPRFetching()
         mock.listResult = nil
@@ -268,89 +269,81 @@ final class ImportPRViewModelTests: XCTestCase {
 
         await sut.loadPRs()
 
-        XCTAssertFalse(sut.isLoading)
+        #expect(false == sut.isLoading)
     }
 
     // MARK: - retry (RED: verifies retry() actually updates state)
 
-    func testRetry_afterFailure_updatesState() async {
+    @Test func retry_afterFailure_updatesState() async throws {
         let mock = MockPRFetching()
         mock.listResult = nil
         let sut = ImportPRViewModel(pullRequestService: mock)
         sut.repositoryPath = "/tmp/repo"
 
         await sut.loadPRs()
-        XCTAssertTrue(sut.loadFailed)
+        #expect(sut.loadFailed)
 
         // Use retry() (not direct loadPRs call) to verify it doesn't self-cancel
         mock.listResult = [makePR(number: 1)]
         sut.retry()
 
-        // Wait for the retry Task to be scheduled and complete on @MainActor.
-        // Task.sleep suspends the current task, giving the retry task a chance to run.
-        let deadline = Date().addingTimeInterval(2)
-        while (sut.loadFailed || sut.allPRs.isEmpty) && Date() < deadline {
-            try? await Task.sleep(nanoseconds: 10_000_000)
-        }
+        // Wait for the retry Task to complete
+        try await pollUntil { false == sut.loadFailed && false == sut.allPRs.isEmpty }
 
-        XCTAssertFalse(sut.loadFailed, "retry() should clear loadFailed on success")
-        XCTAssertEqual(sut.allPRs.count, 1, "retry() should populate allPRs")
+        #expect(false == sut.loadFailed, "retry() should clear loadFailed on success")
+        #expect(sut.allPRs.count == 1, "retry() should populate allPRs")
     }
 
     // MARK: - relativeTimeString (RED: drives guard for future dates)
 
-    func testRelativeTimeString_justNow_lessThan60Seconds() {
+    @Test func relativeTimeString_justNow_lessThan60Seconds() {
         let date = Date().addingTimeInterval(-30) // 30 seconds ago
-        XCTAssertEqual(date.relativeTimeString, "just now")
+        #expect(date.relativeTimeString == "just now")
     }
 
-    func testRelativeTimeString_minutes() {
+    @Test func relativeTimeString_minutes() {
         let date = Date().addingTimeInterval(-90) // 1.5 min ago
-        XCTAssertEqual(date.relativeTimeString, "1m ago")
+        #expect(date.relativeTimeString == "1m ago")
     }
 
-    func testRelativeTimeString_hours() {
+    @Test func relativeTimeString_hours() {
         let date = Date().addingTimeInterval(-7200) // 2 hours ago
-        XCTAssertEqual(date.relativeTimeString, "2h ago")
+        #expect(date.relativeTimeString == "2h ago")
     }
 
-    func testRelativeTimeString_days() {
+    @Test func relativeTimeString_days() {
         let date = Date().addingTimeInterval(-86400 * 3) // 3 days ago
-        XCTAssertEqual(date.relativeTimeString, "3d ago")
+        #expect(date.relativeTimeString == "3d ago")
     }
 
-    func testRelativeTimeString_futureDate_returnsJustNow() {
+    @Test func relativeTimeString_futureDate_returnsJustNow() {
         let futureDate = Date().addingTimeInterval(3600) // 1 hour in the future
-        XCTAssertEqual(futureDate.relativeTimeString, "just now")
+        #expect(futureDate.relativeTimeString == "just now")
     }
 
-    func testRelativeTimeString_months_usesMonthAbbreviation() {
+    @Test func relativeTimeString_months_usesMonthAbbreviation() {
         let date = Date().addingTimeInterval(-86400 * 45) // 45 days ago
-        XCTAssertEqual(date.relativeTimeString, "1mo ago")
+        #expect(date.relativeTimeString == "1mo ago")
     }
 
-    func testRelativeTimeString_oneYear_usesYearFormat() {
+    @Test func relativeTimeString_oneYear_usesYearFormat() {
         let date = Date().addingTimeInterval(-86400 * 400) // ~13 months ago
-        XCTAssertEqual(date.relativeTimeString, "1y ago")
+        #expect(date.relativeTimeString == "1y ago")
     }
 
-    func testRelativeTimeString_multipleYears_usesYearFormat() {
+    @Test func relativeTimeString_multipleYears_usesYearFormat() {
         let date = Date().addingTimeInterval(-86400 * 800) // ~2.2 years ago
-        XCTAssertEqual(date.relativeTimeString, "2y ago")
+        #expect(date.relativeTimeString == "2y ago")
     }
 
-    /// Edge case: 360 days → months=12, but days/365=0 would produce "0y ago".
-    /// Must use months/12 to correctly show "1y ago".
-    func testRelativeTimeString_360days_showsOneYear() {
-        let date = Date().addingTimeInterval(-86400 * 360) // 360 days → 12 months
-        XCTAssertEqual(date.relativeTimeString, "1y ago")
+    @Test func relativeTimeString_360days_showsOneYear() {
+        let date = Date().addingTimeInterval(-86400 * 360) // 360 days -> 12 months
+        #expect(date.relativeTimeString == "1y ago")
     }
 
     // MARK: - loadPRs generation guard (isLoading race)
 
-    /// When a second loadPRs() call invalidates the first call's generation,
-    /// the stale call must NOT set isLoading = false (it belongs to the newer call).
-    func testLoadPRs_staleCall_doesNotResetIsLoading() async {
+    @Test func loadPRs_staleCall_doesNotResetIsLoading() async throws {
         // Use a slow mock that lets us interleave two loadPRs calls.
         let slowMock = SlowPRFetching()
         let sut = ImportPRViewModel(pullRequestService: slowMock)
@@ -360,13 +353,13 @@ final class ImportPRViewModelTests: XCTestCase {
         let firstLoad = Task { @MainActor in await sut.loadPRs() }
 
         // Wait for the first load to reach the suspension point.
-        while !slowMock.isSuspended { await Task.yield() }
+        try await pollUntil { slowMock.isSuspended }
 
         // Start second load — invalidates first load's generation.
         let secondLoad = Task { @MainActor in await sut.loadPRs() }
 
         // Wait for second load to reach the suspension point.
-        while slowMock.suspendCount < 2 { await Task.yield() }
+        try await pollUntil { slowMock.suspendCount >= 2 }
 
         // Resume first call — it should see generation mismatch.
         slowMock.resume()
@@ -375,13 +368,13 @@ final class ImportPRViewModelTests: XCTestCase {
 
         // After first call returns, isLoading should still be true
         // because the second call (the valid one) is still in progress.
-        XCTAssertTrue(sut.isLoading,
-                      "Stale loadPRs call must not reset isLoading when generation mismatches")
+        #expect(sut.isLoading,
+                "Stale loadPRs call must not reset isLoading when generation mismatches")
 
         // Resume second call to clean up.
         slowMock.resume()
         await secondLoad.value
-        XCTAssertFalse(sut.isLoading)
+        #expect(false == sut.isLoading)
     }
 }
 

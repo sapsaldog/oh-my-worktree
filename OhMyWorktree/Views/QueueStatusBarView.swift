@@ -1,107 +1,18 @@
 import SwiftUI
 
 struct QueueStatusBarView: View {
-    @ObservedObject var viewModel: WorktreeListViewModel
+    var viewModel: WorktreeListViewModel
     @State private var showingQueueDetail = false
 
     var body: some View {
-        queueBar
-    }
-
-    // MARK: - Queue Bar
-
-    private var queueBar: some View {
-        let queue = viewModel.jobQueue
-        return HStack(spacing: 8) {
-            Button(action: {
-                guard queue.hasActiveJobs || queue.hasFailedJobs else { return }
-                showingQueueDetail.toggle()
-            }) {
-                HStack(spacing: 8) {
-                    if queue.hasActiveJobs {
-                        ProgressView(value: queue.progressFraction)
-                            .progressViewStyle(.linear)
-                            .frame(width: 72)
-                            .tint(.blue)
-
-                        if let desc = queue.currentJobDescription {
-                            Text(desc)
-                                .font(.system(size: 11))
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        }
-                    } else if queue.hasFailedJobs {
-                        Image(systemName: "exclamationmark.circle.fill")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.red)
-                        Text("\(queue.failedJobCount) failed (click to review)")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.red)
-                    } else {
-                        Text("No active tasks")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.tertiary)
-                    }
-                }
-            }
-            .buttonStyle(.plain)
-            .disabled(!queue.hasActiveJobs && !queue.hasFailedJobs)
-
-            Spacer()
-
-            if viewModel.repository != nil {
-                addSplitButton
-            }
-        }
-        .popover(isPresented: $showingQueueDetail, arrowEdge: .bottom) {
-            QueueDetailPopoverView(queue: queue)
-        }
-    }
-    // MARK: - Add Split Button
-
-    private var addSplitButton: some View {
-        HStack(spacing: 0) {
-            Button(action: { Task { await viewModel.addWorktree() } }) {
-                Image(systemName: "plus")
-                    .font(.system(size: 11, weight: .medium))
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 4)
-            }
-            .buttonStyle(.plain)
-            .help("New Worktree")
-            .accessibilityLabel("New Worktree")
-
-            if viewModel.isGitHubRepo {
-                Menu {
-                    Button("Import from GitHub PR…") {
-                        viewModel.isShowingImportPR = true
-                    }
-                } label: {
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 9, weight: .semibold))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 4)
-                }
-                .menuStyle(.borderlessButton)
-                .menuIndicator(.hidden)
-                .fixedSize()
-                .help("More options")
-                .accessibilityLabel("More options")
-            }
-        }
-        .background(
-            RoundedRectangle(cornerRadius: 5)
-                .stroke(Color(NSColor.separatorColor), lineWidth: 1)
-        )
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Worktree actions")
+        QueueBarView(viewModel: viewModel, showingQueueDetail: $showingQueueDetail)
     }
 }
 
 // MARK: - Queue Detail Popover
 
 struct QueueDetailPopoverView: View {
-    @ObservedObject var queue: BackgroundTaskQueue
+    var queue: BackgroundTaskQueue
 
     /// Only show actionable jobs: pending, in-progress, and failed.
     /// Completed and cancelled jobs are noise in the popover.
@@ -205,9 +116,114 @@ private struct QueueJobRowView: View {
         .opacity(job.state == .cancelled ? 0.4 : 1.0)
     }
 
-    @ViewBuilder
     private var stateIcon: some View {
-        switch job.state {
+        StateIconView(state: job.state)
+    }
+}
+
+// MARK: - Subviews
+
+private struct QueueBarView: View {
+    var viewModel: WorktreeListViewModel
+    @Binding var showingQueueDetail: Bool
+
+    var body: some View {
+        let queue = viewModel.jobQueue
+        return HStack(spacing: 8) {
+            Button(action: {
+                guard queue.hasActiveJobs || queue.hasFailedJobs else { return }
+                showingQueueDetail.toggle()
+            }) {
+                HStack(spacing: 8) {
+                    if queue.hasActiveJobs {
+                        ProgressView(value: queue.progressFraction)
+                            .progressViewStyle(.linear)
+                            .frame(width: 72)
+                            .tint(.blue)
+
+                        if let desc = queue.currentJobDescription {
+                            Text(desc)
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                    } else if queue.hasFailedJobs {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.red)
+                        Text("\(queue.failedJobCount) failed (click to review)")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.red)
+                    } else {
+                        Text("No active tasks")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            .disabled(!queue.hasActiveJobs && !queue.hasFailedJobs)
+
+            Spacer()
+
+            if viewModel.repository != nil {
+                AddSplitButtonView(viewModel: viewModel)
+            }
+        }
+        .popover(isPresented: $showingQueueDetail, arrowEdge: .bottom) {
+            QueueDetailPopoverView(queue: queue)
+        }
+    }
+}
+
+private struct AddSplitButtonView: View {
+    var viewModel: WorktreeListViewModel
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Button(action: { Task { await viewModel.addWorktree() } }) {
+                Image(systemName: "plus")
+                    .font(.system(size: 11, weight: .medium))
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+            }
+            .buttonStyle(.plain)
+            .help("New Worktree")
+            .accessibilityLabel("New Worktree")
+
+            if viewModel.isGitHubRepo {
+                Menu {
+                    Button("Import from GitHub PR…") {
+                        viewModel.isShowingImportPR = true
+                    }
+                } label: {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 9, weight: .semibold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 4)
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help("More options")
+                .accessibilityLabel("More options")
+            }
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 5)
+                .stroke(Color(NSColor.separatorColor), lineWidth: 1)
+        )
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Worktree actions")
+    }
+}
+
+private struct StateIconView: View {
+    let state: BackgroundJobState
+
+    @ViewBuilder
+    var body: some View {
+        switch state {
         case .pending:
             Image(systemName: "clock")
                 .foregroundStyle(.secondary)

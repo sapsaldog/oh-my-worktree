@@ -1,12 +1,12 @@
-import XCTest
+import Testing
 
 @testable import OhMyWorktree
 
-final class WorktreeTests: XCTestCase {
+@Suite struct WorktreeTests {
 
     // MARK: - displayName with customName
 
-    func testDisplayName_returnsCustomName_whenSet() {
+    @Test func displayName_returnsCustomName_whenSet() {
         var worktree = Worktree(
             path: "/repo/worktrees/bright-ocean",
             folderName: "bright-ocean",
@@ -15,12 +15,12 @@ final class WorktreeTests: XCTestCase {
         )
         worktree.customName = "My Feature"
 
-        XCTAssertEqual(worktree.displayName, "My Feature")
+        #expect(worktree.displayName == "My Feature")
     }
 
     // MARK: - displayName fallback
 
-    func testDisplayName_returnsBranch_whenCustomNameIsNil() {
+    @Test func displayName_returnsBranch_whenCustomNameIsNil() {
         let worktree = Worktree(
             path: "/repo/worktrees/bright-ocean",
             folderName: "bright-ocean",
@@ -28,11 +28,11 @@ final class WorktreeTests: XCTestCase {
             commitHash: "abc1234"
         )
 
-        XCTAssertNil(worktree.customName)
-        XCTAssertEqual(worktree.displayName, "feature/login")
+        #expect(worktree.customName == nil)
+        #expect(worktree.displayName == "feature/login")
     }
 
-    func testDisplayName_returnsBranch_whenCustomNameIsEmpty() {
+    @Test func displayName_returnsBranch_whenCustomNameIsEmpty() {
         var worktree = Worktree(
             path: "/repo/worktrees/bright-ocean",
             folderName: "bright-ocean",
@@ -41,12 +41,10 @@ final class WorktreeTests: XCTestCase {
         )
         worktree.customName = ""
 
-        XCTAssertEqual(worktree.displayName, "feature/login")
+        #expect(worktree.displayName == "feature/login")
     }
 
-    func testDisplayName_returnsCustomName_whenWhitespaceOnly() {
-        // Note: In practice, RepositoryStore sanitizes whitespace-only to nil.
-        // The model trusts its input and returns customName as-is.
+    @Test func displayName_returnsCustomName_whenWhitespaceOnly() {
         var worktree = Worktree(
             path: "/repo/worktrees/bright-ocean",
             folderName: "bright-ocean",
@@ -55,16 +53,16 @@ final class WorktreeTests: XCTestCase {
         )
         worktree.customName = "   "
 
-        XCTAssertEqual(worktree.displayName, "   ")
+        #expect(worktree.displayName == "   ")
     }
 
-    func testDisplayName_returnsDetached_whenNoBranchAndNoCustomName() {
+    @Test func displayName_returnsDetached_whenNoBranchAndNoCustomName() {
         let worktree = Worktree(
             path: "/repo/worktrees/bright-ocean",
             folderName: "bright-ocean",
             commitHash: "abc1234567890"
         )
 
-        XCTAssertEqual(worktree.displayName, "Detached (abc1234)")
+        #expect(worktree.displayName == "Detached (abc1234)")
     }
 }
