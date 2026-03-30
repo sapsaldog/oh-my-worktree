@@ -4,6 +4,14 @@
         <title>Oh My Worktree</title>
         <!-- Items added per release -->
         <item>
+            <title>1.3.0</title>
+            <pubDate>Sun, 29 Mar 2026 18:16:25 -0600</pubDate>
+            <sparkle:version>10</sparkle:version>
+            <sparkle:shortVersionString>1.3.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/sapsaldog/oh-my-worktree/releases/download/v1.3.0/OhMyWorktree-1.3.0.zip" length="1996709" type="application/octet-stream" sparkle:edSignature="LoCtk6ww57AzWsl+TKQAqDbCtdP6Bbovy9CATORH2BnxcBA8Pir5O8/QJXIGjMzG1c9AGWP3m0mGiepDb0AKAA=="/>
+        </item>
+        <item>
             <title>1.2.3</title>
             <pubDate>Tue, 10 Mar 2026 00:09:31 -0600</pubDate>
             <sparkle:version>9</sparkle:version>
