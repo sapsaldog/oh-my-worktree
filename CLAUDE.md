@@ -63,7 +63,7 @@ xcodebuild -project OhMyWorktree.xcodeproj -scheme OhMyWorktreeTests -destinatio
 
 - **Sparkle 2.6+** (SPM) — auto-update framework with EdDSA signing
 - **XcodeGen** — generates `.xcodeproj` from `project.yml`
-- Requires macOS 15+, Swift 6.0+, Git 2.30+
+- Requires macOS 15+, Swift 5.9+, Git 2.30+
 
 ## Project Configuration
 

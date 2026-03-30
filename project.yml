@@ -12,7 +12,7 @@ packages:
     from: "2.9.1"
 
 settings:
-  SWIFT_VERSION: "6.0"
+  SWIFT_VERSION: "5.9"
   MACOSX_DEPLOYMENT_TARGET: "15.0"
   PRODUCT_NAME: OhMyWorktree
   INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
@@ -48,7 +48,7 @@ targets:
       INFOPLIST_KEY_NSHumanReadableCopyright: ""
       ENABLE_HARDENED_RUNTIME: YES
       COMBINE_HIDPI_IMAGES: YES
-      SWIFT_VERSION: "6.0"
+      SWIFT_VERSION: "5.9"
       MACOSX_DEPLOYMENT_TARGET: "15.0"
       ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
 
