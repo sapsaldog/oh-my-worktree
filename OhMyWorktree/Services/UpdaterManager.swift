@@ -11,15 +11,18 @@ final class UpdaterManager {
     @ObservationIgnored private var cancellable: AnyCancellable?
 
     init() {
+        let startUpdater = !AppDelegate.isRunningTests
         controller = SPUStandardUpdaterController(
-            startingUpdater: true,
+            startingUpdater: startUpdater,
             updaterDelegate: nil,
             userDriverDelegate: nil
         )
-        cancellable = controller.updater.publisher(for: \.canCheckForUpdates)
-            .sink { [weak self] value in
-                self?.canCheckForUpdates = value
-            }
+        if startUpdater {
+            cancellable = controller.updater.publisher(for: \.canCheckForUpdates)
+                .sink { [weak self] value in
+                    self?.canCheckForUpdates = value
+                }
+        }
     }
 
     func checkForUpdates() {
