@@ -781,7 +781,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.ohmyworktree.OhMyWorktreeTests;
 				PRODUCT_MODULE_NAME = OhMyWorktreeTests;
 				SDKROOT = macosx;
-				SWIFT_VERSION = 6.0;
+				SWIFT_VERSION = 5.9;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OhMyWorktree.app/Contents/MacOS/OhMyWorktree";
 			};
 			name = Debug;
@@ -801,7 +801,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.ohmyworktree.OhMyWorktreeTests;
 				PRODUCT_MODULE_NAME = OhMyWorktreeTests;
 				SDKROOT = macosx;
-				SWIFT_VERSION = 6.0;
+				SWIFT_VERSION = 5.9;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OhMyWorktree.app/Contents/MacOS/OhMyWorktree";
 			};
 			name = Release;

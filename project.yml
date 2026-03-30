@@ -76,7 +76,10 @@ targets:
     dependencies:
       - target: OhMyWorktree
     settings:
-      SWIFT_VERSION: "6.0"
+      # Keep Swift 5 language mode for the test target to avoid runtime
+      # actor isolation crashes on CI headless environments (swift#75453).
+      # The app target uses Swift 6 for full strict concurrency.
+      SWIFT_VERSION: "5.9"
       MACOSX_DEPLOYMENT_TARGET: "15.0"
       PRODUCT_MODULE_NAME: OhMyWorktreeTests
       GENERATE_INFOPLIST_FILE: YES
