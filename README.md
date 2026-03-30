@@ -39,6 +39,12 @@ A native macOS menu bar app for managing Git worktrees with speed and elegance.
 
 Download the latest release from [GitHub Releases](https://github.com/sapsaldog/oh-my-worktree/releases). Extract the zip and move `OhMyWorktree.app` to `/Applications/`.
 
+> **Note:** Oh My Worktree is not notarized with Apple, so macOS Gatekeeper will block the first launch. To allow it:
+> 1. Open the app — macOS will show a warning dialog
+> 2. Go to **System Settings → Privacy & Security**
+> 3. Scroll down and click **"Open Anyway"** next to the Oh My Worktree message
+> 4. The app will launch normally from now on
+
 ### Build from Source
 
 1. Clone the repository:
