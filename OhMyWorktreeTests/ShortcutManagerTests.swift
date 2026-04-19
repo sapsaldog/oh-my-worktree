@@ -117,6 +117,26 @@ struct ShortcutManagerTests {
         #expect(shortcut.modifiers == [.shift, .command])
     }
 
+    // MARK: - KeyboardShortcut Helper (Worktree Context Actions)
+
+    @Test func keyboardShortcutForAction_commandP_gitPull() throws {
+        let shortcut = try #require(manager.keyboardShortcut(for: .gitPull))
+        #expect(shortcut.key == "p")
+        #expect(shortcut.modifiers == .command)
+    }
+
+    @Test func keyboardShortcutForAction_commandO_showInFinder() throws {
+        let shortcut = try #require(manager.keyboardShortcut(for: .showInFinder))
+        #expect(shortcut.key == "o")
+        #expect(shortcut.modifiers == .command)
+    }
+
+    @Test func keyboardShortcutForAction_commandC_copyPath() throws {
+        let shortcut = try #require(manager.keyboardShortcut(for: .copyPath))
+        #expect(shortcut.key == "c")
+        #expect(shortcut.modifiers == .command)
+    }
+
     // MARK: - Version Counter
 
     @Test func setCombo_incrementsVersion() {
