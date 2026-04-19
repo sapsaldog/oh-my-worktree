@@ -44,7 +44,10 @@ struct ShortcutActionTests {
         (.openVSCode, "⌘⇧V"),
         (.openCursor, "⌘⇧C"),
         (.openCmux, "⌘⇧M"),
-        (.refreshWorktrees, "⌘R")
+        (.refreshWorktrees, "⌘R"),
+        (.gitPull, "⌘P"),
+        (.showInFinder, "⌘O"),
+        (.copyPath, "⌘C")
     ])
     func specificDefaults(action: ShortcutAction, expectedCombo: String) {
         #expect(action.defaultCombo == expectedCombo)

@@ -1206,6 +1206,9 @@ Force Remove Worktree
 | `Cmd+Shift+C` | Cursor에서 열기 |
 | `Cmd+Shift+M` | CMux에서 열기 |
 | `Cmd+R` | 목록 새로고침 |
+| `Cmd+P` | 선택된 worktree에서 Git Pull (bare 제외) |
+| `Cmd+O` | 선택된 worktree를 Finder에 표시 |
+| `Cmd+C` | 선택된 worktree 경로를 클립보드에 복사 |
 
 **키보드 네비게이션**:
 - 메인 윈도우 포커스 시 Worktree 리스트가 자동으로 포커스를 받아야 함
@@ -1226,7 +1229,7 @@ Force Remove Worktree
 **컨텍스트 메뉴 단축키 표기**:
 - Worktree 컨텍스트 메뉴(우클릭)의 각 항목 옆에 해당 단축키 조합 표시
 - 사용자가 Settings에서 단축키를 변경하면 컨텍스트 메뉴 표기도 즉시 반영
-- 대상 항목: Open in iTerm/Ghostty/VSCode/Cursor/cmux, Remove Worktree 등
+- 대상 항목: Open in iTerm/Ghostty/VSCode/Cursor/cmux, Git Pull, Show in Finder, Copy Path, Remove Worktree 등
 
 **단축키 커스터마이징** (Settings > Shortcuts 탭):
 - 모든 단축키(글로벌 핫키 + 인앱 단축키) 변경 가능
@@ -2417,6 +2420,7 @@ end tell
 | 1.2.1 | 2026-02-27 | Worktree 이름 변경 (FR-030) — WorktreeMetadata에 customName 필드 추가, displayName 우선순위 로직 (customName → branch → detached), 인라인 TextField 편집 (Finder 스타일), 컨텍스트 메뉴 Rename 항목, Enter 키 트리거, 빈 문자열로 기본 표기 복귀, JSON 하위호환 | Claude Code |
 | 1.2.2 | 2026-03-09 | 백그라운드 작업 큐 및 다중 선택 일괄 삭제 (FR-031/032/033) — BackgroundTaskQueue (actor 기반), 네이티브 List 다중 선택, 컨텍스트 메뉴 일괄 Remove/Force Remove, QueueStatusBarView, AppDelegate 리팩토링, CI/CD 추가, 보안 수정 + 코드 리뷰 반영 (FR-034): loadWorktrees 이중 경로 제거, busyWorktreeIDs 캐싱(@Published 저장 프로퍼티), 에러 메시지 컨텍스트 추가, Force Remove 확인 다이얼로그, Job 배열 자동 정리(maxFailedJobs=50), macOS 시스템 알림(NotificationManager/UNUserNotificationCenter), 스트레스 테스트 추가 | Claude Code |
 | 1.2.4 | 2026-03-28 | "Quick Remove Worktree" 메뉴 추가 (FR-036) + 타임아웃 설정 (FR-037) — 기존 Remove/Force Remove 유지하면서 `FileManager.trashItem` + `git worktree prune` 방식의 세 번째 삭제 옵션 추가, node_modules 등 대량 파일 프로젝트에서 즉시 삭제 체감, 휴지통을 통한 복구 가능, `BackgroundJobKind.quickRemove` 추가, 다중 선택 일괄 지원; Settings > Advanced에 백그라운드 작업 타임아웃 설정(30~600초) 추가, 타임아웃 에러 메시지에 원인 및 해결 방법 안내 | Claude Code |
+| 1.3.1 | 2026-04-19 | Worktree 컨텍스트 메뉴 단축키 확장 (FR-012) — Git Pull(`⌘P`), Show in Finder(`⌘O`), Copy Path(`⌘C`) 단축키 기본값 추가. `ShortcutAction`에 `gitPull`/`showInFinder`/`copyPath` 케이스 3종 추가, Settings > Shortcuts 탭에서 커스터마이징 가능, 컨텍스트 메뉴에 단축키 조합 자동 표기 | Claude Code |
 
 ---
 
