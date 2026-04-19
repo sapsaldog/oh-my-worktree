@@ -207,18 +207,18 @@ struct WorktreeListView: View {
 
         if !worktree.isBare {
             Divider()
-            Button("Git Pull") { viewModel.gitPull(worktree) }
+            contextMenuButton("Git Pull", action: .gitPull) { viewModel.gitPull(worktree) }
                 .disabled(!actions.canGitPull)
         }
 
         Divider()
 
-        Button("Show in Finder") {
+        contextMenuButton("Show in Finder", action: .showInFinder) {
             NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: worktree.path)
         }
         .disabled(!actions.canShowInFinder)
 
-        Button("Copy Path") {
+        contextMenuButton("Copy Path", action: .copyPath) {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(worktree.path, forType: .string)
         }

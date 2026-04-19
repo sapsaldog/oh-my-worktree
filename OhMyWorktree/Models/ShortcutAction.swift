@@ -15,6 +15,9 @@ enum ShortcutAction: String, CaseIterable {
     case openCursor
     case openCmux
     case refreshWorktrees
+    case gitPull
+    case showInFinder
+    case copyPath
 
     /// The default key combo string for this action.
     var defaultCombo: String {
@@ -32,6 +35,9 @@ enum ShortcutAction: String, CaseIterable {
         case .openCursor: "⌘⇧C"
         case .openCmux: "⌘⇧M"
         case .refreshWorktrees: "⌘R"
+        case .gitPull: "⌘P"
+        case .showInFinder: "⌘O"
+        case .copyPath: "⌘C"
         }
     }
 
@@ -56,6 +62,9 @@ enum ShortcutAction: String, CaseIterable {
         case .openCursor: "Open in Cursor"
         case .openCmux: "Open in cmux"
         case .refreshWorktrees: "Refresh Worktrees"
+        case .gitPull: "Git Pull"
+        case .showInFinder: "Show in Finder"
+        case .copyPath: "Copy Path"
         }
     }
 

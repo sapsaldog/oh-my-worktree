@@ -17,6 +17,9 @@ All in-app shortcuts are customizable via **Settings > Shortcuts** (⌘,).
 | ⌘⌫ | Force Remove | Remove even with uncommitted changes |
 | ⇧⌘⌫ | Quick Remove | Move to Trash immediately without checks |
 | ⌘R | Refresh | Reload the worktree list |
+| ⌘P | Git Pull | Run `git pull` in the selected worktree (non-bare only) |
+| ⌘O | Show in Finder | Reveal the selected worktree in Finder |
+| ⌘C | Copy Path | Copy the selected worktree's path to the clipboard |
 | ⏎ | Rename | Edit the selected worktree's name |
 | ⎋ | Clear Selection | Deselect the current worktree |
 
