@@ -84,7 +84,11 @@ final class ExternalToolLauncher: Sendable {
             throw OhMyWorktreeError.externalToolNotFound(tool: "cmux")
         }
 
-        let socketPath = "/tmp/cmux.sock"
+        let socketPath = FileManager.default
+            .urls(for: .applicationSupportDirectory, in: .userDomainMask)
+            .first!
+            .appendingPathComponent("cmux/cmux.sock")
+            .path
 
         // If cmux is not running, launch it and wait for the socket
         if !FileManager.default.fileExists(atPath: socketPath) {
@@ -104,12 +108,39 @@ final class ExternalToolLauncher: Sendable {
         }
 
         try cmuxSocketCommand(socketPath: socketPath) { send in
-            let result = try send("new_workspace")
-            let workspaceID = result.replacingOccurrences(of: "OK ", with: "")
-            _ = try send("select_workspace \(workspaceID)")
-            _ = try send("send cd \(path)")
-            _ = try send("send_key enter")
+            try Self.runCmuxOpenProtocol(path: path, send: send)
         }
+    }
+
+    // MARK: - cmux Protocol
+
+    /// Runs the cmux socket protocol to create a new workspace and `cd` to `path`.
+    ///
+    /// All cmux command sequencing lives here so future protocol changes have a
+    /// single point of modification.
+    ///
+    /// `send` is the per-command socket round-trip: write `<cmd>\n`, wait, read OK.
+    /// `chunkSize` splits the cd command because cmux's `send` returns OK before
+    /// finishing typing — `send_key enter` arriving mid-typing drops characters.
+    /// Keeping each chunk short lets cmux drain typing within the per-command
+    /// delay.
+    static func runCmuxOpenProtocol(
+        path: String,
+        chunkSize: Int = 40,
+        send: (String) throws -> String
+    ) throws {
+        let result = try send("new_workspace")
+        let workspaceID = result.replacingOccurrences(of: "OK ", with: "")
+        _ = try send("select_workspace \(workspaceID)")
+
+        let cdCommand = "cd \(path)"
+        var index = cdCommand.startIndex
+        while index < cdCommand.endIndex {
+            let end = cdCommand.index(index, offsetBy: chunkSize, limitedBy: cdCommand.endIndex) ?? cdCommand.endIndex
+            _ = try send("send \(cdCommand[index..<end])")
+            index = end
+        }
+        _ = try send("send_key enter")
     }
 
     // MARK: - Tool Detection
