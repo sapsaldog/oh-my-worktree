@@ -84,7 +84,11 @@ final class ExternalToolLauncher: Sendable {
             throw OhMyWorktreeError.externalToolNotFound(tool: "cmux")
         }
 
-        let socketPath = "/tmp/cmux.sock"
+        let socketPath = FileManager.default
+            .urls(for: .applicationSupportDirectory, in: .userDomainMask)
+            .first!
+            .appendingPathComponent("cmux/cmux.sock")
+            .path
 
         // If cmux is not running, launch it and wait for the socket
         if !FileManager.default.fileExists(atPath: socketPath) {
