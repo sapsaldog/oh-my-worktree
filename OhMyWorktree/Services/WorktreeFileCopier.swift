@@ -13,6 +13,13 @@ final class WorktreeFileCopier {
         "dist", "build", ".next", ".nuxt", ".output"
     ]
 
+    /// A parsed `.worktreeinclude` rule.
+    /// Lines starting with `!` are negations and exclude any earlier match.
+    private struct Rule {
+        let pattern: String
+        let isNegation: Bool
+    }
+
     /// Copies files from the repository to a new worktree.
     /// If `.worktreeinclude` exists, uses its glob patterns. Otherwise falls back to `.env*` matching.
     func copyFiles(from repositoryPath: String, to worktreePath: String) -> CopyResult {
@@ -20,12 +27,12 @@ final class WorktreeFileCopier {
         var copiedFiles: [String] = []
         var errors: [String] = []
 
-        let patterns = loadPatterns(repositoryPath: repositoryPath)
+        let rules = loadRules(repositoryPath: repositoryPath)
         let matchingFiles: [String]
 
-        if let patterns {
+        if let rules {
             // .worktreeinclude exists — use its patterns (empty file = no copies)
-            matchingFiles = findMatchingFiles(in: repositoryPath, patterns: patterns)
+            matchingFiles = findMatchingFiles(in: repositoryPath, rules: rules)
         } else {
             // Legacy fallback — copy .env* files
             matchingFiles = findEnvFiles(in: repositoryPath)
@@ -52,8 +59,9 @@ final class WorktreeFileCopier {
 
     // MARK: - .worktreeinclude Parser
 
-    /// Returns parsed patterns if `.worktreeinclude` exists, or `nil` to signal legacy fallback.
-    private func loadPatterns(repositoryPath: String) -> [String]? {
+    /// Returns parsed rules if `.worktreeinclude` exists, or `nil` to signal legacy fallback.
+    /// A leading `!` flags the rule as a negation; a literal `!` filename can be escaped as `\!`.
+    private func loadRules(repositoryPath: String) -> [Rule]? {
         let filePath = (repositoryPath as NSString).appendingPathComponent(".worktreeinclude")
         guard let data = FileManager.default.contents(atPath: filePath),
               let content = String(data: data, encoding: .utf8) else {
@@ -64,12 +72,23 @@ final class WorktreeFileCopier {
             .components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty && !$0.hasPrefix("#") }
+            .map { line in
+                if line.hasPrefix("!") {
+                    return Rule(pattern: String(line.dropFirst()), isNegation: true)
+                }
+                if line.hasPrefix("\\!") {
+                    return Rule(pattern: String(line.dropFirst()), isNegation: false)
+                }
+                return Rule(pattern: line, isNegation: false)
+            }
     }
 
     // MARK: - Pattern-Based File Search
 
-    private func findMatchingFiles(in directoryPath: String, patterns: [String]) -> [String] {
-        guard !patterns.isEmpty else { return [] }
+    /// Walks the repository and applies rules in order. Files matched by an include
+    /// rule are copied unless a later negation rule (`!pattern`) excludes them.
+    private func findMatchingFiles(in directoryPath: String, rules: [Rule]) -> [String] {
+        guard !rules.isEmpty else { return [] }
 
         let fileManager = FileManager.default
         var matched: [String] = []
@@ -92,13 +111,23 @@ final class WorktreeFileCopier {
                 continue
             }
 
-            for pattern in patterns where matchesPattern(relativePath: relativePath, pattern: pattern) {
+            if shouldInclude(relativePath: relativePath, rules: rules) {
                 matched.append(relativePath)
-                break
             }
         }
 
         return matched.sorted()
+    }
+
+    /// Decides whether `relativePath` should be copied. Later rules override earlier
+    /// ones, mirroring `.gitignore` semantics so users can write `.env*` followed by
+    /// `!.env.production` to exclude a single file from a broad include.
+    private func shouldInclude(relativePath: String, rules: [Rule]) -> Bool {
+        var included = false
+        for rule in rules where matchesPattern(relativePath: relativePath, pattern: rule.pattern) {
+            included = !rule.isNegation
+        }
+        return included
     }
 
     // MARK: - fnmatch-Based Pattern Matching

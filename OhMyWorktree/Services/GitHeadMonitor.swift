@@ -1,4 +1,7 @@
 import Foundation
+import os
+
+private let logger = Logger(subsystem: "com.ohmyworktree", category: "GitHeadMonitor")
 
 /// Monitors a worktree's git HEAD file for branch changes using DispatchSource.
 /// All methods must be called from the main thread.
@@ -10,6 +13,12 @@ final class GitHeadMonitor {
     private var monitoredWorktreePath: String?
     private var pendingRestart: DispatchWorkItem?
     var onBranchChange: ((String?) -> Void)?
+
+    /// Maximum delay used by the retry backoff. The first failure schedules a 0.1s
+    /// retry; subsequent failures double up to this ceiling so we don't busy-loop
+    /// when a worktree is briefly missing (e.g. mid-rebase or mid-prune).
+    private static let maxRestartDelay: TimeInterval = 2.0
+    private var consecutiveFailures = 0
 
     // MARK: - Lifecycle
 
@@ -23,13 +32,24 @@ final class GitHeadMonitor {
     // MARK: - Public
 
     func startMonitoring(worktreePath: String) {
-        stopMonitoring()
+        stopMonitoring(resetFailures: false)
         monitoredWorktreePath = worktreePath
 
-        guard let headPath = resolveHeadPath(worktreePath: worktreePath) else { return }
+        guard let headPath = resolveHeadPath(worktreePath: worktreePath) else {
+            logger.debug("Could not resolve HEAD for worktree: \(worktreePath, privacy: .public)")
+            scheduleRestartWithBackoff()
+            return
+        }
 
         let fd = open(headPath, O_EVTONLY)
-        guard fd >= 0 else { return }
+        guard fd >= 0 else {
+            // ENOENT during a git operation is expected and self-heals on retry.
+            logger.debug("open(O_EVTONLY) failed for \(headPath, privacy: .public), errno=\(errno)")
+            scheduleRestartWithBackoff()
+            return
+        }
+
+        consecutiveFailures = 0
 
         let source = DispatchSource.makeFileSystemObjectSource(
             fileDescriptor: fd,
@@ -61,14 +81,21 @@ final class GitHeadMonitor {
     }
 
     func stopMonitoring() {
+        stopMonitoring(resetFailures: true)
+    }
+
+    // MARK: - Private
+
+    private func stopMonitoring(resetFailures: Bool) {
         pendingRestart?.cancel()
         pendingRestart = nil
         source?.cancel()
         source = nil
-        monitoredWorktreePath = nil
+        if resetFailures {
+            consecutiveFailures = 0
+            monitoredWorktreePath = nil
+        }
     }
-
-    // MARK: - Private
 
     private func scheduleRestart() {
         pendingRestart?.cancel()
@@ -79,6 +106,23 @@ final class GitHeadMonitor {
         }
         pendingRestart = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: work)
+    }
+
+    /// Used when initial setup fails (HEAD missing or open() failed). Doubles the
+    /// delay each attempt up to `maxRestartDelay` so transient errors during git
+    /// operations recover without flooding the dispatch queue.
+    private func scheduleRestartWithBackoff() {
+        pendingRestart?.cancel()
+        guard let path = monitoredWorktreePath else { return }
+
+        consecutiveFailures += 1
+        let delay = min(0.1 * pow(2.0, Double(consecutiveFailures - 1)), Self.maxRestartDelay)
+
+        let work = DispatchWorkItem { [weak self] in
+            self?.startMonitoring(worktreePath: path)
+        }
+        pendingRestart = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
     }
 
     private func resolveHeadPath(worktreePath: String) -> String? {

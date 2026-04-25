@@ -1,8 +1,59 @@
+import Foundation
 import Testing
 
 @testable import OhMyWorktree
 
 struct ExternalToolLauncherTests {
+
+    // MARK: - runProcessAsync
+
+    @Test func runProcessAsync_returnsExitCodeOnSuccess() async throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/true")
+
+        let exitCode = try await ExternalToolLauncher.runProcessAsync(process)
+
+        #expect(exitCode == 0)
+        #expect(false == process.isRunning)
+    }
+
+    @Test func runProcessAsync_returnsNonZeroExitCode() async throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/false")
+
+        let exitCode = try await ExternalToolLauncher.runProcessAsync(process)
+
+        #expect(exitCode != 0)
+    }
+
+    @Test func runProcessAsync_throwsWhenExecutableMissing() async {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/nonexistent/binary-\(UUID().uuidString)")
+
+        await #expect(throws: (any Error).self) {
+            try await ExternalToolLauncher.runProcessAsync(process)
+        }
+    }
+
+    @Test func runProcessAsync_terminatesProcessOnCancellation() async throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/sleep")
+        process.arguments = ["30"]
+
+        let task = Task {
+            try await ExternalToolLauncher.runProcessAsync(process)
+        }
+
+        // Give the child a moment to actually start before we cancel.
+        try await Task.sleep(for: .milliseconds(50))
+        task.cancel()
+
+        // The cancellation handler sends SIGTERM; the call returns the signal-derived exit code.
+        // We just need to confirm it completes (does not hang) and the process is no longer running.
+        _ = try? await task.value
+        #expect(false == process.isRunning)
+    }
+
 
     // MARK: - cmux Protocol
 

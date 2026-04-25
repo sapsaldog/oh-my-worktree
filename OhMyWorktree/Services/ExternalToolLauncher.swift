@@ -1,6 +1,8 @@
 import Foundation
 import os
 
+private let logger = Logger(subsystem: "com.ohmyworktree", category: "ExternalToolLauncher")
+
 final class ExternalToolLauncher: Sendable {
 
     // MARK: - iTerm
@@ -13,8 +15,7 @@ final class ExternalToolLauncher: Sendable {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
         process.arguments = [path, "-a", "iTerm"]
-        try process.run()
-        process.waitUntilExit()
+        try await Self.runProcessAsync(process)
     }
 
     // MARK: - Ghostty
@@ -27,8 +28,7 @@ final class ExternalToolLauncher: Sendable {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
         process.arguments = ["-a", "Ghostty", path]
-        try process.run()
-        process.waitUntilExit()
+        try await Self.runProcessAsync(process)
     }
 
     // MARK: - VSCode
@@ -48,10 +48,9 @@ final class ExternalToolLauncher: Sendable {
         process.executableURL = URL(fileURLWithPath: codePath)
         process.arguments = arguments
 
-        try process.run()
-        process.waitUntilExit()
-
-        guard process.terminationStatus == 0 else {
+        let exitCode = try await Self.runProcessAsync(process)
+        guard exitCode == 0 else {
+            logger.error("VSCode CLI exited with status \(exitCode) for path \(path, privacy: .public)")
             throw OhMyWorktreeError.commandExecutionFailed(
                 command: "code",
                 stderr: "Failed to open VSCode"
@@ -69,8 +68,7 @@ final class ExternalToolLauncher: Sendable {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
         process.arguments = [path, "-a", "Cursor"]
-        try process.run()
-        process.waitUntilExit()
+        try await Self.runProcessAsync(process)
     }
 
     // MARK: - cmux
@@ -95,8 +93,7 @@ final class ExternalToolLauncher: Sendable {
             let launchProcess = Process()
             launchProcess.executableURL = URL(fileURLWithPath: "/usr/bin/open")
             launchProcess.arguments = ["-a", "cmux"]
-            try launchProcess.run()
-            launchProcess.waitUntilExit()
+            _ = try await Self.runProcessAsync(launchProcess)
 
             try await waitForFile(atPath: socketPath, timeout: 5)
             guard FileManager.default.fileExists(atPath: socketPath) else {
@@ -240,6 +237,36 @@ final class ExternalToolLauncher: Sendable {
         }
 
         try commands(sendCommand)
+    }
+
+    // MARK: - Process Execution
+
+    /// Launches `process` and suspends the calling task until it exits, returning the
+    /// termination status. Replaces `process.run() + process.waitUntilExit()`, which
+    /// would block the calling thread (often the MainActor) for the entire child
+    /// process lifetime. Cancellation propagates to the child via SIGTERM.
+    @discardableResult
+    static func runProcessAsync(_ process: Process) async throws -> Int32 {
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Int32, Error>) in
+                // terminationHandler fires once on the Process's internal queue when the
+                // child exits. We hop off it before resuming so the continuation does not
+                // re-enter dispatch internals.
+                process.terminationHandler = { proc in
+                    continuation.resume(returning: proc.terminationStatus)
+                }
+                do {
+                    try process.run()
+                } catch {
+                    process.terminationHandler = nil
+                    continuation.resume(throwing: error)
+                }
+            }
+        } onCancel: {
+            if process.isRunning {
+                process.terminate()
+            }
+        }
     }
 
     // MARK: - File Monitoring

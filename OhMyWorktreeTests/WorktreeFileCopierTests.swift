@@ -324,4 +324,69 @@ final class WorktreeFileCopierTests {
         #expect(result.copiedFiles == ["a/b/c/d/config.yml"])
         #expect(fileExists("a/b/c/d/config.yml"))
     }
+
+    // MARK: - Negation Patterns
+
+    @Test func worktreeInclude_negation_excludesSpecificFile() {
+        createWorktreeInclude("""
+        .env*
+        !.env.production
+        """)
+        createFile(".env")
+        createFile(".env.local")
+        createFile(".env.production")
+
+        let result = sut.copyFiles(from: repoDir, to: worktreeDir)
+
+        #expect(Set(result.copiedFiles) == [".env", ".env.local"])
+        #expect(false == fileExists(".env.production"))
+    }
+
+    @Test func worktreeInclude_negation_orderMatters_lastWins() {
+        // Negation first, then re-include — final state should include the file.
+        createWorktreeInclude("""
+        !.env.production
+        .env*
+        """)
+        createFile(".env.production")
+
+        let result = sut.copyFiles(from: repoDir, to: worktreeDir)
+
+        #expect(result.copiedFiles == [".env.production"])
+    }
+
+    @Test func worktreeInclude_negation_withDoubleStar() {
+        createWorktreeInclude("""
+        **/*.json
+        !**/package-lock.json
+        """)
+        createFile("config.json")
+        createFile("apps/web/settings.json")
+        createFile("apps/web/package-lock.json")
+
+        let result = sut.copyFiles(from: repoDir, to: worktreeDir)
+
+        #expect(Set(result.copiedFiles) == ["apps/web/settings.json", "config.json"])
+        #expect(false == fileExists("apps/web/package-lock.json"))
+    }
+
+    @Test func worktreeInclude_negationWithoutMatchingInclude_copiesNothing() {
+        createWorktreeInclude("!*.env")
+        createFile(".env")
+
+        let result = sut.copyFiles(from: repoDir, to: worktreeDir)
+
+        #expect(result.copiedFiles.isEmpty)
+    }
+
+    @Test func worktreeInclude_escapedBangIsLiteralFilename() {
+        // `\!important.txt` is a literal filename (no negation), per gitignore convention.
+        createWorktreeInclude("\\!important.txt")
+        createFile("!important.txt")
+        createFile("other.txt")
+
+        let result = sut.copyFiles(from: repoDir, to: worktreeDir)
+
+        #expect(result.copiedFiles == ["!important.txt"])
+    }
 }

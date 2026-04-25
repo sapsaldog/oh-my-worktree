@@ -235,6 +235,72 @@ struct WorktreeManagerTests {
         #expect(result[0].branch == "main")
     }
 
+    @Test func listWorktrees_lockedWithReason_setsIsLocked() async throws {
+        // `git worktree list --porcelain` emits `locked <reason>` when a reason is set.
+        // We must accept both bare and reason-bearing forms.
+        mock.stub(stdout: """
+        worktree /Users/user/repo/locked-wt
+        HEAD abc1234
+        branch refs/heads/feature/locked
+        locked  manual lock to prevent prune
+
+        """)
+
+        let result = try await sut.listWorktrees(repositoryPath: "/tmp/repo")
+
+        #expect(result.count == 1)
+        #expect(result[0].isLocked)
+    }
+
+    @Test func listWorktrees_pathWithSpaces_parsesCorrectly() async throws {
+        mock.stub(stdout: """
+        worktree /Users/user/My Projects/repo with spaces
+        HEAD abc1234
+        branch refs/heads/feature/spaces
+
+        """)
+
+        let result = try await sut.listWorktrees(repositoryPath: "/tmp/repo")
+
+        #expect(result.count == 1)
+        #expect(result[0].path == "/Users/user/My Projects/repo with spaces")
+        #expect(result[0].folderName == "repo with spaces")
+        #expect(result[0].branch == "feature/spaces")
+    }
+
+    @Test func listWorktrees_trailingNoise_ignoresUnrecognizedLines() async throws {
+        // Future git versions may add new keywords; the parser must ignore them
+        // rather than throwing or corrupting state.
+        mock.stub(stdout: """
+        worktree /Users/user/repo
+        HEAD abc1234
+        branch refs/heads/main
+        somethingNew unknown-token
+        another-future-field value
+
+        """)
+
+        let result = try await sut.listWorktrees(repositoryPath: "/tmp/repo")
+
+        #expect(result.count == 1)
+        #expect(result[0].branch == "main")
+    }
+
+    @Test func listWorktrees_prunableWithoutReason_isExcluded() async throws {
+        // `prunable` may appear bare (no trailing reason).
+        mock.stub(stdout: """
+        worktree /Users/user/worktrees/stale-wt
+        HEAD abc2222
+        branch refs/heads/feature/stale
+        prunable
+
+        """)
+
+        let result = try await sut.listWorktrees(repositoryPath: "/tmp/repo")
+
+        #expect(result.isEmpty)
+    }
+
     @Test func listWorktrees_prunableAmongMultiple_onlyExcludesPrunable() async throws {
         mock.stub(stdout: """
         worktree /Users/user/repo
