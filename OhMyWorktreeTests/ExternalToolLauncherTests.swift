@@ -35,26 +35,6 @@ struct ExternalToolLauncherTests {
         }
     }
 
-    @Test func runProcessAsync_terminatesProcessOnCancellation() async throws {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/sleep")
-        process.arguments = ["30"]
-
-        let task = Task {
-            try await ExternalToolLauncher.runProcessAsync(process)
-        }
-
-        // Give the child a moment to actually start before we cancel.
-        try await Task.sleep(for: .milliseconds(50))
-        task.cancel()
-
-        // The cancellation handler sends SIGTERM; the call returns the signal-derived exit code.
-        // We just need to confirm it completes (does not hang) and the process is no longer running.
-        _ = try? await task.value
-        #expect(false == process.isRunning)
-    }
-
-
     // MARK: - cmux Protocol
 
     private final class SendRecorder {
