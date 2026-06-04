@@ -10,6 +10,9 @@ packages:
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
     from: "2.9.1"
+  KeyboardShortcuts:
+    url: https://github.com/sindresorhus/KeyboardShortcuts
+    from: "2.3.0"
 
 settings:
   SWIFT_VERSION: "5.9"
@@ -25,6 +28,7 @@ targets:
       - OhMyWorktree
     dependencies:
       - package: Sparkle
+      - package: KeyboardShortcuts
     preBuildScripts:
       - name: SwiftLint
         script: |

@@ -31,6 +31,7 @@
 		360142061D0A4B3D4350737F /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 9C6FD25E01D2C241945E1D05 /* Sparkle */; };
 		3779563B87300387488F42CB /* AppDelegate+Menu.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA7A8C9DCCF77EF800527928 /* AppDelegate+Menu.swift */; };
 		38723E3C67DD58A9D57EAD4B /* PullRequestServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 038E188FA5528808D1BCFCC7 /* PullRequestServiceTests.swift */; };
+		3A8161F0ECD8D3CF35771DB9 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 73C64DC78267A683DAC7D0AA /* KeyboardShortcuts */; };
 		3E3BC079BCB09601CF331D43 /* WorktreeListViewModelSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6460930465C1945BB9E708A7 /* WorktreeListViewModelSelectionTests.swift */; };
 		3EB8C4AB75DF90CAAA7764C0 /* AppIcon_original.svg in Resources */ = {isa = PBXBuildFile; fileRef = D8736AEED259ECCE858F5BFE /* AppIcon_original.svg */; };
 		40105D13C3D137AE3B04CBA5 /* ShortcutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4573C30ACEBDEC8AE2233B /* ShortcutManager.swift */; };
@@ -200,6 +201,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				360142061D0A4B3D4350737F /* Sparkle in Frameworks */,
+				3A8161F0ECD8D3CF35771DB9 /* KeyboardShortcuts in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -409,6 +411,7 @@
 			name = OhMyWorktree;
 			packageProductDependencies = (
 				9C6FD25E01D2C241945E1D05 /* Sparkle */,
+				73C64DC78267A683DAC7D0AA /* KeyboardShortcuts */,
 			);
 			productName = OhMyWorktree;
 			productReference = AB7DCB0D9BD7764BC9BC08F6 /* OhMyWorktree.app */;
@@ -434,6 +437,7 @@
 			mainGroup = E24E11112DD38BB9817DC8CE;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				C4B31E7E192B499F13120023 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
 				02C86F602F1495B106DDAAA6 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -851,9 +855,22 @@
 				minimumVersion = 2.9.1;
 			};
 		};
+		C4B31E7E192B499F13120023 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sindresorhus/KeyboardShortcuts";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.3.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		73C64DC78267A683DAC7D0AA /* KeyboardShortcuts */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C4B31E7E192B499F13120023 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */;
+			productName = KeyboardShortcuts;
+		};
 		9C6FD25E01D2C241945E1D05 /* Sparkle */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 02C86F602F1495B106DDAAA6 /* XCRemoteSwiftPackageReference "Sparkle" */;
