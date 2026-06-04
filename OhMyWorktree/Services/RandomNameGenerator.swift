@@ -28,16 +28,20 @@ struct RandomNameGenerator {
     static func generate(existingFolderNames: Set<String>) -> String {
         let prefix = prefixes.randomElement()!
         let suffix = suffixes.randomElement()!
-        let baseName = "\(prefix)-\(suffix)"
+        let base = "\(prefix)-\(suffix)"
+        return uniqueName(base: base, existing: existingFolderNames)
+    }
 
-        if !existingFolderNames.contains(baseName) {
-            return baseName
+    /// Resolves a unique folder name from `base`, appending `-v<N>` on collision.
+    static func uniqueName(base: String, existing: Set<String>) -> String {
+        if !existing.contains(base) {
+            return base
         }
 
         var version = 2
-        while existingFolderNames.contains("\(baseName)-v\(version)") {
+        while existing.contains("\(base)-v\(version)") {
             version += 1
         }
-        return "\(baseName)-v\(version)"
+        return "\(base)-v\(version)"
     }
 }

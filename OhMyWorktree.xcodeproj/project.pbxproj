@@ -31,11 +31,13 @@
 		360142061D0A4B3D4350737F /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 9C6FD25E01D2C241945E1D05 /* Sparkle */; };
 		3779563B87300387488F42CB /* AppDelegate+Menu.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA7A8C9DCCF77EF800527928 /* AppDelegate+Menu.swift */; };
 		38723E3C67DD58A9D57EAD4B /* PullRequestServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 038E188FA5528808D1BCFCC7 /* PullRequestServiceTests.swift */; };
+		3BBC3247544B8D9F286C8B93 /* RandomNameGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1BC128F2FE6012143E87D8B /* RandomNameGeneratorTests.swift */; };
 		3E3BC079BCB09601CF331D43 /* WorktreeListViewModelSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6460930465C1945BB9E708A7 /* WorktreeListViewModelSelectionTests.swift */; };
 		3EB8C4AB75DF90CAAA7764C0 /* AppIcon_original.svg in Resources */ = {isa = PBXBuildFile; fileRef = D8736AEED259ECCE858F5BFE /* AppIcon_original.svg */; };
 		40105D13C3D137AE3B04CBA5 /* ShortcutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4573C30ACEBDEC8AE2233B /* ShortcutManager.swift */; };
 		40504C9B5C87311686050C85 /* RandomNameGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200952D514CDC6E761D7D31 /* RandomNameGenerator.swift */; };
 		41DAD45FEC5310D0E461CE31 /* Worktree.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFE7A83D915B984C5F6EEEAC /* Worktree.swift */; };
+		4355F382303B3442CBA97AAC /* AppSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EF96FD9E0F6E62045EC48FC /* AppSettingsTests.swift */; };
 		454889617A7D8475686FA15A /* AppDelegateColdStartTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48C7BE2DF5F955131E669BE3 /* AppDelegateColdStartTests.swift */; };
 		4CB1ECCC71F07B92B6C504EB /* UpdatesSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BBF676DB7A8AE7653B7EC55 /* UpdatesSettingsView.swift */; };
 		59C9E6B4357FF5942927E09E /* ImportPRView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12A03AD181020CC2A2003500 /* ImportPRView.swift */; };
@@ -159,6 +161,7 @@
 		9BD25714038218BA848A16DA /* WorktreeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeTests.swift; sourceTree = "<group>"; };
 		9D47F034CB7C89712C2CACFD /* WorktreeManagerRemoteBranchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeManagerRemoteBranchTests.swift; sourceTree = "<group>"; };
 		9E4573C30ACEBDEC8AE2233B /* ShortcutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutManager.swift; sourceTree = "<group>"; };
+		9EF96FD9E0F6E62045EC48FC /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
 		A200952D514CDC6E761D7D31 /* RandomNameGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RandomNameGenerator.swift; sourceTree = "<group>"; };
 		A2A39FCA55BDC5AFC0131335 /* WorktreeManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeManagerTests.swift; sourceTree = "<group>"; };
 		A34554C16FE6EC54FBB5C200 /* RepositoryListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryListViewModel.swift; sourceTree = "<group>"; };
@@ -184,6 +187,7 @@
 		D367A4F79D360C4F51AA85FE /* WorktreeListViewModelEnrichmentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeListViewModelEnrichmentTests.swift; sourceTree = "<group>"; };
 		D8736AEED259ECCE858F5BFE /* AppIcon_original.svg */ = {isa = PBXFileReference; path = AppIcon_original.svg; sourceTree = "<group>"; };
 		E12BD14A8E992E6A9B4668B7 /* GitCommandExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitCommandExecutor.swift; sourceTree = "<group>"; };
+		E1BC128F2FE6012143E87D8B /* RandomNameGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RandomNameGeneratorTests.swift; sourceTree = "<group>"; };
 		E6AE572EAF819FF7917FB985 /* WorktreeListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeListView.swift; sourceTree = "<group>"; };
 		ED9DADD9588EF03FDB8DA100 /* ShortcutAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutAction.swift; sourceTree = "<group>"; };
 		F0FA705C14D042B509BA130D /* WorktreeRemovalDialogs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeRemovalDialogs.swift; sourceTree = "<group>"; };
@@ -255,6 +259,7 @@
 			isa = PBXGroup;
 			children = (
 				48C7BE2DF5F955131E669BE3 /* AppDelegateColdStartTests.swift */,
+				9EF96FD9E0F6E62045EC48FC /* AppSettingsTests.swift */,
 				CA1521E4788D6CDF1C92F4C9 /* BackgroundJobStateTests.swift */,
 				84FF3EA9723E4072334B4C6D /* BackgroundTaskQueueCallbackTests.swift */,
 				04943FBE79E108AEA932BE7A /* BackgroundTaskQueueTests.swift */,
@@ -265,6 +270,7 @@
 				D17D255D9C03D39E65FC37E5 /* MockGitExecutor.swift */,
 				C9F3D7DAE61099FF17488E05 /* PullRequestInfoTests.swift */,
 				038E188FA5528808D1BCFCC7 /* PullRequestServiceTests.swift */,
+				E1BC128F2FE6012143E87D8B /* RandomNameGeneratorTests.swift */,
 				BF799E855838610F7B5E4345 /* RepositoryListViewModelNavigationTests.swift */,
 				81C4077AB44A985FC65272E4 /* RepositoryListViewModelTests.swift */,
 				13A81FF314A143B73B1AB7C8 /* RepositoryStoreRenameTests.swift */,
@@ -506,6 +512,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				454889617A7D8475686FA15A /* AppDelegateColdStartTests.swift in Sources */,
+				4355F382303B3442CBA97AAC /* AppSettingsTests.swift in Sources */,
 				0DCEB362F2A309D8F5E5360D /* BackgroundJobStateTests.swift in Sources */,
 				BFEC814FF0CA3D4A3CAF604B /* BackgroundTaskQueueCallbackTests.swift in Sources */,
 				018CEB4BA33463D66FC56390 /* BackgroundTaskQueueTests.swift in Sources */,
@@ -516,6 +523,7 @@
 				78CA79D990B38BC4BA845726 /* MockGitExecutor.swift in Sources */,
 				A04EF872B11EC64861D1931F /* PullRequestInfoTests.swift in Sources */,
 				38723E3C67DD58A9D57EAD4B /* PullRequestServiceTests.swift in Sources */,
+				3BBC3247544B8D9F286C8B93 /* RandomNameGeneratorTests.swift in Sources */,
 				5A71C946790D3FAAC3B2AF80 /* RepositoryListViewModelNavigationTests.swift in Sources */,
 				15E1631F96D1D18F037888FE /* RepositoryListViewModelTests.swift in Sources */,
 				A00DF8B5591361457887300F /* RepositoryStoreRenameTests.swift in Sources */,
