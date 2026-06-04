@@ -1,3 +1,4 @@
+import KeyboardShortcuts
 import Testing
 
 @testable import OhMyWorktree
@@ -74,5 +75,19 @@ struct ShortcutActionTests {
     @Test(arguments: ShortcutAction.allCases)
     func allCases_haveNonEmptyDisplayNames(action: ShortcutAction) {
         #expect(action.displayName.isEmpty == false, "\(action) has empty display name")
+    }
+
+    // MARK: - defaultShortcut (KeyboardShortcuts)
+
+    @Test func defaultShortcut_inAppActions_matchCurrentDefaults() {
+        #expect(ShortcutAction.addWorktree.defaultShortcut == .init(.n, modifiers: [.command]))
+        #expect(ShortcutAction.addRepository.defaultShortcut == .init(.n, modifiers: [.command, .shift]))
+        #expect(ShortcutAction.openSettings.defaultShortcut == .init(.comma, modifiers: [.command]))
+        #expect(ShortcutAction.removeWorktree.defaultShortcut == .init(.delete, modifiers: []))
+        #expect(ShortcutAction.forceRemoveWorktree.defaultShortcut == .init(.delete, modifiers: [.command]))
+        #expect(ShortcutAction.quickRemoveWorktree.defaultShortcut == .init(.delete, modifiers: [.command, .shift]))
+        #expect(ShortcutAction.gitPull.defaultShortcut == .init(.p, modifiers: [.command]))
+        #expect(ShortcutAction.copyPath.defaultShortcut == .init(.c, modifiers: [.command]))
+        #expect(ShortcutAction.showInFinder.defaultShortcut == .init(.o, modifiers: [.command]))
     }
 }

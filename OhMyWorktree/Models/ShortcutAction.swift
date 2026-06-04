@@ -1,4 +1,5 @@
 import Foundation
+import KeyboardShortcuts
 
 /// Identifies each configurable keyboard shortcut in the app.
 enum ShortcutAction: String, CaseIterable {
@@ -71,5 +72,27 @@ enum ShortcutAction: String, CaseIterable {
     /// Whether this shortcut is a system-wide global hotkey (vs. in-app only).
     var isGlobal: Bool {
         self == .globalHotkey
+    }
+
+    /// The default shortcut for this action (KeyboardShortcuts representation).
+    var defaultShortcut: KeyboardShortcuts.Shortcut {
+        switch self {
+        case .globalHotkey: .init(.w, modifiers: [.option, .shift])
+        case .openSettings: .init(.comma, modifiers: [.command])
+        case .addRepository: .init(.n, modifiers: [.command, .shift])
+        case .addWorktree: .init(.n, modifiers: [.command])
+        case .removeWorktree: .init(.delete, modifiers: [])
+        case .forceRemoveWorktree: .init(.delete, modifiers: [.command])
+        case .quickRemoveWorktree: .init(.delete, modifiers: [.command, .shift])
+        case .openITerm: .init(.i, modifiers: [.command, .shift])
+        case .openGhostty: .init(.g, modifiers: [.command, .shift])
+        case .openVSCode: .init(.v, modifiers: [.command, .shift])
+        case .openCursor: .init(.c, modifiers: [.command, .shift])
+        case .openCmux: .init(.m, modifiers: [.command, .shift])
+        case .refreshWorktrees: .init(.r, modifiers: [.command])
+        case .gitPull: .init(.p, modifiers: [.command])
+        case .showInFinder: .init(.o, modifiers: [.command])
+        case .copyPath: .init(.c, modifiers: [.command])
+        }
     }
 }
