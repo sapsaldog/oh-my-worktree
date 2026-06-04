@@ -20,17 +20,26 @@ jobs:
         run: swiftlint lint --strict --reporter github-actions-logging
 
   test:
-    name: Build & Test
+    name: Build, Test & Coverage
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build & Test
+      - name: Coverage gate self-test
+        run: python3 scripts/check-coverage.py --self-test
+
+      - name: Build & Test (with coverage)
         run: |
           xcodebuild test \
             -project OhMyWorktree.xcodeproj \
             -scheme OhMyWorktreeTests \
             -destination 'platform=macOS' \
+            -enableCodeCoverage YES \
+            -derivedDataPath build/DerivedData \
+            -resultBundlePath build/CoverageResult.xcresult \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY=""
+
+      - name: Coverage gate
+        run: python3 scripts/check-coverage.py --check build/CoverageResult.xcresult
