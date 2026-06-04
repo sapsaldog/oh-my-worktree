@@ -194,45 +194,53 @@ for each `OpenMode` by asserting on a recording fake runner. The real
 
 ### Nondeterministic coverage (flaky quarantine)
 
-**Finding (Phase 0, evidence-based):** coverage of the async services is
-**nondeterministic** across runs — even with `-parallel-testing-enabled NO`.
-Measured covered-line counts for `BackgroundTaskQueue.swift` over three runs:
-266, 274, 284 (of 304) — a ±18-line (~6 pp) swing. `WorktreeManager(+GitOps)`,
-`OhMyWorktreeError`, and a couple of others vary similarly. Root cause: these
-tests exercise **concurrency races** (`withJobTimeout` timeout paths,
-`rapidEnqueueAndCancelAll` cancellation races). `await waitUntilIdle()` /
-`await confirmation` drain the queue but cannot pin down *which internal lines*
-run — that depends on the scheduler. Deterministic 100% on these files requires
-injecting a controllable clock/scheduler seam (P3-level work).
+**Finding (Phase 0, evidence-based):** line coverage for files exercised through
+async/concurrency/system paths is both **nondeterministic across runs** and
+**non-portable between environments** (local vs CI on Xcode 16.4, headless).
+Evidence:
 
-A strict gate cannot sit on nondeterministic coverage: a "100%" file that
-occasionally drops a line would flake CI red. **Decision: quarantine the flaky
-files for Phase 0, fix determinism later.**
+- *Run-to-run (CI, 3 runs):* `BackgroundTaskQueue` 266–284/304; `Repository`
+  7–10/10; `WorktreeListViewModel` 334–338/482; `GitCommandExecutor` 189–190/200.
+- *Local vs CI:* `Worktree` 84% local but 51.5% CI; `ExternalToolLauncher`/
+  `WorktreeListViewModel+ExternalTools` near-0% on CI (external tools absent).
 
-- Flaky files go in `coverage-exclude.txt` under a clearly separated section:
+Root cause: these tests exercise **concurrency races** (`withJobTimeout` timeout
+paths, `rapidEnqueueAndCancelAll` cancellation) and **system/external paths**.
+`await waitUntilIdle()` / `await confirmation` drain the queue but cannot pin
+down *which internal lines* run — that depends on the scheduler and the host
+environment. Deterministic, portable 100% on these files requires injecting
+controllable clock/scheduler/process seams (P3-level work). A locally-stable
+baseline (6 same-machine runs) was **not** enough — only CI runs revealed the
+divergence. Lesson: characterize variance in CI's environment, not just locally.
 
-  ```
-  # Flaky coverage — nondeterministic across runs (concurrency races).
-  # TEMPORARY: remove each entry when its tests are made deterministic
-  # (inject a clock/scheduler seam) and the file reaches 100%. See P2/P3.
-  OhMyWorktree/Services/BackgroundTaskQueue.swift
-  OhMyWorktree/Services/WorktreeManager.swift
-  OhMyWorktree/Services/WorktreeManager+GitOps.swift
-  ...
-  ```
+A strict gate cannot sit on this: a floor set above what CI measures (or above a
+future run) flakes CI red. **Decision: quarantine the affected files for Phase 0;
+fix determinism/portability later.**
 
-- The exact quarantine set is determined empirically: run the coverage build
-  N times (N ≥ 4) in CI's mode (default parallel) and quarantine **every file
-  whose covered-line count varies** across runs. Files with a constant count are
-  treated as deterministic (exact debt floors / 100%).
-- The gate then enforces the ratchet on the deterministic majority (~50 files)
-  and stays green and stable.
-- **Exit:** in P2/P3, when a quarantined file's async tests are made
-  deterministic (clock/scheduler injection) and the file hits 100%, remove it
-  from the flaky section. The lock (`coverage-debt.json` empty) only counts the
-  non-excluded set, so the flaky quarantine must be emptied before the project
-  can claim true 100% over the async services. Document remaining quarantine
-  entries as known debt.
+- Quarantined files go in `coverage-exclude.txt` under a clearly separated,
+  TEMPORARY section. Two causes are documented: (a) varies run-to-run on CI,
+  (b) stable but much lower on CI than locally. Phase-0 quarantine (11 files):
+  `BackgroundTaskQueue`, `HotkeyManager`, `WorktreeManager`,
+  `WorktreeManager+GitOps`, `OhMyWorktreeError`, `Repository`,
+  `GitCommandExecutor`, `WorktreeListViewModel`, `Worktree`,
+  `ExternalToolLauncher`, `WorktreeListViewModel+ExternalTools`.
+- **Quarantine rule:** quarantine a file if its covered-line count varies across
+  CI runs, OR if local coverage exceeds CI (a local-derived floor would then fail
+  CI). After quarantining the local-greater-than-CI files, every remaining gated
+  file satisfies `local ≤ CI`, so a floor derived locally is safe on CI.
+- **Floor derivation:** floors for the gated debt files are the **minimum across
+  all observed runs (6 local + 3 CI)**, floored to one decimal, and verified to
+  pass `--check` against all 9 datasets before committing. This is more
+  conservative than a single `--update`; a routine local `--update` is still safe
+  for the kept files because they satisfy `local ≤ CI`.
+- Resulting baseline: 21 gated files (8 at 100%, 13 in debt); 33 excluded
+  (17 Views, 5 AppDelegate/app, 11 quarantine). The gate is green and stable on
+  CI.
+- **Exit:** in P2/P3, when a quarantined file's tests are made deterministic and
+  portable (clock/scheduler/process injection) and it reaches 100%, remove it
+  from the quarantine. The lock (`coverage-debt.json` empty) counts only the
+  non-excluded set, so the quarantine must be emptied before the project can
+  claim true 100% over these files.
 
 ### CI integration — `.github/workflows/ci.yml`
 
