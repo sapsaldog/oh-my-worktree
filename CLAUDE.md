@@ -81,6 +81,19 @@ xcodebuild -project OhMyWorktree.xcodeproj -scheme OhMyWorktreeTests -destinatio
 - When creating a PR, use a descriptive branch name (e.g., `fix/repository-store-data-loss`) — never use the raw worktree folder name as the branch name.
 - **Before every git commit**, you MUST run `swiftlint lint` and `xcodebuild -project OhMyWorktree.xcodeproj -scheme OhMyWorktreeTests -destination 'platform=macOS' test`. Fix any failures before committing.
 
+### Code Coverage
+
+- The `OhMyWorktree.app` target is gated at **100% line coverage** over all
+  non-excluded files. CI fails when a non-excluded file drops below its floor.
+- Run the gate locally before pushing: `scripts/coverage.sh`
+- Exclusions live in `coverage-exclude.txt` (globs + reasons), including a
+  temporary "flaky" section for files with nondeterministic async coverage. The
+  transitional per-file floors live in `coverage-debt.json`; when it is empty, a
+  strict 100% lock is in force.
+- After adding tests that raise coverage, update floors with
+  `scripts/coverage.sh --update` and commit the new `coverage-debt.json`.
+- Design + rollout: `docs/superpowers/specs/2026-06-03-coverage-100-gate-design.md`.
+
 ## Release
 
 A local Claude skill at `.claude/skills/release/SKILL.md` documents the full Sparkle release workflow. Trigger with "release".
