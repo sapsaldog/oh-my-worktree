@@ -108,6 +108,62 @@ def build_debt(files, excludes):
     return dict(sorted(debt.items()))
 
 
+def repo_root():
+    return subprocess.check_output(
+        ["git", "rev-parse", "--show-toplevel"], text=True).strip()
+
+
+def run_xccov(xcresult):
+    out = subprocess.check_output(
+        ["xcrun", "xccov", "view", "--report", "--json", xcresult], text=True)
+    return json.loads(out)
+
+
+def load_text(path):
+    try:
+        with open(path) as fh:
+            return fh.read()
+    except FileNotFoundError:
+        return ""
+
+
+def load_debt(path):
+    try:
+        with open(path) as fh:
+            return json.load(fh).get("files", {})
+    except FileNotFoundError:
+        return {}
+
+
+def cmd_check(xcresult):
+    root = repo_root()
+    excludes = parse_exclude(load_text(os.path.join(root, EXCLUDE_FILE)))
+    debt = load_debt(os.path.join(root, DEBT_FILE))
+    files = parse_report(run_xccov(xcresult), TARGET, root)
+    strict = len(debt) == 0
+    failures = evaluate(files, excludes, debt, strict)
+    if failures:
+        print("Coverage gate FAILED:")
+        for line in failures:
+            print("  " + line)
+        return 1
+    mode = "strict 100% lock" if strict else f"ratchet, {len(debt)} in debt"
+    print(f"Coverage gate passed ({mode}).")
+    return 0
+
+
+def cmd_update(xcresult):
+    root = repo_root()
+    excludes = parse_exclude(load_text(os.path.join(root, EXCLUDE_FILE)))
+    files = parse_report(run_xccov(xcresult), TARGET, root)
+    debt = build_debt(files, excludes)
+    with open(os.path.join(root, DEBT_FILE), "w") as fh:
+        json.dump({"files": debt}, fh, indent=2)
+        fh.write("\n")
+    print(f"Wrote {DEBT_FILE}: {len(debt)} files in debt.")
+    return 0
+
+
 def _test_helpers():
     assert repo_relative("/a/b/c/x.swift", "/a/b/c") == "x.swift"
     assert repo_relative("/a/b/c/d/x.swift", "/a/b/c/") == "d/x.swift"
@@ -183,6 +239,10 @@ def self_test():
 def main(argv):
     if "--self-test" in argv:
         return self_test()
+    if "--update" in argv:
+        return cmd_update(argv[argv.index("--update") + 1])
+    if "--check" in argv:
+        return cmd_check(argv[argv.index("--check") + 1])
     print(__doc__)
     return 2
 
