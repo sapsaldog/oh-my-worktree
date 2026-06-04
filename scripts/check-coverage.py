@@ -63,7 +63,7 @@ def parse_report(report, target_name, root):
                 "relpath": repo_relative(f["path"], root),
                 "executable": f["executableLines"],
                 "covered": f["coveredLines"],
-                "percent": f.get("lineCoverage", 0.0) * 100.0,
+                "percent": f["lineCoverage"] * 100.0,
             })
     return files
 
@@ -239,10 +239,14 @@ def self_test():
 def main(argv):
     if "--self-test" in argv:
         return self_test()
-    if "--update" in argv:
-        return cmd_update(argv[argv.index("--update") + 1])
-    if "--check" in argv:
-        return cmd_check(argv[argv.index("--check") + 1])
+    for flag, handler in (("--update", cmd_update), ("--check", cmd_check)):
+        if flag in argv:
+            idx = argv.index(flag)
+            if idx + 1 >= len(argv):
+                print(f"error: {flag} requires an <xcresult> path",
+                      file=sys.stderr)
+                return 2
+            return handler(argv[idx + 1])
     print(__doc__)
     return 2
 
