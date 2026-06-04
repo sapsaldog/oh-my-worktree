@@ -3,88 +3,11 @@ import Testing
 
 @testable import OhMyWorktree
 
-// MARK: - Mock
-
-private final class MockGitCommandExecutor: GitCommandExecuting, @unchecked Sendable {
-    var results: [(command: String, arguments: [String], result: Result<CommandResult, Error>)] = []
-
-    func execute(command: String, arguments: [String], workingDirectory: String?) async throws -> CommandResult {
-        for entry in results {
-            if entry.command == command && entry.arguments == arguments {
-                return try entry.result.get()
-            }
-        }
-        return CommandResult(stdout: "", stderr: "not configured", exitCode: 1)
-    }
-
-    func stubGitConfig(remoteURL: String) {
-        results.append((
-            command: "/usr/bin/git",
-            arguments: ["config", "--get", "remote.origin.url"],
-            result: .success(CommandResult(stdout: remoteURL, stderr: "", exitCode: 0))
-        ))
-    }
-
-    func stubGitConfigFailure() {
-        results.append((
-            command: "/usr/bin/git",
-            arguments: ["config", "--get", "remote.origin.url"],
-            result: .success(CommandResult(stdout: "", stderr: "error", exitCode: 1))
-        ))
-    }
-
-    func stubGhPrList(json: String, ghPath: String = "/usr/local/bin/gh") {
-        results.append((
-            command: ghPath,
-            arguments: ["pr", "list", "--json", "number,url,headRefName,state", "--state", "all", "--limit", "100"],
-            result: .success(CommandResult(stdout: json, stderr: "", exitCode: 0))
-        ))
-    }
-
-    func stubGhPrListFailure(ghPath: String = "/usr/local/bin/gh") {
-        results.append((
-            command: ghPath,
-            arguments: ["pr", "list", "--json", "number,url,headRefName,state", "--state", "all", "--limit", "100"],
-            result: .success(CommandResult(stdout: "", stderr: "error", exitCode: 1))
-        ))
-    }
-
-    func stubGhPrListThrows(ghPath: String = "/usr/local/bin/gh") {
-        results.append((
-            command: ghPath,
-            arguments: ["pr", "list", "--json", "number,url,headRefName,state", "--state", "all", "--limit", "100"],
-            result: .failure(NSError(domain: "test", code: 1, userInfo: [NSLocalizedDescriptionKey: "connection failed"]))
-        ))
-    }
-
-    // Stubs for fetchPullRequestList (FR-031)
-    func stubGhPrListFull(json: String, ghPath: String = "/usr/local/bin/gh") {
-        results.append((
-            command: ghPath,
-            arguments: [
-                "pr", "list", "--json",
-                "number,url,headRefName,state,title,author,updatedAt,isDraft",
-                "--state", "all", "--limit", "100"
-            ],
-            result: .success(CommandResult(stdout: json, stderr: "", exitCode: 0))
-        ))
-    }
-
-    func stubGhPrListFullFailure(ghPath: String = "/usr/local/bin/gh") {
-        results.append((
-            command: ghPath,
-            arguments: [
-                "pr", "list", "--json",
-                "number,url,headRefName,state,title,author,updatedAt,isDraft",
-                "--state", "all", "--limit", "100"
-            ],
-            result: .success(CommandResult(stdout: "", stderr: "error", exitCode: 1))
-        ))
-    }
-}
-
-// MARK: - Tests
-
+// Tests for `PullRequestService.fetchPullRequests` (branch-keyed dictionary),
+// GitHub detection, gh-availability, and protocol-extension defaults.
+// The shared MockGitCommandExecutor lives in MockPRGitExecutor.swift.
+// `fetchPullRequestList` tests live in PullRequestServiceListTests.swift;
+// gh-CLI discovery tests live in PullRequestServiceDiscoveryTests.swift.
 @Suite struct PullRequestServiceTests {
 
     private let ghPath = "/usr/local/bin/gh"
@@ -183,6 +106,18 @@ private final class MockGitCommandExecutor: GitCommandExecuting, @unchecked Send
         let mock = MockGitCommandExecutor()
         mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
         let sut = PullRequestService(gitExecutor: mock, ghCliPath: "/nonexistent/path/to/gh")
+
+        let result = await sut.fetchPullRequests(repositoryPath: "/tmp/repo")
+
+        #expect(result.isEmpty)
+    }
+
+    // Resolver returns nil -> resolvedGhCliPath is nil -> the "gh not found"
+    // guard branch of fetchPullRequests runs (deterministic, no real gh).
+    @Test func fetchPullRequests_whenGhUnresolved_returnsEmpty() async {
+        let mock = MockGitCommandExecutor()
+        mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
+        let sut = PullRequestService(gitExecutor: mock, ghCliResolver: { nil })
 
         let result = await sut.fetchPullRequests(repositoryPath: "/tmp/repo")
 
@@ -351,148 +286,45 @@ private final class MockGitCommandExecutor: GitCommandExecuting, @unchecked Send
         #expect(false == result)
     }
 
-    // MARK: - fetchPullRequestList (FR-031)
+    // MARK: - isGitHubRepository error path
 
-    @Test func fetchPullRequestList_withValidJSON_parsesAllFields() async throws {
+    @Test func fetchPullRequests_whenGitConfigThrows_returnsEmpty() async {
         let mock = MockGitCommandExecutor()
-        mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
-        mock.stubGhPrListFull(json: """
-        [{
-            "number": 42,
-            "url": "https://github.com/user/repo/pull/42",
-            "headRefName": "feature/dark-mode",
-            "state": "OPEN",
-            "title": "Add dark mode support",
-            "author": {"login": "alice"},
-            "updatedAt": "2024-01-15T10:30:00Z",
-            "isDraft": false
-        }]
-        """)
+        mock.stubGitConfigThrows()
         let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
 
-        let rawResult = await sut.fetchPullRequestList(repositoryPath: "/tmp/repo")
-        let result = try #require(rawResult)
+        let result = await sut.fetchPullRequests(repositoryPath: "/tmp/repo")
 
-        #expect(result.count == 1)
-        let pr = result[0]
-        #expect(pr.number == 42)
-        #expect(pr.branch == "feature/dark-mode")
-        #expect(pr.title == "Add dark mode support")
-        #expect(pr.author == "alice")
-        #expect(pr.state == .open)
-        #expect(false == pr.isDraft)
-        #expect(pr.updatedAt != nil)
+        #expect(result.isEmpty)
     }
 
-    @Test func fetchPullRequestList_withDraftPR_setsDraftFlag() async throws {
+    @Test func isGitHubAvailable_whenGitConfigThrows_returnsFalse() async {
         let mock = MockGitCommandExecutor()
-        mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
-        mock.stubGhPrListFull(json: """
-        [{
-            "number": 7,
-            "url": "https://github.com/user/repo/pull/7",
-            "headRefName": "wip/feature",
-            "state": "OPEN",
-            "title": "WIP: new feature",
-            "author": {"login": "bob"},
-            "updatedAt": null,
-            "isDraft": true
-        }]
-        """)
-        let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
+        mock.stubGitConfigThrows()
+        let sut = PullRequestService(gitExecutor: mock, ghCliPath: "/bin/sh")
 
-        let rawResult = await sut.fetchPullRequestList(repositoryPath: "/tmp/repo")
-        let result = try #require(rawResult)
+        let result = await sut.isGitHubAvailable(repositoryPath: "/tmp/repo")
 
-        #expect(result.count == 1)
-        #expect(result[0].isDraft)
+        #expect(false == result)
     }
 
-    @Test func fetchPullRequestList_withMissingAuthor_usesEmptyString() async throws {
-        let mock = MockGitCommandExecutor()
-        mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
-        mock.stubGhPrListFull(json: """
-        [{
-            "number": 1,
-            "url": "https://github.com/user/repo/pull/1",
-            "headRefName": "main",
-            "state": "OPEN",
-            "title": "No author",
-            "updatedAt": null,
-            "isDraft": false
-        }]
-        """)
-        let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
+    // MARK: - PullRequestFetching protocol-extension defaults
 
-        let rawResult = await sut.fetchPullRequestList(repositoryPath: "/tmp/repo")
-        let result = try #require(rawResult)
-
-        #expect(result.count == 1)
-        #expect(result[0].author == "")
+    /// A conformer that implements only the required method, so the
+    /// `fetchPullRequestList` / `isGitHubAvailable` protocol-extension defaults apply.
+    private struct DefaultOnlyFetcher: PullRequestFetching {
+        func fetchPullRequests(repositoryPath: String) async -> [String: PullRequestInfo] { [:] }
     }
 
-    @Test func fetchPullRequestList_preservesOrder() async throws {
-        let mock = MockGitCommandExecutor()
-        mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
-        mock.stubGhPrListFull(json: """
-        [
-            {"number": 10, "url": "https://github.com/user/repo/pull/10",
-             "headRefName": "a", "state": "OPEN", "title": "A",
-             "author": {"login": "a"}, "updatedAt": null, "isDraft": false},
-            {"number": 5, "url": "https://github.com/user/repo/pull/5",
-             "headRefName": "b", "state": "OPEN", "title": "B",
-             "author": {"login": "b"}, "updatedAt": null, "isDraft": false}
-        ]
-        """)
-        let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
-
-        let rawResult = await sut.fetchPullRequestList(repositoryPath: "/tmp/repo")
-        let result = try #require(rawResult)
-
-        #expect(result.count == 2)
-        #expect(result[0].number == 10)
-        #expect(result[1].number == 5)
-    }
-
-    @Test func fetchPullRequestList_withNonGitHubRemote_returnsNil() async {
-        let mock = MockGitCommandExecutor()
-        mock.stubGitConfig(remoteURL: "git@gitlab.com:user/repo.git")
-        let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
-
-        let result = await sut.fetchPullRequestList(repositoryPath: "/tmp/repo")
-
+    @Test func protocolDefault_fetchPullRequestList_returnsNil() async {
+        let fetcher = DefaultOnlyFetcher()
+        let result = await fetcher.fetchPullRequestList(repositoryPath: "/tmp/repo")
         #expect(result == nil)
     }
 
-    @Test func fetchPullRequestList_withNoGhCli_returnsNil() async {
-        let mock = MockGitCommandExecutor()
-        mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
-        let sut = PullRequestService(gitExecutor: mock, ghCliPath: "/nonexistent/gh")
-
-        let result = await sut.fetchPullRequestList(repositoryPath: "/tmp/repo")
-
-        #expect(result == nil)
-    }
-
-    @Test func fetchPullRequestList_withCommandFailure_returnsNil() async {
-        let mock = MockGitCommandExecutor()
-        mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
-        mock.stubGhPrListFullFailure()
-        let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
-
-        let result = await sut.fetchPullRequestList(repositoryPath: "/tmp/repo")
-
-        #expect(result == nil)
-    }
-
-    @Test func fetchPullRequestList_withInvalidJSON_returnsNil() async {
-        let mock = MockGitCommandExecutor()
-        mock.stubGitConfig(remoteURL: "git@github.com:user/repo.git")
-        mock.stubGhPrListFull(json: "not json")
-        let sut = PullRequestService(gitExecutor: mock, ghCliPath: ghPath)
-
-        let result = await sut.fetchPullRequestList(repositoryPath: "/tmp/repo")
-
-        #expect(result == nil)
+    @Test func protocolDefault_isGitHubAvailable_returnsFalse() async {
+        let fetcher = DefaultOnlyFetcher()
+        let result = await fetcher.isGitHubAvailable(repositoryPath: "/tmp/repo")
+        #expect(false == result)
     }
 }

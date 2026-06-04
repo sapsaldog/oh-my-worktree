@@ -22,7 +22,12 @@ actor RepositoryStore {
     private var dirtyMetadata: Bool
     private var dirtyOverrides: Bool
 
-    private nonisolated var storageDirectory: URL {
+    /// Root directory for the JSON files. Resolved once at init so a test can
+    /// point a dedicated instance at a temp directory; production uses the real
+    /// Application Support path (see `defaultStorageDirectory`).
+    private nonisolated let storageDirectory: URL
+
+    private nonisolated static var defaultStorageDirectory: URL {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         return appSupport.appendingPathComponent("OhMyWorktree", isDirectory: true)
     }
@@ -41,11 +46,14 @@ actor RepositoryStore {
 
     // MARK: - Initialization
 
-    private init() {
+    /// - Parameter storageDirectory: where the JSON files live. Defaults to the
+    ///   real Application Support path; tests pass a temp directory. Production
+    ///   never supplies this argument, so its behavior is unchanged.
+    init(storageDirectory: URL = RepositoryStore.defaultStorageDirectory) {
         // Compute URLs locally — nonisolated computed properties reference `self`,
         // which cannot be used before all stored properties are initialized.
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let storageDir = appSupport.appendingPathComponent("OhMyWorktree", isDirectory: true)
+        let storageDir = storageDirectory
+        self.storageDirectory = storageDir
 
         if !FileManager.default.fileExists(atPath: storageDir.path) {
             try? FileManager.default.createDirectory(at: storageDir, withIntermediateDirectories: true)

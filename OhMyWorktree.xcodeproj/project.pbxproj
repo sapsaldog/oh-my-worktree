@@ -18,12 +18,15 @@
 		156C6EB8ECDE30DC56C50A6B /* Repository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C1B43B188C597C61F1DC2EA /* Repository.swift */; };
 		15E1631F96D1D18F037888FE /* RepositoryListViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81C4077AB44A985FC65272E4 /* RepositoryListViewModelTests.swift */; };
 		1C1FE0AA00CDDC453D7CD3C9 /* WorktreeManager+Parsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 480F07AB9D151580E4392F2C /* WorktreeManager+Parsing.swift */; };
+		1C95351507FFA675151C3163 /* PullRequestServiceDiscoveryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3B22EB31DE15715061325B /* PullRequestServiceDiscoveryTests.swift */; };
 		1D280B90168CDB181DC5FAE4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 73CCA7E1C1ACBAF4E4291EA8 /* Assets.xcassets */; };
 		1D5329DDE42009E76C2650C5 /* ExternalToolLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 155B3645306233DD226910E8 /* ExternalToolLauncher.swift */; };
 		1E8109BF316BBF3756D84C2D /* ExternalToolLauncherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B891A0806B6FDB6CF884972B /* ExternalToolLauncherTests.swift */; };
+		230C1FDF0298D7B6DAC12D93 /* MockPRGitExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1971E151D9F39416193D189D /* MockPRGitExecutor.swift */; };
 		23D59664983897448C98FDCB /* TestHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BB917EB3E6DA41526EE7D6D /* TestHelpers.swift */; };
 		24D6FB5B97F04ECE5DC221BF /* WorktreeManager+GitOps.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08B45C279C31CE3F9F048056 /* WorktreeManager+GitOps.swift */; };
 		28AAB167DD6C5B36997EEFDB /* ShortcutsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D6DA2DB9FCC472CF45E5EB /* ShortcutsSettingsView.swift */; };
+		2BB440E7A32A257C50FACF35 /* PullRequestServiceListTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FEE7F28B5F4C66322633BFE /* PullRequestServiceListTests.swift */; };
 		2BD7B4F6824F0432D87DE1EC /* WorktreeListViewModelEnrichmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D367A4F79D360C4F51AA85FE /* WorktreeListViewModelEnrichmentTests.swift */; };
 		2DE6E669FC57B2FFF1BB3BB4 /* HotkeyRecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92C079207B4A1020DEDB71F4 /* HotkeyRecorderView.swift */; };
 		2E75657635769738BAE6D205 /* HotkeyManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBE71833015D389E58D69922 /* HotkeyManagerTests.swift */; };
@@ -73,6 +76,7 @@
 		A7622C78F2ECEA8730DB9443 /* WorktreeMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5F0F523CFE13B485CFE49BC /* WorktreeMetadata.swift */; };
 		A9952AC5543B61C64F6B8CD7 /* WorktreeListViewModel+QuickRemove.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13D393C572C1B05B276D7B5A /* WorktreeListViewModel+QuickRemove.swift */; };
 		ADBE2761848EDD4D7448F958 /* UpdaterManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFB32A5891B624A9E58CAA49 /* UpdaterManager.swift */; };
+		B188EB19D68F3D03BAD00F25 /* RepositoryStorePersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AE5A3F13CD01DCEC78E539B /* RepositoryStorePersistenceTests.swift */; };
 		B1ED113BDF88D0A3D2A2A874 /* RepositoryListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A34554C16FE6EC54FBB5C200 /* RepositoryListViewModel.swift */; };
 		BA7B508992779E01ED6514B9 /* RepositoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DE83D40D208FBAE22E78A33 /* RepositoryStore.swift */; };
 		BE5701A4F52B99C834D7ACB5 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284A4CA5F96802A6098EA38B /* ContentView.swift */; };
@@ -119,8 +123,10 @@
 		13A81FF314A143B73B1AB7C8 /* RepositoryStoreRenameTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryStoreRenameTests.swift; sourceTree = "<group>"; };
 		13D393C572C1B05B276D7B5A /* WorktreeListViewModel+QuickRemove.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WorktreeListViewModel+QuickRemove.swift"; sourceTree = "<group>"; };
 		155B3645306233DD226910E8 /* ExternalToolLauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalToolLauncher.swift; sourceTree = "<group>"; };
+		1971E151D9F39416193D189D /* MockPRGitExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockPRGitExecutor.swift; sourceTree = "<group>"; };
 		1E244AEB611F8ACEFC7862B5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		1E37907BD97EF1278CAD9A1B /* WorktreeMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeMetadataTests.swift; sourceTree = "<group>"; };
+		1FEE7F28B5F4C66322633BFE /* PullRequestServiceListTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PullRequestServiceListTests.swift; sourceTree = "<group>"; };
 		284A4CA5F96802A6098EA38B /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		2A9067CC38D79C1B97FBAEAA /* ShortcutManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutManagerTests.swift; sourceTree = "<group>"; };
 		313E9CFB5C9B9F2E5A0F645E /* GeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsView.swift; sourceTree = "<group>"; };
@@ -147,11 +153,13 @@
 		6F7C98BC9064213F12D218E3 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		71C73C1DDF96F9DBDBE34C9D /* Date+RelativeTime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+RelativeTime.swift"; sourceTree = "<group>"; };
 		73CCA7E1C1ACBAF4E4291EA8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		7A3B22EB31DE15715061325B /* PullRequestServiceDiscoveryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PullRequestServiceDiscoveryTests.swift; sourceTree = "<group>"; };
 		7AD61EADF2DC10B783912CD1 /* KeyRecordingField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyRecordingField.swift; sourceTree = "<group>"; };
 		811A9D3615B46E7D12735276 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 		81C4077AB44A985FC65272E4 /* RepositoryListViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryListViewModelTests.swift; sourceTree = "<group>"; };
 		84FF3EA9723E4072334B4C6D /* BackgroundTaskQueueCallbackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundTaskQueueCallbackTests.swift; sourceTree = "<group>"; };
 		881A1BB15AE24772D0F82EC4 /* HotkeyRecorderViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRecorderViewModelTests.swift; sourceTree = "<group>"; };
+		8AE5A3F13CD01DCEC78E539B /* RepositoryStorePersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryStorePersistenceTests.swift; sourceTree = "<group>"; };
 		8C48E8BD55146561E170E91A /* WorktreeRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeRowView.swift; sourceTree = "<group>"; };
 		8D0B554A7A3F05F099599D36 /* GitHeadMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHeadMonitor.swift; sourceTree = "<group>"; };
 		8D4E99B69FBE28C8558EEC50 /* ImportPRViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportPRViewModelTests.swift; sourceTree = "<group>"; };
@@ -268,11 +276,15 @@
 				881A1BB15AE24772D0F82EC4 /* HotkeyRecorderViewModelTests.swift */,
 				8D4E99B69FBE28C8558EEC50 /* ImportPRViewModelTests.swift */,
 				D17D255D9C03D39E65FC37E5 /* MockGitExecutor.swift */,
+				1971E151D9F39416193D189D /* MockPRGitExecutor.swift */,
 				C9F3D7DAE61099FF17488E05 /* PullRequestInfoTests.swift */,
+				7A3B22EB31DE15715061325B /* PullRequestServiceDiscoveryTests.swift */,
+				1FEE7F28B5F4C66322633BFE /* PullRequestServiceListTests.swift */,
 				038E188FA5528808D1BCFCC7 /* PullRequestServiceTests.swift */,
 				E1BC128F2FE6012143E87D8B /* RandomNameGeneratorTests.swift */,
 				BF799E855838610F7B5E4345 /* RepositoryListViewModelNavigationTests.swift */,
 				81C4077AB44A985FC65272E4 /* RepositoryListViewModelTests.swift */,
+				8AE5A3F13CD01DCEC78E539B /* RepositoryStorePersistenceTests.swift */,
 				13A81FF314A143B73B1AB7C8 /* RepositoryStoreRenameTests.swift */,
 				C09FB0B270C86599025ECB8C /* ShortcutActionTests.swift */,
 				2A9067CC38D79C1B97FBAEAA /* ShortcutManagerTests.swift */,
@@ -521,11 +533,15 @@
 				E1248E9B4281B30736BF3F42 /* HotkeyRecorderViewModelTests.swift in Sources */,
 				BF12B0124F855ED64994FC08 /* ImportPRViewModelTests.swift in Sources */,
 				78CA79D990B38BC4BA845726 /* MockGitExecutor.swift in Sources */,
+				230C1FDF0298D7B6DAC12D93 /* MockPRGitExecutor.swift in Sources */,
 				A04EF872B11EC64861D1931F /* PullRequestInfoTests.swift in Sources */,
+				1C95351507FFA675151C3163 /* PullRequestServiceDiscoveryTests.swift in Sources */,
+				2BB440E7A32A257C50FACF35 /* PullRequestServiceListTests.swift in Sources */,
 				38723E3C67DD58A9D57EAD4B /* PullRequestServiceTests.swift in Sources */,
 				3BBC3247544B8D9F286C8B93 /* RandomNameGeneratorTests.swift in Sources */,
 				5A71C946790D3FAAC3B2AF80 /* RepositoryListViewModelNavigationTests.swift in Sources */,
 				15E1631F96D1D18F037888FE /* RepositoryListViewModelTests.swift in Sources */,
+				B188EB19D68F3D03BAD00F25 /* RepositoryStorePersistenceTests.swift in Sources */,
 				A00DF8B5591361457887300F /* RepositoryStoreRenameTests.swift in Sources */,
 				EC99BC3CAE5790CBD5D6D26E /* ShortcutActionTests.swift in Sources */,
 				FB3FF8FDBBFB2838013C6FC4 /* ShortcutManagerTests.swift in Sources */,
