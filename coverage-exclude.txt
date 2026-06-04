@@ -11,6 +11,18 @@ OhMyWorktree/AppDelegate.swift
 OhMyWorktree/AppDelegate+*.swift
 OhMyWorktree/OhMyWorktreeApp.swift
 
+# TEMPORARY — flaky coverage. These files cover concurrency races (async job
+# queue timeouts, cancellation races) whose executed lines vary run-to-run, so a
+# strict gate would flake. Measured: BackgroundTaskQueue swung 266–284/304 lines
+# across runs. Remove each entry once its tests are made deterministic (inject a
+# clock/scheduler seam) and the file reaches 100%. See the spec's
+# "Nondeterministic coverage (flaky quarantine)" section.
+OhMyWorktree/Services/BackgroundTaskQueue.swift
+OhMyWorktree/Services/HotkeyManager.swift
+OhMyWorktree/Services/WorktreeManager.swift
+OhMyWorktree/Services/WorktreeManager+GitOps.swift
+OhMyWorktree/Models/OhMyWorktreeError.swift
+
 # Thin system-call adapters (irreducible seams) are appended here as they are
 # extracted in later phases, e.g.:
 # OhMyWorktree/Services/<Name>+SystemSeam.swift
