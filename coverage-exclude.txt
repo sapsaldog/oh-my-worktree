@@ -1,0 +1,16 @@
+# Coverage exclusions — files intentionally NOT unit-tested.
+# One glob per line, relative to repo root. `dir/**` excludes a whole subtree.
+# Every entry must state a reason. See
+# docs/superpowers/specs/2026-06-03-coverage-100-gate-design.md.
+
+# SwiftUI view bodies — not unit-tested (excluded by design).
+OhMyWorktree/Views/**
+
+# Menu-bar / app lifecycle glue — requires a running NSApplication.
+OhMyWorktree/AppDelegate.swift
+OhMyWorktree/AppDelegate+*.swift
+OhMyWorktree/OhMyWorktreeApp.swift
+
+# Thin system-call adapters (irreducible seams) are appended here as they are
+# extracted in later phases, e.g.:
+# OhMyWorktree/Services/<Name>+SystemSeam.swift
