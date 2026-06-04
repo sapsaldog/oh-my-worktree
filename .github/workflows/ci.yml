@@ -30,6 +30,7 @@ jobs:
 
       - name: Build & Test (with coverage)
         run: |
+          rm -rf build/CoverageResult.xcresult
           xcodebuild test \
             -project OhMyWorktree.xcodeproj \
             -scheme OhMyWorktreeTests \

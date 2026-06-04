@@ -26,6 +26,11 @@ TARGET = "OhMyWorktree.app"
 EXCLUDE_FILE = "coverage-exclude.txt"
 DEBT_FILE = "coverage-debt.json"
 
+# The app target has ~54 source files. If xccov reports far fewer (target
+# renamed, schema drift, broken bundle), the gate must FAIL rather than pass
+# having checked nothing.
+MIN_APP_FILES = 40
+
 
 def repo_relative(path, root):
     root = root.rstrip("/") + "/"
@@ -140,7 +145,18 @@ def cmd_check(xcresult):
     root = repo_root()
     excludes = parse_exclude(load_text(os.path.join(root, EXCLUDE_FILE)))
     debt = load_debt(os.path.join(root, DEBT_FILE))
-    files = parse_report(run_xccov(xcresult), TARGET, root)
+    try:
+        report = run_xccov(xcresult)
+    except (subprocess.CalledProcessError, json.JSONDecodeError) as err:
+        print(f"error: could not read coverage from {xcresult}: {err}",
+              file=sys.stderr)
+        return 2
+    files = parse_report(report, TARGET, root)
+    if len(files) < MIN_APP_FILES:
+        print(f"error: only {len(files)} files found for target {TARGET!r} "
+              f"(expected >= {MIN_APP_FILES}) — refusing to pass vacuously; "
+              f"xccov schema drift or wrong target?", file=sys.stderr)
+        return 2
     strict = len(debt) == 0
     failures = evaluate(files, excludes, debt, strict)
     if failures:
@@ -156,7 +172,18 @@ def cmd_check(xcresult):
 def cmd_update(xcresult):
     root = repo_root()
     excludes = parse_exclude(load_text(os.path.join(root, EXCLUDE_FILE)))
-    files = parse_report(run_xccov(xcresult), TARGET, root)
+    try:
+        report = run_xccov(xcresult)
+    except (subprocess.CalledProcessError, json.JSONDecodeError) as err:
+        print(f"error: could not read coverage from {xcresult}: {err}",
+              file=sys.stderr)
+        return 2
+    files = parse_report(report, TARGET, root)
+    if len(files) < MIN_APP_FILES:
+        print(f"error: only {len(files)} files found for target {TARGET!r} "
+              f"(expected >= {MIN_APP_FILES}) — refusing to overwrite "
+              f"{DEBT_FILE}", file=sys.stderr)
+        return 2
     debt = build_debt(files, excludes)
     with open(os.path.join(root, DEBT_FILE), "w") as fh:
         json.dump({"files": debt}, fh, indent=2)
