@@ -16,6 +16,7 @@ Usage:
   check-coverage.py --self-test            run built-in unit tests (no Xcode)
 """
 import json
+import math
 import os
 import subprocess
 import sys
@@ -97,14 +98,14 @@ def evaluate(files, excludes, debt, strict):
 
 
 def build_debt(files, excludes):
-    """Snapshot every sub-100%, non-excluded file as {relpath: percent}."""
+    """Snapshot every sub-100%, non-excluded file, flooring its coverage to 1 decimal so a fresh --update always passes --check."""
     debt = {}
     for f in files:
         rp = f["relpath"]
         if is_excluded(rp, excludes):
             continue
         if f["executable"] - f["covered"] > 0:
-            debt[rp] = round(f["percent"], 1)
+            debt[rp] = math.floor(f["percent"] * 10) / 10
     return dict(sorted(debt.items()))
 
 
@@ -227,6 +228,16 @@ def _test_report_and_eval():
 
     assert build_debt(files, excludes) == {
         "OhMyWorktree/Services/S.swift": 70.0}, build_debt(files, excludes)
+
+    # build_debt must never set a floor ABOVE actual coverage, so a fresh
+    # --update always produces floors that --check accepts. round() would
+    # round 98.59% up to 98.6% and trip the gate; floor() must be used.
+    jit = [{"relpath": "OhMyWorktree/Services/J.swift", "executable": 10000,
+            "covered": 9859, "percent": 98.59}]
+    jit_debt = build_debt(jit, [])
+    assert jit_debt["OhMyWorktree/Services/J.swift"] <= 98.59 + 1e-9, jit_debt
+    assert evaluate(jit, [], jit_debt, strict=False) == [], \
+        "fresh debt floors must pass --check"
 
 
 def self_test():
