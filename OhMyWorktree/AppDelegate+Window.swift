@@ -43,8 +43,8 @@ extension AppDelegate {
             return
         }
 
-        guard let sm = shortcutManager else {
-            appDelegateLogger.warning("showOrCreateMainWindow: shortcutManager not connected")
+        guard let store = shortcutStore else {
+            appDelegateLogger.warning("showOrCreateMainWindow: shortcutStore not connected")
             return
         }
         showOrCreateWindow(
@@ -52,21 +52,21 @@ extension AppDelegate {
             size: NSSize(width: 500, height: 400)
         ) {
             ContentView(repoViewModel: repoVM, worktreeViewModel: worktreeVM)
-                .environment(sm)
+                .environment(store)
                 .frame(minWidth: 400, minHeight: 300)
         }
     }
 
     @objc func showOrCreateSettingsWindow() {
         guard let updaterManager else { return }
-        guard let shortcutManager else { return }
+        guard let shortcutStore else { return }
 
         showOrCreateWindow(
             title: Self.settingsWindowTitle,
             size: NSSize(width: 500, height: 450),
             styleMask: [.titled, .closable]
         ) {
-            SettingsView(updaterManager: updaterManager, shortcutManager: shortcutManager)
+            SettingsView(updaterManager: updaterManager, store: shortcutStore)
         }
     }
 }

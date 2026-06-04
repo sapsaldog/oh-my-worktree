@@ -20,33 +20,6 @@ enum ShortcutAction: String, CaseIterable {
     case showInFinder
     case copyPath
 
-    /// The default key combo string for this action.
-    var defaultCombo: String {
-        switch self {
-        case .globalHotkey: "⌥⇧W"
-        case .openSettings: "⌘,"
-        case .addRepository: "⌘⇧N"
-        case .addWorktree: "⌘N"
-        case .removeWorktree: "⌫"
-        case .forceRemoveWorktree: "⌘⌫"
-        case .quickRemoveWorktree: "⇧⌘⌫"
-        case .openITerm: "⌘⇧I"
-        case .openGhostty: "⌘⇧G"
-        case .openVSCode: "⌘⇧V"
-        case .openCursor: "⌘⇧C"
-        case .openCmux: "⌘⇧M"
-        case .refreshWorktrees: "⌘R"
-        case .gitPull: "⌘P"
-        case .showInFinder: "⌘O"
-        case .copyPath: "⌘C"
-        }
-    }
-
-    /// The UserDefaults key used to persist custom combos.
-    var userDefaultsKey: String {
-        "shortcut.\(rawValue)"
-    }
-
     /// Human-readable label for the Settings UI.
     var displayName: String {
         switch self {
@@ -94,5 +67,15 @@ enum ShortcutAction: String, CaseIterable {
         case .showInFinder: .init(.o, modifiers: [.command])
         case .copyPath: .init(.c, modifiers: [.command])
         }
+    }
+
+    /// The KeyboardShortcuts name backing this action.
+    /// The global hotkey reuses the dedicated `.toggleMenuBarPopup` name; in-app
+    /// actions derive a name from their raw value, seeded with the default shortcut
+    /// so the recorder shows the default until the user customizes it.
+    var name: KeyboardShortcuts.Name {
+        self == .globalHotkey
+            ? .toggleMenuBarPopup
+            : KeyboardShortcuts.Name(rawValue, default: defaultShortcut)
     }
 }

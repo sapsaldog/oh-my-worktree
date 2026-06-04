@@ -8,9 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		018CEB4BA33463D66FC56390 /* BackgroundTaskQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04943FBE79E108AEA932BE7A /* BackgroundTaskQueueTests.swift */; };
-		027FC3EDE8B7872FE5985BEC /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 357788F755345191A8549BDD /* HotkeyManager.swift */; };
 		0349E56A97431ED05B90B995 /* BackgroundTaskQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 688E52A50119AE1D61EBC870 /* BackgroundTaskQueue.swift */; };
 		069FE3565BC42960E0CFBDEA /* BackgroundJob.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E235697287DAAC0D8A697C /* BackgroundJob.swift */; };
+		0CCF5C80FFDDB22C6DD7545D /* ShortcutStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 706906842937A9C50AF83BDF /* ShortcutStore.swift */; };
 		0DCEB362F2A309D8F5E5360D /* BackgroundJobStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA1521E4788D6CDF1C92F4C9 /* BackgroundJobStateTests.swift */; };
 		14C88029029914C81941578E /* WorktreeListViewModel+ContextMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF013CC10C926B764410FBEF /* WorktreeListViewModel+ContextMenu.swift */; };
 		14E42FFD99B49D00630EA203 /* WorktreeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BD25714038218BA848A16DA /* WorktreeTests.swift */; };
@@ -25,8 +25,6 @@
 		24D6FB5B97F04ECE5DC221BF /* WorktreeManager+GitOps.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08B45C279C31CE3F9F048056 /* WorktreeManager+GitOps.swift */; };
 		28AAB167DD6C5B36997EEFDB /* ShortcutsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D6DA2DB9FCC472CF45E5EB /* ShortcutsSettingsView.swift */; };
 		2BD7B4F6824F0432D87DE1EC /* WorktreeListViewModelEnrichmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D367A4F79D360C4F51AA85FE /* WorktreeListViewModelEnrichmentTests.swift */; };
-		2DE6E669FC57B2FFF1BB3BB4 /* HotkeyRecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92C079207B4A1020DEDB71F4 /* HotkeyRecorderView.swift */; };
-		2E75657635769738BAE6D205 /* HotkeyManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBE71833015D389E58D69922 /* HotkeyManagerTests.swift */; };
 		322D1AFDBFEEBF607E12181D /* PullRequestStateIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1024573DB028DE97085DF606 /* PullRequestStateIcon.swift */; };
 		360142061D0A4B3D4350737F /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 9C6FD25E01D2C241945E1D05 /* Sparkle */; };
 		3779563B87300387488F42CB /* AppDelegate+Menu.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA7A8C9DCCF77EF800527928 /* AppDelegate+Menu.swift */; };
@@ -34,7 +32,6 @@
 		3A8161F0ECD8D3CF35771DB9 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 73C64DC78267A683DAC7D0AA /* KeyboardShortcuts */; };
 		3E3BC079BCB09601CF331D43 /* WorktreeListViewModelSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6460930465C1945BB9E708A7 /* WorktreeListViewModelSelectionTests.swift */; };
 		3EB8C4AB75DF90CAAA7764C0 /* AppIcon_original.svg in Resources */ = {isa = PBXBuildFile; fileRef = D8736AEED259ECCE858F5BFE /* AppIcon_original.svg */; };
-		40105D13C3D137AE3B04CBA5 /* ShortcutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4573C30ACEBDEC8AE2233B /* ShortcutManager.swift */; };
 		40504C9B5C87311686050C85 /* RandomNameGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200952D514CDC6E761D7D31 /* RandomNameGenerator.swift */; };
 		41DAD45FEC5310D0E461CE31 /* Worktree.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFE7A83D915B984C5F6EEEAC /* Worktree.swift */; };
 		454889617A7D8475686FA15A /* AppDelegateColdStartTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48C7BE2DF5F955131E669BE3 /* AppDelegateColdStartTests.swift */; };
@@ -57,7 +54,6 @@
 		83813D0890D4D7B8E1705EE3 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7C98BC9064213F12D218E3 /* SettingsView.swift */; };
 		83D7231E6DC8D4F148FC9F67 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 811A9D3615B46E7D12735276 /* NotificationManager.swift */; };
 		87214B7F1DF98D6DDC0902D3 /* ImportPRViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41217BF38EB2E221F3B98D28 /* ImportPRViewModel.swift */; };
-		87B32EA8996A649FA7D63374 /* HotkeyRecorderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B33C7BCD44A72391639B610 /* HotkeyRecorderViewModel.swift */; };
 		8C7C7074832657257E597751 /* WorktreeListViewModelImportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6949AB98960591D37ABCC59 /* WorktreeListViewModelImportTests.swift */; };
 		8F6CAE8BC5B53C5853403163 /* TableViewFocuser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57785D34B9D0B2A310613F75 /* TableViewFocuser.swift */; };
 		904051CD4BAE23C83E6F05EA /* RepositorySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0590D938B57D29A509B839A9 /* RepositorySettingsView.swift */; };
@@ -85,14 +81,12 @@
 		D13B27C586A4730DF2924206 /* GitCommandExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E12BD14A8E992E6A9B4668B7 /* GitCommandExecutor.swift */; };
 		D16577BAB8518EBE07DD9FEA /* AppDelegate+Window.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96935A42D04223A55B9D710D /* AppDelegate+Window.swift */; };
 		DF0F0E4E4A4812DD10A50781 /* AdvancedSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3F2574551AB7B6DFF31880F /* AdvancedSettingsView.swift */; };
-		E1248E9B4281B30736BF3F42 /* HotkeyRecorderViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 881A1BB15AE24772D0F82EC4 /* HotkeyRecorderViewModelTests.swift */; };
-		E34FC4A42A7F3F508F99A086 /* KeyRecordingField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AD61EADF2DC10B783912CD1 /* KeyRecordingField.swift */; };
 		EC99BC3CAE5790CBD5D6D26E /* ShortcutActionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C09FB0B270C86599025ECB8C /* ShortcutActionTests.swift */; };
 		EDF2ADCE568E4FA4FCA3C8F9 /* AppDelegate+Actions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55F7FDE98A327CB12943BBD9 /* AppDelegate+Actions.swift */; };
 		EF975EB5439A4AE0D149E441 /* ShortcutAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED9DADD9588EF03FDB8DA100 /* ShortcutAction.swift */; };
 		F086186299A64C5B427A5474 /* WorktreeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A761722B5707AF84AB6CA37 /* WorktreeManager.swift */; };
 		F22E1D0E3F8C663C0BAEAD97 /* QueueStatusBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3195095F418AC2222D8892EB /* QueueStatusBarView.swift */; };
-		FB3FF8FDBBFB2838013C6FC4 /* ShortcutManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A9067CC38D79C1B97FBAEAA /* ShortcutManagerTests.swift */; };
+		FA9F55DEC0266616846B0FF4 /* ShortcutNames.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1EDA09424FBE5E71875DE0D /* ShortcutNames.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -111,7 +105,6 @@
 		051710DB8E7D2B5BEF352CDF /* OhMyWorktreeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OhMyWorktreeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0590D938B57D29A509B839A9 /* RepositorySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositorySettingsView.swift; sourceTree = "<group>"; };
 		08B45C279C31CE3F9F048056 /* WorktreeManager+GitOps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WorktreeManager+GitOps.swift"; sourceTree = "<group>"; };
-		0B33C7BCD44A72391639B610 /* HotkeyRecorderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRecorderViewModel.swift; sourceTree = "<group>"; };
 		1024573DB028DE97085DF606 /* PullRequestStateIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PullRequestStateIcon.swift; sourceTree = "<group>"; };
 		11E235697287DAAC0D8A697C /* BackgroundJob.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundJob.swift; sourceTree = "<group>"; };
 		12A03AD181020CC2A2003500 /* ImportPRView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportPRView.swift; sourceTree = "<group>"; };
@@ -121,11 +114,9 @@
 		1E244AEB611F8ACEFC7862B5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		1E37907BD97EF1278CAD9A1B /* WorktreeMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeMetadataTests.swift; sourceTree = "<group>"; };
 		284A4CA5F96802A6098EA38B /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		2A9067CC38D79C1B97FBAEAA /* ShortcutManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutManagerTests.swift; sourceTree = "<group>"; };
 		313E9CFB5C9B9F2E5A0F645E /* GeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsView.swift; sourceTree = "<group>"; };
 		3195095F418AC2222D8892EB /* QueueStatusBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueStatusBarView.swift; sourceTree = "<group>"; };
 		31E4C67AC16118B79418121C /* OhMyWorktreeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OhMyWorktreeApp.swift; sourceTree = "<group>"; };
-		357788F755345191A8549BDD /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
 		38E89BED48AC12D1BE0AA667 /* WorktreeListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeListViewModel.swift; sourceTree = "<group>"; };
 		3C1B43B188C597C61F1DC2EA /* Repository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Repository.swift; sourceTree = "<group>"; };
 		3E110EB7715E49CA580231B2 /* WorktreeListViewModel+ExternalTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WorktreeListViewModel+ExternalTools.swift"; sourceTree = "<group>"; };
@@ -144,22 +135,19 @@
 		6A761722B5707AF84AB6CA37 /* WorktreeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeManager.swift; sourceTree = "<group>"; };
 		6BB917EB3E6DA41526EE7D6D /* TestHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestHelpers.swift; sourceTree = "<group>"; };
 		6F7C98BC9064213F12D218E3 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		706906842937A9C50AF83BDF /* ShortcutStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutStore.swift; sourceTree = "<group>"; };
 		71C73C1DDF96F9DBDBE34C9D /* Date+RelativeTime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+RelativeTime.swift"; sourceTree = "<group>"; };
 		73CCA7E1C1ACBAF4E4291EA8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		7AD61EADF2DC10B783912CD1 /* KeyRecordingField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyRecordingField.swift; sourceTree = "<group>"; };
 		811A9D3615B46E7D12735276 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 		81C4077AB44A985FC65272E4 /* RepositoryListViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryListViewModelTests.swift; sourceTree = "<group>"; };
 		84FF3EA9723E4072334B4C6D /* BackgroundTaskQueueCallbackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundTaskQueueCallbackTests.swift; sourceTree = "<group>"; };
-		881A1BB15AE24772D0F82EC4 /* HotkeyRecorderViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRecorderViewModelTests.swift; sourceTree = "<group>"; };
 		8C48E8BD55146561E170E91A /* WorktreeRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeRowView.swift; sourceTree = "<group>"; };
 		8D0B554A7A3F05F099599D36 /* GitHeadMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHeadMonitor.swift; sourceTree = "<group>"; };
 		8D4E99B69FBE28C8558EEC50 /* ImportPRViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportPRViewModelTests.swift; sourceTree = "<group>"; };
-		92C079207B4A1020DEDB71F4 /* HotkeyRecorderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRecorderView.swift; sourceTree = "<group>"; };
 		96935A42D04223A55B9D710D /* AppDelegate+Window.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDelegate+Window.swift"; sourceTree = "<group>"; };
 		9BBF676DB7A8AE7653B7EC55 /* UpdatesSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdatesSettingsView.swift; sourceTree = "<group>"; };
 		9BD25714038218BA848A16DA /* WorktreeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeTests.swift; sourceTree = "<group>"; };
 		9D47F034CB7C89712C2CACFD /* WorktreeManagerRemoteBranchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeManagerRemoteBranchTests.swift; sourceTree = "<group>"; };
-		9E4573C30ACEBDEC8AE2233B /* ShortcutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutManager.swift; sourceTree = "<group>"; };
 		A200952D514CDC6E761D7D31 /* RandomNameGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RandomNameGenerator.swift; sourceTree = "<group>"; };
 		A2A39FCA55BDC5AFC0131335 /* WorktreeManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeManagerTests.swift; sourceTree = "<group>"; };
 		A34554C16FE6EC54FBB5C200 /* RepositoryListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryListViewModel.swift; sourceTree = "<group>"; };
@@ -170,7 +158,6 @@
 		B344DBF698890D1B13BB69D6 /* WorktreeFileCopier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeFileCopier.swift; sourceTree = "<group>"; };
 		B8362992DEC2BA4D89D03E2A /* PullRequestService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PullRequestService.swift; sourceTree = "<group>"; };
 		B891A0806B6FDB6CF884972B /* ExternalToolLauncherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalToolLauncherTests.swift; sourceTree = "<group>"; };
-		BBE71833015D389E58D69922 /* HotkeyManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManagerTests.swift; sourceTree = "<group>"; };
 		BDCFA92CC6D4F4BDC422F3E2 /* MenuBarIcon.svg */ = {isa = PBXFileReference; path = MenuBarIcon.svg; sourceTree = "<group>"; };
 		BF799E855838610F7B5E4345 /* RepositoryListViewModelNavigationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryListViewModelNavigationTests.swift; sourceTree = "<group>"; };
 		C09FB0B270C86599025ECB8C /* ShortcutActionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutActionTests.swift; sourceTree = "<group>"; };
@@ -188,6 +175,7 @@
 		E6AE572EAF819FF7917FB985 /* WorktreeListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeListView.swift; sourceTree = "<group>"; };
 		ED9DADD9588EF03FDB8DA100 /* ShortcutAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutAction.swift; sourceTree = "<group>"; };
 		F0FA705C14D042B509BA130D /* WorktreeRemovalDialogs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeRemovalDialogs.swift; sourceTree = "<group>"; };
+		F1EDA09424FBE5E71875DE0D /* ShortcutNames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutNames.swift; sourceTree = "<group>"; };
 		F5F0F523CFE13B485CFE49BC /* WorktreeMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeMetadata.swift; sourceTree = "<group>"; };
 		F6949AB98960591D37ABCC59 /* WorktreeListViewModelImportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeListViewModelImportTests.swift; sourceTree = "<group>"; };
 		FA7A8C9DCCF77EF800527928 /* AppDelegate+Menu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDelegate+Menu.swift"; sourceTree = "<group>"; };
@@ -219,7 +207,6 @@
 		2CB433639A5E8438A723AD23 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
-				0B33C7BCD44A72391639B610 /* HotkeyRecorderViewModel.swift */,
 				41217BF38EB2E221F3B98D28 /* ImportPRViewModel.swift */,
 				A34554C16FE6EC54FBB5C200 /* RepositoryListViewModel.swift */,
 				38E89BED48AC12D1BE0AA667 /* WorktreeListViewModel.swift */,
@@ -237,12 +224,12 @@
 				155B3645306233DD226910E8 /* ExternalToolLauncher.swift */,
 				E12BD14A8E992E6A9B4668B7 /* GitCommandExecutor.swift */,
 				8D0B554A7A3F05F099599D36 /* GitHeadMonitor.swift */,
-				357788F755345191A8549BDD /* HotkeyManager.swift */,
 				811A9D3615B46E7D12735276 /* NotificationManager.swift */,
 				B8362992DEC2BA4D89D03E2A /* PullRequestService.swift */,
 				A200952D514CDC6E761D7D31 /* RandomNameGenerator.swift */,
 				5DE83D40D208FBAE22E78A33 /* RepositoryStore.swift */,
-				9E4573C30ACEBDEC8AE2233B /* ShortcutManager.swift */,
+				F1EDA09424FBE5E71875DE0D /* ShortcutNames.swift */,
+				706906842937A9C50AF83BDF /* ShortcutStore.swift */,
 				FFB32A5891B624A9E58CAA49 /* UpdaterManager.swift */,
 				C843B3047D22F1A56EAE0AFB /* WindowObserver.swift */,
 				B344DBF698890D1B13BB69D6 /* WorktreeFileCopier.swift */,
@@ -261,8 +248,6 @@
 				84FF3EA9723E4072334B4C6D /* BackgroundTaskQueueCallbackTests.swift */,
 				04943FBE79E108AEA932BE7A /* BackgroundTaskQueueTests.swift */,
 				B891A0806B6FDB6CF884972B /* ExternalToolLauncherTests.swift */,
-				BBE71833015D389E58D69922 /* HotkeyManagerTests.swift */,
-				881A1BB15AE24772D0F82EC4 /* HotkeyRecorderViewModelTests.swift */,
 				8D4E99B69FBE28C8558EEC50 /* ImportPRViewModelTests.swift */,
 				D17D255D9C03D39E65FC37E5 /* MockGitExecutor.swift */,
 				C9F3D7DAE61099FF17488E05 /* PullRequestInfoTests.swift */,
@@ -271,7 +256,6 @@
 				81C4077AB44A985FC65272E4 /* RepositoryListViewModelTests.swift */,
 				13A81FF314A143B73B1AB7C8 /* RepositoryStoreRenameTests.swift */,
 				C09FB0B270C86599025ECB8C /* ShortcutActionTests.swift */,
-				2A9067CC38D79C1B97FBAEAA /* ShortcutManagerTests.swift */,
 				6BB917EB3E6DA41526EE7D6D /* TestHelpers.swift */,
 				45E90BF743990ABDF5F54752 /* WorktreeFileCopierTests.swift */,
 				5DFB6A201DF132C6DDBE5D42 /* WorktreeListViewModelContextMenuTests.swift */,
@@ -322,9 +306,7 @@
 				A3F2574551AB7B6DFF31880F /* AdvancedSettingsView.swift */,
 				284A4CA5F96802A6098EA38B /* ContentView.swift */,
 				313E9CFB5C9B9F2E5A0F645E /* GeneralSettingsView.swift */,
-				92C079207B4A1020DEDB71F4 /* HotkeyRecorderView.swift */,
 				12A03AD181020CC2A2003500 /* ImportPRView.swift */,
-				7AD61EADF2DC10B783912CD1 /* KeyRecordingField.swift */,
 				1024573DB028DE97085DF606 /* PullRequestStateIcon.swift */,
 				3195095F418AC2222D8892EB /* QueueStatusBarView.swift */,
 				64B3B3B1F44A78CB74EE99F8 /* RepositorySelectorView.swift */,
@@ -514,8 +496,6 @@
 				BFEC814FF0CA3D4A3CAF604B /* BackgroundTaskQueueCallbackTests.swift in Sources */,
 				018CEB4BA33463D66FC56390 /* BackgroundTaskQueueTests.swift in Sources */,
 				1E8109BF316BBF3756D84C2D /* ExternalToolLauncherTests.swift in Sources */,
-				2E75657635769738BAE6D205 /* HotkeyManagerTests.swift in Sources */,
-				E1248E9B4281B30736BF3F42 /* HotkeyRecorderViewModelTests.swift in Sources */,
 				BF12B0124F855ED64994FC08 /* ImportPRViewModelTests.swift in Sources */,
 				78CA79D990B38BC4BA845726 /* MockGitExecutor.swift in Sources */,
 				A04EF872B11EC64861D1931F /* PullRequestInfoTests.swift in Sources */,
@@ -524,7 +504,6 @@
 				15E1631F96D1D18F037888FE /* RepositoryListViewModelTests.swift in Sources */,
 				A00DF8B5591361457887300F /* RepositoryStoreRenameTests.swift in Sources */,
 				EC99BC3CAE5790CBD5D6D26E /* ShortcutActionTests.swift in Sources */,
-				FB3FF8FDBBFB2838013C6FC4 /* ShortcutManagerTests.swift in Sources */,
 				23D59664983897448C98FDCB /* TestHelpers.swift in Sources */,
 				671DEF7953036D7C339F1C16 /* WorktreeFileCopierTests.swift in Sources */,
 				C903C1B2B26FFB577D51C6F0 /* WorktreeListViewModelContextMenuTests.swift in Sources */,
@@ -557,12 +536,8 @@
 				6A332083C9E71431CFE77D19 /* GeneralSettingsView.swift in Sources */,
 				D13B27C586A4730DF2924206 /* GitCommandExecutor.swift in Sources */,
 				A1B84A7C2495A084A1A9A9C3 /* GitHeadMonitor.swift in Sources */,
-				027FC3EDE8B7872FE5985BEC /* HotkeyManager.swift in Sources */,
-				2DE6E669FC57B2FFF1BB3BB4 /* HotkeyRecorderView.swift in Sources */,
-				87B32EA8996A649FA7D63374 /* HotkeyRecorderViewModel.swift in Sources */,
 				59C9E6B4357FF5942927E09E /* ImportPRView.swift in Sources */,
 				87214B7F1DF98D6DDC0902D3 /* ImportPRViewModel.swift in Sources */,
-				E34FC4A42A7F3F508F99A086 /* KeyRecordingField.swift in Sources */,
 				83D7231E6DC8D4F148FC9F67 /* NotificationManager.swift in Sources */,
 				CE306852AB0277CAE4E88BCA /* OhMyWorktreeApp.swift in Sources */,
 				653587B67AD671EEE36C6C93 /* OhMyWorktreeError.swift in Sources */,
@@ -578,7 +553,8 @@
 				BA7B508992779E01ED6514B9 /* RepositoryStore.swift in Sources */,
 				83813D0890D4D7B8E1705EE3 /* SettingsView.swift in Sources */,
 				EF975EB5439A4AE0D149E441 /* ShortcutAction.swift in Sources */,
-				40105D13C3D137AE3B04CBA5 /* ShortcutManager.swift in Sources */,
+				FA9F55DEC0266616846B0FF4 /* ShortcutNames.swift in Sources */,
+				0CCF5C80FFDDB22C6DD7545D /* ShortcutStore.swift in Sources */,
 				28AAB167DD6C5B36997EEFDB /* ShortcutsSettingsView.swift in Sources */,
 				8F6CAE8BC5B53C5853403163 /* TableViewFocuser.swift in Sources */,
 				ADBE2761848EDD4D7448F958 /* UpdaterManager.swift in Sources */,

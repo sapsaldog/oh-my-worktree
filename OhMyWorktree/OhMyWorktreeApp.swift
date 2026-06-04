@@ -6,11 +6,7 @@ struct OhMyWorktreeApp: App {
     @State private var repoViewModel = RepositoryListViewModel()
     @State private var worktreeViewModel = WorktreeListViewModel()
     @State private var updaterManager = UpdaterManager()
-    @State private var shortcutManager = ShortcutManager()
-
-    init() {
-        ShortcutManager.migrateLegacyKeys()
-    }
+    @State private var shortcutStore = ShortcutStore()
 
     var body: some Scene {
         // Connect view models to AppDelegate during Scene body evaluation,
@@ -21,7 +17,7 @@ struct OhMyWorktreeApp: App {
 
         WindowGroup(id: "main") {
             ContentView(repoViewModel: repoViewModel, worktreeViewModel: worktreeViewModel)
-                .environment(shortcutManager)
+                .environment(shortcutStore)
                 .frame(minWidth: 400, minHeight: 300)
         }
         .defaultSize(width: 500, height: 400)
@@ -58,9 +54,8 @@ struct OhMyWorktreeApp: App {
         appDelegate.repoViewModel = repoViewModel
         appDelegate.worktreeViewModel = worktreeViewModel
         appDelegate.updaterManager = updaterManager
-        if appDelegate.shortcutManager !== shortcutManager {
-            appDelegate.shortcutManager = shortcutManager
-            appDelegate.observeShortcutChanges()
+        if appDelegate.shortcutStore !== shortcutStore {
+            appDelegate.shortcutStore = shortcutStore
             appDelegate.setupGlobalHotkey()
         }
     }

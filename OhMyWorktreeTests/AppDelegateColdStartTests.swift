@@ -83,7 +83,7 @@ final class AppDelegateColdStartTests {
         appDelegate.setupStatusItem()
         appDelegate.repoViewModel = RepositoryListViewModel()
         appDelegate.worktreeViewModel = WorktreeListViewModel()
-        appDelegate.shortcutManager = ShortcutManager()
+        appDelegate.shortcutStore = ShortcutStore()
 
         // When: showOrCreateMainWindow is called (no existing window)
         appDelegate.showOrCreateMainWindow()
@@ -98,7 +98,7 @@ final class AppDelegateColdStartTests {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
         appDelegate.updaterManager = UpdaterManager()
-        appDelegate.shortcutManager = ShortcutManager()
+        appDelegate.shortcutStore = ShortcutStore()
 
         let menuItem = NSMenuItem(title: "Settings...", action: nil, keyEquivalent: "")
         appDelegate.settingsClicked(menuItem)
@@ -130,7 +130,7 @@ final class AppDelegateColdStartTests {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
         appDelegate.updaterManager = UpdaterManager()
-        appDelegate.shortcutManager = ShortcutManager()
+        appDelegate.shortcutStore = ShortcutStore()
 
         let menuItem = NSMenuItem(title: "Settings...", action: nil, keyEquivalent: "")
         appDelegate.settingsClicked(menuItem)
@@ -145,7 +145,7 @@ final class AppDelegateColdStartTests {
         appDelegate.setupStatusItem()
         appDelegate.repoViewModel = RepositoryListViewModel()
         appDelegate.worktreeViewModel = WorktreeListViewModel()
-        appDelegate.shortcutManager = ShortcutManager()
+        appDelegate.shortcutStore = ShortcutStore()
 
         appDelegate.showOrCreateMainWindow()
         appDelegate.showOrCreateMainWindow()
@@ -161,7 +161,7 @@ final class AppDelegateColdStartTests {
         appDelegate.setupStatusItem()
         appDelegate.repoViewModel = RepositoryListViewModel()
         appDelegate.worktreeViewModel = WorktreeListViewModel()
-        appDelegate.shortcutManager = ShortcutManager()
+        appDelegate.shortcutStore = ShortcutStore()
 
         appDelegate.showOrCreateMainWindow()
 
@@ -202,7 +202,7 @@ final class AppDelegateColdStartTests {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
         appDelegate.updaterManager = UpdaterManager()
-        appDelegate.shortcutManager = ShortcutManager()
+        appDelegate.shortcutStore = ShortcutStore()
 
         appDelegate.showOrCreateSettingsWindow()
 
@@ -216,7 +216,7 @@ final class AppDelegateColdStartTests {
         appDelegate.setupStatusItem()
         appDelegate.repoViewModel = RepositoryListViewModel()
         appDelegate.worktreeViewModel = WorktreeListViewModel()
-        appDelegate.shortcutManager = ShortcutManager()
+        appDelegate.shortcutStore = ShortcutStore()
 
         appDelegate.showOrCreateMainWindow()
 
@@ -292,7 +292,7 @@ final class AppDelegateColdStartTests {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
         appDelegate.updaterManager = UpdaterManager()
-        appDelegate.shortcutManager = ShortcutManager()
+        appDelegate.shortcutStore = ShortcutStore()
 
         appDelegate.showOrCreateSettingsWindow()
 

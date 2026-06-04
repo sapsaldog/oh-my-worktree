@@ -156,24 +156,3 @@ extension AppDelegate {
         NSApplication.shared.terminate(nil)
     }
 }
-
-// MARK: - Shortcut Manager Observation
-
-extension AppDelegate {
-
-    func observeShortcutChanges() {
-        observeShortcutVersion()
-    }
-
-    private func observeShortcutVersion() {
-        guard let shortcutManager else { return }
-        withObservationTracking {
-            _ = shortcutManager.version
-        } onChange: {
-            Task { @MainActor [weak self] in
-                self?.setupGlobalHotkey()
-                self?.observeShortcutVersion()
-            }
-        }
-    }
-}

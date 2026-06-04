@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     var updaterManager: UpdaterManager
-    var shortcutManager: ShortcutManager
+    var store: ShortcutStore
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
@@ -22,7 +22,7 @@ struct SettingsView: View {
                 GeneralSettingsView()
             }
             Tab("Shortcuts", systemImage: "keyboard") {
-                ShortcutsSettingsView(shortcutManager: shortcutManager)
+                ShortcutsSettingsView(store: store)
             }
             Tab("Advanced", systemImage: "wrench.adjustable") {
                 AdvancedSettingsView()
