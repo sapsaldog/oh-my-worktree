@@ -97,8 +97,9 @@ extension AppDelegate {
         let addItem = NSMenuItem(
             title: "+ New Worktree",
             action: #selector(newWorktreeClicked(_:)),
-            keyEquivalent: "n"
+            keyEquivalent: ""
         )
+        applyInAppShortcut(.addWorktree, to: addItem)
         addItem.target = self
         addItem.isEnabled = repoViewModel?.selectedRepository != nil
         menu.addItem(addItem)
@@ -126,8 +127,9 @@ extension AppDelegate {
         let settingsItem = NSMenuItem(
             title: "Settings...",
             action: #selector(settingsClicked(_:)),
-            keyEquivalent: ","
+            keyEquivalent: ""
         )
+        applyInAppShortcut(.openSettings, to: settingsItem)
         settingsItem.target = self
         menu.addItem(settingsItem)
 
@@ -148,6 +150,16 @@ extension AppDelegate {
         )
         quitItem.target = self
         menu.addItem(quitItem)
+    }
+
+    /// Applies an in-app action's current shortcut to a menu item so the menu
+    /// reflects user customizations. Items without a `ShortcutAction` keep their
+    /// hard-coded equivalents.
+    private func applyInAppShortcut(_ action: ShortcutAction, to item: NSMenuItem) {
+        guard let store = shortcutStore else { return }
+        let equivalent = store.menuItemKeyEquivalent(for: action)
+        item.keyEquivalent = equivalent.key
+        item.keyEquivalentModifierMask = equivalent.modifiers
     }
 
     // MARK: - Worktree Submenu

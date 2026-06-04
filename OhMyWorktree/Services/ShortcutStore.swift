@@ -1,3 +1,4 @@
+import AppKit
 import KeyboardShortcuts
 import SwiftUI
 
@@ -35,6 +36,18 @@ final class ShortcutStore {
     /// The SwiftUI shortcut currently bound to an action, or `nil` if unset/unrepresentable.
     func swiftUIShortcut(for action: ShortcutAction) -> KeyboardShortcut? {
         KeyboardShortcuts.getShortcut(for: action.name)?.toSwiftUIShortcut
+    }
+
+    /// The AppKit key equivalent (key string + modifiers) for an action's current
+    /// shortcut, for assigning to an `NSMenuItem`. Empty when unset/unrepresentable.
+    func menuItemKeyEquivalent(for action: ShortcutAction) -> (key: String, modifiers: NSEvent.ModifierFlags) {
+        guard
+            let shortcut = KeyboardShortcuts.getShortcut(for: action.name),
+            let key = shortcut.nsMenuItemKeyEquivalent
+        else {
+            return ("", [])
+        }
+        return (key, shortcut.modifiers)
     }
 
     /// The first OTHER in-app action that currently shares `action`'s shortcut, if any.
