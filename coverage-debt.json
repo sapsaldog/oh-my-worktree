@@ -1,9 +1,6 @@
 {
   "files": {
     "OhMyWorktree/Models/AppSettings.swift": 0.0,
-    "OhMyWorktree/Models/Worktree.swift": 83.8,
-    "OhMyWorktree/Services/ExternalToolLauncher.swift": 8.7,
-    "OhMyWorktree/Services/GitCommandExecutor.swift": 97.0,
     "OhMyWorktree/Services/GitHeadMonitor.swift": 5.1,
     "OhMyWorktree/Services/NotificationManager.swift": 38.7,
     "OhMyWorktree/Services/PullRequestService.swift": 84.2,
@@ -15,8 +12,6 @@
     "OhMyWorktree/ViewModels/HotkeyRecorderViewModel.swift": 98.7,
     "OhMyWorktree/ViewModels/RepositoryListViewModel.swift": 90.0,
     "OhMyWorktree/ViewModels/WorktreeListViewModel+ContextMenu.swift": 96.9,
-    "OhMyWorktree/ViewModels/WorktreeListViewModel+ExternalTools.swift": 7.4,
-    "OhMyWorktree/ViewModels/WorktreeListViewModel+QuickRemove.swift": 77.5,
-    "OhMyWorktree/ViewModels/WorktreeListViewModel.swift": 70.5
+    "OhMyWorktree/ViewModels/WorktreeListViewModel+QuickRemove.swift": 77.5
   }
 }
