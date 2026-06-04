@@ -26,10 +26,13 @@ choose not to test and why.
 3. **Borderline system services = maximal.** Refactor system-dependent services
    for dependency injection and test their logic; exclude only the irreducible
    system-call seam (isolated into a thin adapter file) plus Views/AppDelegate.
-4. **Rollout = ratchet then lock.** Land the gate immediately with a per-file
-   floor at the current baseline, fail on any regression, raise floors as tests
-   land, and flip to a strict 100% lock at the end. CI stays green throughout;
-   `main` is always protected.
+4. **Rollout = strict 100% immediately (no ratchet).** The gate requires every
+   non-excluded file to be exactly 100% from the start — there is no debt/floor
+   mechanism. A gated file is either 100% or it is on the exclusion list. CI is
+   red until the gated files are brought to 100%; coverage work then drives it
+   green file-by-file, and shrinking the exclusion list extends the gate.
+   (Superseded the original "ratchet then lock" plan at the user's direction;
+   `coverage-debt.json` was removed.)
 
 ## Background & constraints (evidence-based)
 
@@ -116,29 +119,21 @@ Algorithm:
 Gate rule per non-excluded file (`u = executableLines - coveredLines`):
 
 - `u == 0` → **pass** (100%).
-- `u > 0` and file is in `coverage-debt.json`:
-  - current coverage percent (`lineCoverage × 100`) ≥ recorded floor percent →
-    **pass** (no regression).
-  - current coverage percent < recorded floor percent → **fail** (regression).
+- `u > 0` → **fail** (write tests to reach 100%, or add the file to
+  `coverage-exclude.txt` with a reason).
 
-  (xccov reports `lineCoverage` as a fraction in `[0, 1]`; `coverage-debt.json`
-  stores floors as percentages, so the script compares `lineCoverage × 100`.)
-- `u > 0` and file is **not** in `coverage-debt.json` → **fail** (new untested
-  code: write a test, or — with justification — add to the debt list).
-
-Strict mode (final lock): `coverage-debt.json` must be empty (or absent); any
-non-excluded file with `u > 0` fails. The 100% check is the **integer**
-comparison `coveredLines == executableLines`, never a rounded percentage (avoids
-99.96%-rounds-to-100% false passes).
+The 100% check is the **integer** comparison `coveredLines == executableLines`,
+never a rounded percentage (avoids 99.96%-rounds-to-100% false passes). There is
+no debt/floor mechanism: every non-excluded file must be 100%.
 
 Modes:
 
-- `--check` (default, used by CI): evaluate and exit 0/1.
-- `--update`: rewrite `coverage-debt.json` from the current run (raise floors,
-  drop files that reached 100%). Run locally after adding tests.
+- `--check` (used by CI): evaluate and exit 0/1.
+- `--dump`: print per-file coverage (`covered  executable  percent  GATE|EXCL`)
+  to inspect what is failing.
 - `--self-test`: run built-in unit tests over synthetic coverage data
-  (exclusion matching, debt floors, regression detection, strict mode). Runs in
-  CI as a fast sanity check, independent of any Xcode build.
+  (exclusion matching, per-file 100% pass/fail, integer-100% check, zero-line
+  files). Runs in CI as a fast sanity check, independent of any Xcode build.
 
 ### Exclusion model (two files = the documentation)
 
@@ -158,21 +153,9 @@ OhMyWorktree/OhMyWorktreeApp.swift
 # e.g. OhMyWorktree/Services/<Name>+SystemSeam.swift
 ```
 
-**`coverage-debt.json`** — transitional list of not-yet-100% non-excluded files
-with the floor each must not drop below. Shrinks to empty as coverage reaches
-100%. Schema:
-
-```json
-{
-  "files": {
-    "OhMyWorktree/Services/RepositoryStore.swift": 70.1,
-    "OhMyWorktree/ViewModels/WorktreeListViewModel.swift": 70.5
-  }
-}
-```
-
-When the file is empty (`{"files": {}}`), the gate runs in strict mode and the
-100% lock is in force permanently.
+There is **no** `coverage-debt.json` / floor file. A non-excluded file is either
+100% or it is listed in `coverage-exclude.txt` (with a reason). This is the only
+knob; shrinking the exclusion list is the path to full coverage.
 
 ### Seam-isolation pattern (for the "maximal" refactors)
 
@@ -225,22 +208,16 @@ fix determinism/portability later.**
   `GitCommandExecutor`, `WorktreeListViewModel`, `Worktree`,
   `ExternalToolLauncher`, `WorktreeListViewModel+ExternalTools`.
 - **Quarantine rule:** quarantine a file if its covered-line count varies across
-  CI runs, OR if local coverage exceeds CI (a local-derived floor would then fail
-  CI). After quarantining the local-greater-than-CI files, every remaining gated
-  file satisfies `local ≤ CI`, so a floor derived locally is safe on CI.
-- **Floor derivation:** floors for the gated debt files are the **minimum across
-  all observed runs (6 local + 3 CI)**, floored to one decimal, and verified to
-  pass `--check` against all 9 datasets before committing. This is more
-  conservative than a single `--update`; a routine local `--update` is still safe
-  for the kept files because they satisfy `local ≤ CI`.
-- Resulting baseline: 21 gated files (8 at 100%, 13 in debt); 33 excluded
-  (17 Views, 5 AppDelegate/app, 11 quarantine). The gate is green and stable on
-  CI.
-- **Exit:** in P2/P3, when a quarantined file's tests are made deterministic and
-  portable (clock/scheduler/process injection) and it reaches 100%, remove it
-  from the quarantine. The lock (`coverage-debt.json` empty) counts only the
-  non-excluded set, so the quarantine must be emptied before the project can
-  claim true 100% over these files.
+  CI runs, OR if its CI coverage cannot yet be driven to a stable 100% (external
+  tools absent, async timing, system event sources). These need
+  clock/scheduler/process-seam refactoring before they can be gated at 100%.
+- Resulting baseline: 21 gated files (8 already at 100%, 13 still below — the
+  gate fails on those until tests bring them to 100%); 33 excluded (17 Views,
+  5 AppDelegate/app, 11 quarantine).
+- **Exit:** when a quarantined file's tests are made deterministic and portable
+  (clock/scheduler/process injection) and it reaches 100%, remove it from the
+  quarantine so the gate covers it. True "everything 100%" is reached when the
+  quarantine holds only the structurally-untestable seams.
 
 ### CI integration — `.github/workflows/ci.yml`
 
@@ -257,7 +234,8 @@ is insufficient.
 
 One command that mirrors CI: runs the coverage build + `--check`. Developers run
 this before committing (alongside the existing SwiftLint + test requirement in
-`CLAUDE.md`). `scripts/coverage.sh --update` re-runs and updates the debt file.
+`CLAUDE.md`). Use `python3 scripts/check-coverage.py --dump <xcresult>` to see
+each file's current coverage.
 
 ## Rollout phases
 

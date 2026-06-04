@@ -83,15 +83,16 @@ xcodebuild -project OhMyWorktree.xcodeproj -scheme OhMyWorktreeTests -destinatio
 
 ### Code Coverage
 
-- The `OhMyWorktree.app` target is gated at **100% line coverage** over all
-  non-excluded files. CI fails when a non-excluded file drops below its floor.
+- The `OhMyWorktree.app` target is gated at **strict 100% line coverage**: every
+  non-excluded file must be 100% (`coveredLines == executableLines`). There is no
+  partial-credit / debt mechanism — a gated file is either 100% or it is on the
+  exclusion list. CI fails if any non-excluded file is below 100%.
 - Run the gate locally before pushing: `scripts/coverage.sh`
 - Exclusions live in `coverage-exclude.txt` (globs + reasons), including a
-  temporary "flaky" section for files with nondeterministic async coverage. The
-  transitional per-file floors live in `coverage-debt.json`; when it is empty, a
-  strict 100% lock is in force.
-- After adding tests that raise coverage, update floors with
-  `scripts/coverage.sh --update` and commit the new `coverage-debt.json`.
+  temporary "flaky" section for files whose coverage is nondeterministic or not
+  portable to CI (async/system paths pending clock/scheduler/process-seam
+  refactoring). Shrinking the exclusion list is the path to full coverage.
+- Inspect per-file coverage with `python3 scripts/check-coverage.py --dump <xcresult>`.
 - Design + rollout: `docs/superpowers/specs/2026-06-03-coverage-100-gate-design.md`.
 
 ## Release

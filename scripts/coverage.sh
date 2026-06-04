@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Local coverage gate — mirrors CI. Usage:
-#   scripts/coverage.sh            build + test + gate check
-#   scripts/coverage.sh --update   build + test + rewrite coverage-debt.json
+# Local coverage gate — mirrors CI. Builds, tests, and enforces STRICT 100%
+# line coverage on every non-excluded file (see coverage-exclude.txt).
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 RESULT="build/CoverageResult.xcresult"
@@ -15,8 +14,4 @@ xcodebuild test \
   -derivedDataPath build/DerivedData \
   -resultBundlePath "$RESULT" \
   CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
-if [ "${1:-}" = "--update" ]; then
-  python3 scripts/check-coverage.py --update "$RESULT"
-else
-  python3 scripts/check-coverage.py --check "$RESULT"
-fi
+python3 scripts/check-coverage.py --check "$RESULT"
