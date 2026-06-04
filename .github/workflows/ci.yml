@@ -42,5 +42,21 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY=""
 
+      - name: Coverage diagnostic (TEMP)
+        run: |
+          python3 - <<'PY'
+          import importlib.util
+          spec = importlib.util.spec_from_file_location("cc", "scripts/check-coverage.py")
+          cc = importlib.util.module_from_spec(spec); spec.loader.exec_module(cc)
+          root = cc.repo_root()
+          excl = cc.parse_exclude(cc.load_text(root + "/coverage-exclude.txt"))
+          files = cc.parse_report(cc.run_xccov("build/CoverageResult.xcresult"), cc.TARGET, root)
+          print("CI_COVERAGE_DUMP_START")
+          for f in sorted(files, key=lambda x: x["relpath"]):
+              tag = "EXCL" if cc.is_excluded(f["relpath"], excl) else "GATE"
+              print(f"{f['percent']:.1f}\t{f['covered']}/{f['executable']}\t{tag}\t{f['relpath']}")
+          print("CI_COVERAGE_DUMP_END")
+          PY
+
       - name: Coverage gate
         run: python3 scripts/check-coverage.py --check build/CoverageResult.xcresult
