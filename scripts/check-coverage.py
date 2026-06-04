@@ -192,6 +192,18 @@ def cmd_update(xcresult):
     return 0
 
 
+def cmd_dump(xcresult):
+    """Print per-file coverage (covered, executable, percent, GATE|EXCL)."""
+    root = repo_root()
+    excludes = parse_exclude(load_text(os.path.join(root, EXCLUDE_FILE)))
+    files = parse_report(run_xccov(xcresult), TARGET, root)
+    for f in sorted(files, key=lambda x: x["relpath"]):
+        tag = "EXCL" if is_excluded(f["relpath"], excludes) else "GATE"
+        print(f"{f['covered']}\t{f['executable']}\t{f['percent']:.1f}\t"
+              f"{tag}\t{f['relpath']}")
+    return 0
+
+
 def _test_helpers():
     assert repo_relative("/a/b/c/x.swift", "/a/b/c") == "x.swift"
     assert repo_relative("/a/b/c/d/x.swift", "/a/b/c/") == "d/x.swift"
@@ -277,7 +289,8 @@ def self_test():
 def main(argv):
     if "--self-test" in argv:
         return self_test()
-    for flag, handler in (("--update", cmd_update), ("--check", cmd_check)):
+    for flag, handler in (("--update", cmd_update), ("--check", cmd_check),
+                          ("--dump", cmd_dump)):
         if flag in argv:
             idx = argv.index(flag)
             if idx + 1 >= len(argv):
