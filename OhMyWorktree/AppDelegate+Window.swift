@@ -29,7 +29,11 @@ extension AppDelegate {
             defer: false
         )
         window.isReleasedWhenClosed = false
-        window.contentView = NSHostingView(rootView: rootView())
+        // Use a hosting *controller* (not a bare NSHostingView) so SwiftUI is
+        // constrained to the window's content bounds and lays out correctly on
+        // first show. A bare NSHostingView offers an unconstrained width on the
+        // initial pass, which makes the flexible column overflow the window.
+        window.contentViewController = NSHostingController(rootView: rootView())
         window.title = title
         configure?(window)
         window.setContentSize(size)

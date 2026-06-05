@@ -56,7 +56,6 @@ struct ContentView: View {
         .environment(\.omwAccent, accent)
         .frame(minWidth: 860, minHeight: 520)
         .background(OMWColor.bgWindow)
-        .navigationTitle("Oh My Worktree")
         .fileImporter(
             isPresented: $repoViewModel.showingFileDialog,
             allowedContentTypes: [.folder],
