@@ -29,7 +29,8 @@ struct GlassToolbar: View {
 
             searchField.frame(width: 230)
 
-            ToolbarRoundButton(systemImage: "arrow.triangle.pull", help: "Import from Pull Request", action: onImport)
+            ToolbarRoundButton(systemImage: "arrow.triangle.pull", assetImage: "GitHubMark",
+                               help: "Import from Pull Request", action: onImport)
             ToolbarRoundButton(systemImage: "arrow.clockwise", help: "Refresh (⌘R)", spinning: isRefreshing, action: onRefresh)
             ToolbarRoundButton(systemImage: "gearshape", help: "Settings (⌘,)", action: onSettings)
             ToolbarRoundButton(systemImage: "plus", help: "New Worktree (⌘N)", filled: true, action: onNew)
@@ -63,6 +64,8 @@ struct GlassToolbar: View {
 /// 30pt round toolbar control chip (solid control-bg; accent-filled for ＋).
 struct ToolbarRoundButton: View {
     var systemImage: String
+    /// When set, use this template asset (e.g. the GitHub mark) instead of an SF Symbol.
+    var assetImage: String?
     var help: String
     var spinning: Bool = false
     var filled: Bool = false
@@ -72,8 +75,7 @@ struct ToolbarRoundButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: filled ? 15 : 14, weight: .medium))
+            icon
                 .foregroundStyle(filled ? OMWColor.onAccent : OMWColor.labelSecondary)
                 .frame(width: 30, height: 30)
                 .background(filled ? accent : OMWColor.controlBg, in: Circle())
@@ -91,5 +93,18 @@ struct ToolbarRoundButton: View {
         }
         .buttonStyle(.plain)
         .help(help)
+    }
+
+    @ViewBuilder private var icon: some View {
+        if let assetImage {
+            Image(assetImage)
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 15, height: 15)
+        } else {
+            Image(systemName: systemImage)
+                .font(.system(size: filled ? 15 : 14, weight: .medium))
+        }
     }
 }
