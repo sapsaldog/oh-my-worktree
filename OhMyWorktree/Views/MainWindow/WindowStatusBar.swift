@@ -9,6 +9,9 @@ struct WindowStatusBar: View {
     var repositoryID: UUID?
 
     @State private var showTasks = false
+    @State private var copied = false
+
+    private var displayPath: String { (pathText as NSString).abbreviatingWithTildeInPath }
 
     private var running: [BackgroundJob] {
         worktreeViewModel.jobQueue.activeJobs.filter { repositoryID == nil || $0.repositoryID == repositoryID }
@@ -21,16 +24,23 @@ struct WindowStatusBar: View {
         HStack(spacing: 12) {
             Button(action: copyPath) {
                 HStack(spacing: 5) {
-                    Image(systemName: "folder.fill").font(.system(size: 11)).foregroundStyle(OMWColor.labelQuaternary)
-                    Text(pathText)
-                        .font(.omwMono(11))
-                        .foregroundStyle(OMWColor.labelTertiary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+                    if copied {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(OMWColor.sysGreen)
+                        Text("Copied to clipboard").font(.system(size: 11)).foregroundStyle(OMWColor.labelSecondary)
+                    } else {
+                        Image(systemName: "folder.fill").font(.system(size: 11)).foregroundStyle(OMWColor.labelQuaternary)
+                        Text(displayPath)
+                            .font(.omwMono(11))
+                            .foregroundStyle(OMWColor.labelTertiary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
                 }
             }
             .buttonStyle(.plain)
-            .help("Copy path")
+            .help("Copy path to clipboard")
 
             Spacer(minLength: 8)
 
@@ -88,8 +98,16 @@ struct WindowStatusBar: View {
     }
 
     private func copyPath() {
+        guard !pathText.isEmpty else { return }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(pathText, forType: .string)
+        copied = true
+        Task {
+            // Cosmetic "Copied" confirmation that auto-clears; not test-synchronized.
+            // swiftlint:disable:next no_arbitrary_delay
+            try? await Task.sleep(for: .seconds(1.4))
+            copied = false
+        }
     }
 }
 

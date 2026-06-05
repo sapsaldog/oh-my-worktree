@@ -107,19 +107,19 @@ struct WorktreeDetailQueryTests {
                 ? CommandResult(stdout: "3\t7\n", stderr: "", exitCode: 0)
                 : CommandResult(stdout: "", stderr: "", exitCode: 0)
         }
-        #expect(await mgr.aheadBehind(worktreePath: "/x") == AheadBehind(ahead: 7, behind: 3))
+        #expect(await mgr.aheadBehind(worktreePath: "/x", baseBranch: "main") == AheadBehind(ahead: 7, behind: 3))
     }
 
-    @Test func aheadBehindNoUpstreamReturnsNil() async {
-        let mgr = makeManager { _ in CommandResult(stdout: "", stderr: "no upstream", exitCode: 128) }
-        #expect(await mgr.aheadBehind(worktreePath: "/x") == nil)
+    @Test func aheadBehindFailureReturnsNil() async {
+        let mgr = makeManager { _ in CommandResult(stdout: "", stderr: "bad revision", exitCode: 128) }
+        #expect(await mgr.aheadBehind(worktreePath: "/x", baseBranch: "main") == nil)
     }
 
     @Test func aheadBehindThrowReturnsNil() async {
         let mock = MockDetailGitExecutor()
         mock.errorToThrow = DetailTestError.boom
         let mgr = WorktreeManager(executor: mock, fileManager: MockNoOpFileManager())
-        #expect(await mgr.aheadBehind(worktreePath: "/x") == nil)
+        #expect(await mgr.aheadBehind(worktreePath: "/x", baseBranch: "main") == nil)
     }
 
     @Test func defaultBranchFromOriginHead() async {

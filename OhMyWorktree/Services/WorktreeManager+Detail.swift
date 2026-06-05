@@ -11,7 +11,7 @@ extension WorktreeManager {
     /// Loads everything the detail pane needs beyond the worktree's own fields.
     func worktreeDetail(worktreePath: String, repositoryPath: String) async -> WorktreeDetail {
         let base = await defaultBranch(repositoryPath: repositoryPath)
-        async let aheadBehind = aheadBehind(worktreePath: worktreePath)
+        async let aheadBehind = aheadBehind(worktreePath: worktreePath, baseBranch: base)
         async let diff = diffStat(worktreePath: worktreePath, baseBranch: base)
         async let commits = recentCommits(worktreePath: worktreePath)
         return await WorktreeDetail(aheadBehind: aheadBehind, diff: diff, commits: commits)
@@ -19,11 +19,14 @@ extension WorktreeManager {
 
     // MARK: Ahead / Behind
 
-    /// `git rev-list --left-right --count @{upstream}...HEAD` → (behind, ahead).
-    /// Returns nil when there is no upstream (command fails).
-    func aheadBehind(worktreePath: String) async -> AheadBehind? {
+    /// Commits HEAD is ahead of / behind the base branch, via
+    /// `git rev-list --left-right --count <base>...HEAD` → (behind, ahead).
+    /// Compared against the base (default) branch — not the remote upstream — so a
+    /// feature worktree in sync with its own remote still shows its divergence from
+    /// `main`. Returns nil when the comparison fails (e.g. base ref unresolved).
+    func aheadBehind(worktreePath: String, baseBranch: String) async -> AheadBehind? {
         guard let result = try? await executor.execute(
-            arguments: ["rev-list", "--left-right", "--count", "@{upstream}...HEAD"],
+            arguments: ["rev-list", "--left-right", "--count", "\(baseBranch)...HEAD"],
             workingDirectory: worktreePath
         ), result.exitCode == 0 else { return nil }
         return Self.parseAheadBehind(result.stdout)
