@@ -3,7 +3,7 @@ import SwiftUI
 struct ContentView: View {
     var repoViewModel: RepositoryListViewModel
     @Bindable var worktreeViewModel: WorktreeListViewModel
-    @Environment(ShortcutManager.self) var shortcutManager
+    @Environment(ShortcutStore.self) var shortcutStore
 
     var body: some View {
         ZStack {
@@ -64,7 +64,7 @@ struct ContentView: View {
         ShortcutButtonsView(
             repoViewModel: repoViewModel,
             worktreeViewModel: worktreeViewModel,
-            shortcutManager: shortcutManager
+            store: shortcutStore
         )
     }
 }
@@ -99,11 +99,11 @@ private struct MainContentView: View {
 private struct ShortcutButtonsView: View {
     var repoViewModel: RepositoryListViewModel
     var worktreeViewModel: WorktreeListViewModel
-    var shortcutManager: ShortcutManager
+    var store: ShortcutStore
 
     var body: some View {
         // swiftlint:disable:next redundant_discardable_let
-        let _ = shortcutManager.version
+        let _ = store.version
 
         Group {
             shortcutButton(for: .addRepository) {
@@ -139,6 +139,19 @@ private struct ShortcutButtonsView: View {
             shortcutButton(for: .refreshWorktrees) {
                 Task { await worktreeViewModel.loadWorktrees() }
             }
+            shortcutButton(for: .gitPull) {
+                guard let worktree = worktreeViewModel.selectedWorktree else { return }
+                worktreeViewModel.gitPull(worktree)
+            }
+            shortcutButton(for: .showInFinder) {
+                guard let worktree = worktreeViewModel.selectedWorktree else { return }
+                NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: worktree.path)
+            }
+            shortcutButton(for: .copyPath) {
+                guard let worktree = worktreeViewModel.selectedWorktree else { return }
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(worktree.path, forType: .string)
+            }
         }
         .frame(width: 0, height: 0)
         .opacity(0)
@@ -147,10 +160,8 @@ private struct ShortcutButtonsView: View {
 
     @ViewBuilder
     private func shortcutButton(for action: ShortcutAction, perform: @escaping () -> Void) -> some View {
-        if let shortcut = shortcutManager.keyboardShortcut(for: action) {
-            Button(action.displayName, action: perform)
-                .keyboardShortcut(shortcut.key, modifiers: shortcut.modifiers)
-        }
+        Button(action.displayName, action: perform)
+            .keyboardShortcut(store.swiftUIShortcut(for: action))
     }
 
     private func openSelectedWorktree(

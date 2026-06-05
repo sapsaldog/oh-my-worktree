@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import KeyboardShortcuts
 import Observation
 import os
 import SwiftUI
@@ -33,8 +34,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
     var updaterManager: UpdaterManager?
-    var shortcutManager: ShortcutManager?
-    let hotkeyManager = HotkeyManager()
+    var shortcutStore: ShortcutStore?
 
     var menuRefreshTask: Task<Void, Never>?
     var cancellables = Set<AnyCancellable>()
@@ -50,6 +50,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         if !Self.isRunningTests {
             windowObserver.startObserving()
+            registerGlobalHotkeyHandler()
         }
     }
 
@@ -163,17 +164,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Global Hotkey Setup
 
+    /// Registers the global hotkey handler once. The library keeps tracking the
+    /// shortcut even after the user changes it via the recorder.
+    func registerGlobalHotkeyHandler() {
+        KeyboardShortcuts.onKeyDown(for: .toggleMenuBarPopup) { [weak self] in
+            self?.showOrCreateMainWindow()
+        }
+    }
+
+    /// Enables or disables the global hotkey based on the persisted toggle.
     func setupGlobalHotkey() {
         let enabled = UserDefaults.standard.object(forKey: "globalHotkeyEnabled") as? Bool ?? true
-        let combo = shortcutManager?.combo(for: .globalHotkey) ?? "⌥⇧W"
-
-        guard enabled else {
-            hotkeyManager.unregister()
-            return
-        }
-
-        hotkeyManager.register(keyCombo: combo) { [weak self] in
-            self?.showOrCreateMainWindow()
+        if enabled {
+            KeyboardShortcuts.enable(.toggleMenuBarPopup)
+        } else {
+            KeyboardShortcuts.disable(.toggleMenuBarPopup)
         }
     }
 

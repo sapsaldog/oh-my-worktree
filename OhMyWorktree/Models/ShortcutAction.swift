@@ -1,4 +1,5 @@
 import Foundation
+import KeyboardShortcuts
 
 /// Identifies each configurable keyboard shortcut in the app.
 enum ShortcutAction: String, CaseIterable {
@@ -18,33 +19,6 @@ enum ShortcutAction: String, CaseIterable {
     case gitPull
     case showInFinder
     case copyPath
-
-    /// The default key combo string for this action.
-    var defaultCombo: String {
-        switch self {
-        case .globalHotkey: "⌥⇧W"
-        case .openSettings: "⌘,"
-        case .addRepository: "⌘⇧N"
-        case .addWorktree: "⌘N"
-        case .removeWorktree: "⌫"
-        case .forceRemoveWorktree: "⌘⌫"
-        case .quickRemoveWorktree: "⇧⌘⌫"
-        case .openITerm: "⌘⇧I"
-        case .openGhostty: "⌘⇧G"
-        case .openVSCode: "⌘⇧V"
-        case .openCursor: "⌘⇧C"
-        case .openCmux: "⌘⇧M"
-        case .refreshWorktrees: "⌘R"
-        case .gitPull: "⌘P"
-        case .showInFinder: "⌘O"
-        case .copyPath: "⌘C"
-        }
-    }
-
-    /// The UserDefaults key used to persist custom combos.
-    var userDefaultsKey: String {
-        "shortcut.\(rawValue)"
-    }
 
     /// Human-readable label for the Settings UI.
     var displayName: String {
@@ -71,5 +45,37 @@ enum ShortcutAction: String, CaseIterable {
     /// Whether this shortcut is a system-wide global hotkey (vs. in-app only).
     var isGlobal: Bool {
         self == .globalHotkey
+    }
+
+    /// The default shortcut for this action (KeyboardShortcuts representation).
+    var defaultShortcut: KeyboardShortcuts.Shortcut {
+        switch self {
+        case .globalHotkey: .init(.w, modifiers: [.option, .shift])
+        case .openSettings: .init(.comma, modifiers: [.command])
+        case .addRepository: .init(.n, modifiers: [.command, .shift])
+        case .addWorktree: .init(.n, modifiers: [.command])
+        case .removeWorktree: .init(.delete, modifiers: [])
+        case .forceRemoveWorktree: .init(.delete, modifiers: [.command])
+        case .quickRemoveWorktree: .init(.delete, modifiers: [.command, .shift])
+        case .openITerm: .init(.i, modifiers: [.command, .shift])
+        case .openGhostty: .init(.g, modifiers: [.command, .shift])
+        case .openVSCode: .init(.v, modifiers: [.command, .shift])
+        case .openCursor: .init(.c, modifiers: [.command, .shift])
+        case .openCmux: .init(.m, modifiers: [.command, .shift])
+        case .refreshWorktrees: .init(.r, modifiers: [.command])
+        case .gitPull: .init(.p, modifiers: [.command])
+        case .showInFinder: .init(.o, modifiers: [.command])
+        case .copyPath: .init(.c, modifiers: [.command])
+        }
+    }
+
+    /// The KeyboardShortcuts name backing this action.
+    /// The global hotkey reuses the dedicated `.toggleMenuBarPopup` name; in-app
+    /// actions derive a name from their raw value, seeded with the default shortcut
+    /// so the recorder shows the default until the user customizes it.
+    var name: KeyboardShortcuts.Name {
+        self == .globalHotkey
+            ? .toggleMenuBarPopup
+            : KeyboardShortcuts.Name(rawValue, default: defaultShortcut)
     }
 }

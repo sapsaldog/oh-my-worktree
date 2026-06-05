@@ -2,7 +2,7 @@ import SwiftUI
 
 struct WorktreeListView: View {
     var viewModel: WorktreeListViewModel
-    @Environment(ShortcutManager.self) var shortcutManager
+    @Environment(ShortcutStore.self) var shortcutStore
     @State private var selectedIDs: Set<UUID> = []
     @State private var renamingWorktreeID: UUID?
     @State private var forceRemoveTarget: ForceRemoveTarget?
@@ -234,12 +234,8 @@ struct WorktreeListView: View {
         role: ButtonRole? = nil,
         perform: @escaping () -> Void
     ) -> some View {
-        if let shortcut = shortcutManager.keyboardShortcut(for: action) {
-            Button(title, role: role, action: perform)
-                .keyboardShortcut(shortcut.key, modifiers: shortcut.modifiers)
-        } else {
-            Button(title, role: role, action: perform)
-        }
+        Button(title, role: role, action: perform)
+            .keyboardShortcut(shortcutStore.swiftUIShortcut(for: action))
     }
 
     @ViewBuilder
