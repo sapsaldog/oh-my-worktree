@@ -6,6 +6,22 @@ enum PullRequestState: String, Sendable, Equatable {
     case closed = "CLOSED"
 }
 
+/// GitHub review decision for a PR (drives the detail card's review summary).
+enum ReviewDecision: String, Sendable, Equatable {
+    case approved
+    case changesRequested
+    case reviewRequired
+    case none
+}
+
+/// Rolled-up CI check status for a PR (drives the detail card's "checks …" line).
+enum CheckStatus: String, Sendable, Equatable {
+    case passing
+    case failing
+    case pending
+    case none
+}
+
 struct PullRequestInfo: Sendable, Equatable, Hashable {
     let number: Int
     let url: URL
@@ -15,6 +31,8 @@ struct PullRequestInfo: Sendable, Equatable, Hashable {
     let author: String
     let updatedAt: Date?
     let isDraft: Bool
+    let reviewDecision: ReviewDecision
+    let checkStatus: CheckStatus
 
     init(
         number: Int,
@@ -24,7 +42,9 @@ struct PullRequestInfo: Sendable, Equatable, Hashable {
         title: String = "",
         author: String = "",
         updatedAt: Date? = nil,
-        isDraft: Bool = false
+        isDraft: Bool = false,
+        reviewDecision: ReviewDecision = .none,
+        checkStatus: CheckStatus = .none
     ) {
         self.number = number
         self.url = url
@@ -34,5 +54,7 @@ struct PullRequestInfo: Sendable, Equatable, Hashable {
         self.author = author
         self.updatedAt = updatedAt
         self.isDraft = isDraft
+        self.reviewDecision = reviewDecision
+        self.checkStatus = checkStatus
     }
 }

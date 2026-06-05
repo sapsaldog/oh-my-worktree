@@ -46,6 +46,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        NSApp.appearance = AppearanceMode.named(
+            UserDefaults.standard.string(forKey: "appearanceMode")
+        ).nsAppearance
         setupStatusItem()
 
         if !Self.isRunningTests {

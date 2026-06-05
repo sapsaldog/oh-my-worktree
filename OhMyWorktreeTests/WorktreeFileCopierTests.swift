@@ -68,6 +68,28 @@ final class WorktreeFileCopierTests {
         #expect(fileExists("packages/api/.env.development"))
     }
 
+    // MARK: - includedFiles (detail-pane "Copied files" listing)
+
+    @Test func includedFiles_listsEnvFilesWhenNoIncludeFile() {
+        createFile(".env", in: worktreeDir)
+        createFile(".env.local", in: worktreeDir)
+        createFile("README.md", in: worktreeDir)
+
+        #expect(Set(sut.includedFiles(in: worktreeDir)) == [".env", ".env.local"])
+    }
+
+    @Test func includedFiles_usesWorktreeIncludePatterns() {
+        createFile(".worktreeinclude", in: worktreeDir, content: "*.pem\nconfig/local/*")
+        createFile("certs/dev.pem", in: worktreeDir)
+        createFile("config/local/db.yml", in: worktreeDir)
+        createFile("src/main.swift", in: worktreeDir)
+
+        let files = sut.includedFiles(in: worktreeDir)
+        #expect(files.contains("certs/dev.pem"))
+        #expect(files.contains("config/local/db.yml"))
+        #expect(false == files.contains("src/main.swift"))
+    }
+
     @Test func legacyFallback_skipsExcludedDirs() {
         createFile(".env")
         createFile("node_modules/.env")

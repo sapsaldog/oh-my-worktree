@@ -1,19 +1,84 @@
+import AppKit
 import SwiftUI
 
 struct ContentView: View {
-    var repoViewModel: RepositoryListViewModel
+    @Bindable var repoViewModel: RepositoryListViewModel
     @Bindable var worktreeViewModel: WorktreeListViewModel
     @Environment(ShortcutStore.self) var shortcutStore
+    @AppStorage("accentColorName") private var accentColorName = AccentChoice.default.rawValue
+
+    private var accent: Color { AccentChoice.named(accentColorName).color }
 
     var body: some View {
         ZStack {
-            mainContent
+            VStack(spacing: 0) {
+                GlassToolbar(
+                    title: repoViewModel.selectedRepository?.name ?? "Oh My Worktree",
+                    searchText: $worktreeViewModel.searchText,
+                    isRefreshing: worktreeViewModel.isLoading,
+                    onImport: { worktreeViewModel.isShowingImportPR = true },
+                    onRefresh: { Task { await worktreeViewModel.loadWorktrees() } },
+                    onSettings: { openSettings() },
+                    onNew: { worktreeViewModel.isShowingCreateSheet = true }
+                )
+
+                HStack(spacing: 0) {
+                    RepositorySidebar(
+                        repoVM: repoViewModel,
+                        selectedWorktreeCount: worktreeViewModel.worktrees.count,
+                        onSelect: { repo in Task { await repoViewModel.selectRepository(repo) } },
+                        onAddRepo: { repoViewModel.showingFileDialog = true },
+                        onSettings: { openSettings() },
+                        onCheckUpdates: { openSettings() }
+                    )
+                    WorktreeListColumn(worktreeVM: worktreeViewModel)
+                    DetailPaneView(
+                        worktree: selectedWorktree,
+                        isRoot: isRootSelected,
+                        pullRequest: selectedPullRequest,
+                        detail: worktreeViewModel.selectedWorktreeDetail,
+                        tools: detailTools,
+                        onOpenPR: {
+                            if let wt = selectedWorktree { worktreeViewModel.openPullRequest(for: wt) }
+                        }
+                    )
+                }
+
+                WindowStatusBar(
+                    worktreeViewModel: worktreeViewModel,
+                    pathText: statusBarPath,
+                    repositoryID: repoViewModel.selectedRepository?.id
+                )
+            }
             shortcutButtons
         }
-        .frame(minWidth: 400, minHeight: 300)
+        .tint(accent)
+        .environment(\.omwAccent, accent)
+        .frame(minWidth: 860, minHeight: 520)
+        .background(OMWColor.bgWindow)
         .navigationTitle("Oh My Worktree")
+        .fileImporter(
+            isPresented: $repoViewModel.showingFileDialog,
+            allowedContentTypes: [.folder],
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                guard let url = urls.first else { return }
+                let path = url.path(percentEncoded: false)
+                Task { await repoViewModel.addRepository(at: path) }
+            case .failure(let error):
+                repoViewModel.errorMessage = error.localizedDescription
+            }
+        }
         .sheet(isPresented: $worktreeViewModel.isShowingImportPR) {
             ImportPRView(worktreeViewModel: worktreeViewModel)
+        }
+        .sheet(isPresented: $worktreeViewModel.isShowingCreateSheet) {
+            CreateWorktreeSheet(
+                worktreeViewModel: worktreeViewModel,
+                repoName: repoViewModel.selectedRepository?.name ?? "this repository"
+            )
         }
         .alert(
             "Error",
@@ -54,10 +119,67 @@ struct ContentView: View {
                 await worktreeViewModel.loadWorktrees(debounce: true)
             }
         }
+        .task(id: selectedWorktree?.id) {
+            await worktreeViewModel.loadDetail(for: selectedWorktree)
+        }
     }
 
-    private var mainContent: some View {
-        MainContentView(repoViewModel: repoViewModel, worktreeViewModel: worktreeViewModel)
+    // MARK: - Derived state
+
+    private var selectedWorktree: Worktree? {
+        guard worktreeViewModel.selectedWorktreeIDs.count == 1,
+              let id = worktreeViewModel.selectedWorktreeIDs.first else { return nil }
+        return worktreeViewModel.worktrees.first { $0.id == id }
+    }
+
+    private var selectedPullRequest: PullRequestInfo? {
+        guard let wt = selectedWorktree else { return nil }
+        return wt.branch.flatMap { worktreeViewModel.pullRequests[$0] }
+            ?? wt.prRemoteBranch.flatMap { worktreeViewModel.pullRequests[$0] }
+    }
+
+    private var isRootSelected: Bool {
+        guard let wt = selectedWorktree, let repo = repoViewModel.selectedRepository else { return false }
+        return wt.isRoot(of: repo)
+    }
+
+    private var statusBarPath: String {
+        selectedWorktree?.path ?? repoViewModel.selectedRepository?.path ?? ""
+    }
+
+    private var detailTools: [ActionTool] {
+        guard let wt = selectedWorktree else { return [] }
+        var tools: [ActionTool] = []
+        if worktreeViewModel.isITermAvailable {
+            tools.append(ActionTool(id: "iterm", name: "iTerm", systemImage: "terminal") {
+                Task { await worktreeViewModel.openInITerm(wt) }
+            })
+        }
+        if worktreeViewModel.isGhosttyAvailable {
+            tools.append(ActionTool(id: "ghostty", name: "Ghostty", systemImage: "terminal.fill") {
+                Task { await worktreeViewModel.openInGhostty(wt) }
+            })
+        }
+        if worktreeViewModel.isCmuxAvailable {
+            tools.append(ActionTool(id: "cmux", name: "cmux", systemImage: "square.grid.3x3") {
+                Task { await worktreeViewModel.openInCmux(wt) }
+            })
+        }
+        if worktreeViewModel.isVSCodeAvailable {
+            tools.append(ActionTool(id: "vscode", name: "VSCode", systemImage: "chevron.left.forwardslash.chevron.right") {
+                Task { await worktreeViewModel.openInVSCode(wt) }
+            })
+        }
+        if worktreeViewModel.isCursorAvailable {
+            tools.append(ActionTool(id: "cursor", name: "Cursor", systemImage: "cursorarrow") {
+                Task { await worktreeViewModel.openInCursor(wt) }
+            })
+        }
+        return tools
+    }
+
+    private func openSettings() {
+        (NSApp.delegate as? AppDelegate)?.showOrCreateSettingsWindow()
     }
 
     private var shortcutButtons: some View {
@@ -69,32 +191,7 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Subviews
-
-private struct MainContentView: View {
-    var repoViewModel: RepositoryListViewModel
-    var worktreeViewModel: WorktreeListViewModel
-
-    var body: some View {
-        VStack(spacing: 0) {
-            RepositorySelectorView(viewModel: repoViewModel)
-                .padding(.horizontal, 12)
-                .padding(.top, 12)
-                .padding(.bottom, 8)
-
-            Divider()
-
-            WorktreeListView(viewModel: worktreeViewModel)
-                .frame(maxHeight: .infinity)
-
-            Divider()
-
-            QueueStatusBarView(viewModel: worktreeViewModel)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-        }
-    }
-}
+// MARK: - Hidden keyboard-shortcut buttons
 
 private struct ShortcutButtonsView: View {
     var repoViewModel: RepositoryListViewModel
@@ -110,7 +207,7 @@ private struct ShortcutButtonsView: View {
                 repoViewModel.showingFileDialog = true
             }
             shortcutButton(for: .addWorktree) {
-                Task { await worktreeViewModel.addWorktree() }
+                worktreeViewModel.isShowingCreateSheet = true
             }
             shortcutButton(for: .removeWorktree) {
                 worktreeViewModel.pendingDelete = .remove

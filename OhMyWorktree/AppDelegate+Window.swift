@@ -10,6 +10,7 @@ extension AppDelegate {
         title: String,
         size: NSSize,
         styleMask: NSWindow.StyleMask = [.titled, .closable, .resizable, .miniaturizable],
+        configure: ((NSWindow) -> Void)? = nil,
         rootView: () -> some View
     ) {
         NSApp.setActivationPolicy(.regular)
@@ -30,6 +31,7 @@ extension AppDelegate {
         window.isReleasedWhenClosed = false
         window.contentView = NSHostingView(rootView: rootView())
         window.title = title
+        configure?(window)
         window.setContentSize(size)
         window.center()
         window.makeKeyAndOrderFront(nil)
@@ -49,11 +51,18 @@ extension AppDelegate {
         }
         showOrCreateWindow(
             title: Self.mainWindowTitle,
-            size: NSSize(width: 500, height: 400)
+            size: NSSize(width: 1180, height: 740),
+            styleMask: [.titled, .closable, .resizable, .miniaturizable, .fullSizeContentView],
+            configure: { window in
+                window.titlebarAppearsTransparent = true
+                window.titleVisibility = .hidden
+                window.isMovableByWindowBackground = true
+                window.minSize = NSSize(width: 860, height: 520)
+            }
         ) {
             ContentView(repoViewModel: repoVM, worktreeViewModel: worktreeVM)
                 .environment(store)
-                .frame(minWidth: 400, minHeight: 300)
+                .frame(minWidth: 860, minHeight: 520)
         }
     }
 

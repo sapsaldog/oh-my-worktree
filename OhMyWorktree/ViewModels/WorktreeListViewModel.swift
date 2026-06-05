@@ -6,6 +6,10 @@ import SwiftUI
 @MainActor
 final class WorktreeListViewModel {
     var worktrees: [Worktree] = []
+
+    /// Live filter text from the toolbar search field.
+    var searchText: String = ""
+
     // WARNING: Intentionally @ObservationIgnored. Do NOT remove @ObservationIgnored here.
     // No SwiftUI view reads this in body, so tracking changes via @Observable
     // causes unnecessary view updates.
@@ -21,6 +25,9 @@ final class WorktreeListViewModel {
     var errorMessage: String?
     var pullRequests: [String: PullRequestInfo] = [:]
     var isGitHubRepo = false
+
+    /// Ahead/behind, diff stat, and recent commits for the currently selected worktree.
+    var selectedWorktreeDetail: WorktreeDetail?
 
     // FR-032: Multi-select (native ⌘+click / ⇧+click via SwiftUI List)
     var selectedWorktreeIDs: Set<UUID> = [] {
@@ -39,18 +46,23 @@ final class WorktreeListViewModel {
     // FR-031: Controls the Import from GitHub PR sheet
     var isShowingImportPR = false
 
+    /// Controls the New Worktree sheet.
+    var isShowingCreateSheet = false
+
     // Delete confirmation triggers (set by hidden shortcut buttons, observed by WorktreeListView)
     enum PendingDelete: Equatable {
         case remove, forceRemove, quickRemove
     }
     var pendingDelete: PendingDelete?
 
-    private let worktreeManager: WorktreeManager
+    // internal for WorktreeListViewModel+Creation extension
+    let worktreeManager: WorktreeManager
     // internal for WorktreeListViewModel+ExternalTools extension
     let toolLauncher: ExternalToolLauncher
     // internal for WorktreeListViewModel+ExternalTools and handleJobStateChange
     let store: RepositoryStore
-    private let fileCopier: WorktreeFileCopier
+    // internal for WorktreeListViewModel+Creation extension
+    let fileCopier: WorktreeFileCopier
     private let pullRequestService: PullRequestFetching
     @ObservationIgnored private var loadTask: Task<Void, Never>?
     @ObservationIgnored private var prFetchTask: Task<Void, Never>?
@@ -238,44 +250,6 @@ final class WorktreeListViewModel {
             let prs = await prService.fetchPullRequests(repositoryPath: repositoryPath)
             guard !Task.isCancelled else { return }
             self?.pullRequests = prs
-        }
-    }
-
-    // MARK: - Add Worktree
-
-    func addWorktree(baseBranch: String? = nil) async {
-        guard let repository else {
-            errorMessage = OhMyWorktreeError.repositoryNotFound.errorDescription
-            return
-        }
-
-        isLoading = true
-        defer { isLoading = false }
-
-        do {
-            let existingNames = Set(worktrees.map { $0.folderName })
-            let folderName = RandomNameGenerator.generate(existingFolderNames: existingNames)
-
-            let newWorktree = try await worktreeManager.addWorktree(
-                repositoryPath: repository.path,
-                folderName: folderName,
-                baseBranch: baseBranch
-            )
-
-            let metadata = WorktreeMetadata(folderName: folderName)
-            await store.addWorktreeMetadata(metadata, repositoryID: repository.id)
-
-            if await shouldCopyFiles(for: repository.id) {
-                let copyResult = fileCopier.copyFiles(from: repository.path, to: newWorktree.path)
-                if !copyResult.errors.isEmpty {
-                    errorMessage = "Some files could not be copied: \(copyResult.errors.joined(separator: ", "))"
-                }
-            }
-
-            await loadWorktrees()
-            selectedWorktree = worktrees.first { $0.path == newWorktree.path }
-        } catch {
-            errorMessage = error.localizedDescription
         }
     }
 

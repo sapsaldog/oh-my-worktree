@@ -43,7 +43,13 @@ struct WorktreeListView: View {
             emptyStateView(
                 icon: "tray",
                 title: "No Worktrees",
-                subtitle: "Click + to create a new worktree"
+                subtitle: "Click ＋ to create a new worktree"
+            )
+        } else if viewModel.filteredWorktrees.isEmpty {
+            emptyStateView(
+                icon: "magnifyingglass",
+                title: "No worktrees match",
+                subtitle: "Try a different filter"
             )
         } else {
             worktreeList
@@ -55,8 +61,10 @@ struct WorktreeListView: View {
     private var worktreeList: some View {
         let jobStates = jobStateByWorktreeID
         return List(selection: $selectedIDs) {
-            ForEach(viewModel.worktrees) { worktree in
+            ForEach(viewModel.filteredWorktrees) { worktree in
                 worktreeRow(for: worktree, jobStates: jobStates)
+                    .listRowInsets(EdgeInsets(top: 2, leading: 4, bottom: 2, trailing: 4))
+                    .listRowSeparator(.hidden)
                     .tag(worktree.id)
                     .contextMenu {
                         contextMenuItems(for: worktree)
@@ -64,6 +72,8 @@ struct WorktreeListView: View {
             }
         }
         .listStyle(.inset)
+        .scrollContentBackground(.hidden)
+        .environment(\.defaultMinListRowHeight, 44)
         .onChange(of: selectedIDs) { _, newIDs in
             guard newIDs != viewModel.selectedWorktreeIDs else { return }
             viewModel.selectedWorktreeIDs = newIDs
@@ -143,8 +153,10 @@ struct WorktreeListView: View {
 
     private func worktreeRow(for worktree: Worktree, jobStates: [UUID: BackgroundJobState]) -> some View {
         let jobState = jobStates[worktree.id]
+        let isRoot = viewModel.repository.map { worktree.isRoot(of: $0) } ?? false
         return WorktreeRowView(
             worktree: worktree,
+            isRoot: isRoot,
             pullRequest: pullRequest(for: worktree),
             jobState: jobState,
             isRenaming: renamingWorktreeID == worktree.id,

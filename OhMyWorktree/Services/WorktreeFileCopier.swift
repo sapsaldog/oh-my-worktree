@@ -1,7 +1,7 @@
 import Darwin
 import Foundation
 
-final class WorktreeFileCopier {
+final class WorktreeFileCopier: Sendable {
 
     struct CopyResult {
         let copiedFiles: [String]
@@ -48,6 +48,15 @@ final class WorktreeFileCopier {
         }
 
         return CopyResult(copiedFiles: copiedFiles, errors: errors)
+    }
+
+    /// Lists files in `worktreePath` matching its `.worktreeinclude` patterns
+    /// (or `.env*` when no include file) — the files copied into the worktree.
+    func includedFiles(in worktreePath: String) -> [String] {
+        if let patterns = loadPatterns(repositoryPath: worktreePath) {
+            return findMatchingFiles(in: worktreePath, patterns: patterns)
+        }
+        return findEnvFiles(in: worktreePath)
     }
 
     // MARK: - .worktreeinclude Parser

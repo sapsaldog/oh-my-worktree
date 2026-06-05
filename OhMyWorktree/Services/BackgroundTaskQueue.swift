@@ -103,6 +103,14 @@ final class BackgroundTaskQueue {
         refreshBusyWorktreeIDs()
     }
 
+    /// Resets a failed job back to pending and resumes processing its repository.
+    func retry(_ jobID: UUID) {
+        guard let index = jobIndex(for: jobID), case .failed = jobs[index].state else { return }
+        jobs[index].state = .pending
+        refreshBusyWorktreeIDs()
+        startProcessingIfNeeded(for: jobs[index].repositoryPath)
+    }
+
     var progressFraction: Double {
         // Exclude stale failed/cancelled jobs — they are retained for the detail
         // popover but should not inflate the denominator of the progress bar.

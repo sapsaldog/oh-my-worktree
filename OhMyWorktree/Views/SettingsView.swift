@@ -21,6 +21,9 @@ struct SettingsView: View {
             Tab("General", systemImage: "gear") {
                 GeneralSettingsView()
             }
+            Tab("Appearance", systemImage: "paintpalette") {
+                AppearanceSettingsView()
+            }
             Tab("Shortcuts", systemImage: "keyboard") {
                 ShortcutsSettingsView(store: store)
             }
