@@ -98,41 +98,82 @@ extension AppDelegate {
 
 // MARK: - Main window toolbar
 
-/// Hosts the toolbar controls in a native unified `NSToolbar`. A flexible space
-/// keeps them right-aligned; the unified style lets macOS vertically center the
-/// traffic lights, which can't be done reliably from outside the window.
+/// Provides the main window's native unified toolbar items: a real
+/// `NSSearchToolbarItem` plus standard button items. Native items size
+/// themselves and pick up the system's Liquid Glass treatment, and the unified
+/// style vertically centers the traffic lights. A flexible space right-aligns
+/// the cluster, matching the prototype.
 @MainActor
 final class MainToolbarDelegate: NSObject, NSToolbarDelegate {
     private let worktreeVM: WorktreeListViewModel
-    private static let controls = NSToolbarItem.Identifier("OMWControls")
+
+    private static let search = NSToolbarItem.Identifier("OMWSearch")
+    private static let importPR = NSToolbarItem.Identifier("OMWImportPR")
+    private static let refresh = NSToolbarItem.Identifier("OMWRefresh")
+    private static let settings = NSToolbarItem.Identifier("OMWSettings")
+    private static let newWorktree = NSToolbarItem.Identifier("OMWNewWorktree")
 
     init(worktreeVM: WorktreeListViewModel) {
         self.worktreeVM = worktreeVM
     }
 
-    func toolbar(_ toolbar: NSToolbar,
-                 itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier,
-                 willBeInsertedIntoToolbar flag: Bool) -> NSToolbarItem? {
-        guard itemIdentifier == Self.controls else { return nil }
-        let hosting = NSHostingView(rootView: ToolbarControls(worktreeVM: worktreeVM))
-        // Pin an explicit size: intrinsic sizing collapses the hosting view to
-        // nothing, while no sizing lets the toolbar over-expand it. Width =
-        // 14 padding + 230 search + 4×(10 gap + 30 button) + 14 padding = 418.
-        hosting.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            hosting.widthAnchor.constraint(equalToConstant: 418),
-            hosting.heightAnchor.constraint(equalToConstant: 52)
-        ])
-        let item = NSToolbarItem(itemIdentifier: itemIdentifier)
-        item.view = hosting
-        return item
-    }
-
     func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        [.flexibleSpace, Self.controls]
+        [.flexibleSpace, Self.search, Self.importPR, Self.refresh, Self.settings, Self.newWorktree]
     }
 
     func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        [.flexibleSpace, Self.controls]
+        toolbarDefaultItemIdentifiers(toolbar)
     }
+
+    func toolbar(_ toolbar: NSToolbar,
+                 itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier,
+                 willBeInsertedIntoToolbar flag: Bool) -> NSToolbarItem? {
+        switch itemIdentifier {
+        case Self.search:
+            let item = NSSearchToolbarItem(itemIdentifier: itemIdentifier)
+            item.searchField.placeholderString = "Filter worktrees…"
+            item.searchField.target = self
+            item.searchField.action = #selector(searchChanged(_:))
+            return item
+        case Self.importPR:
+            return button(itemIdentifier, asset: "GitHubMark",
+                          label: "Import from Pull Request", action: #selector(importTapped))
+        case Self.refresh:
+            return button(itemIdentifier, symbol: "arrow.clockwise",
+                          label: "Refresh", action: #selector(refreshTapped))
+        case Self.settings:
+            return button(itemIdentifier, symbol: "gearshape",
+                          label: "Settings", action: #selector(settingsTapped))
+        case Self.newWorktree:
+            return button(itemIdentifier, symbol: "plus",
+                          label: "New Worktree", action: #selector(newTapped))
+        default:
+            return nil
+        }
+    }
+
+    private func button(_ id: NSToolbarItem.Identifier, symbol: String? = nil, asset: String? = nil,
+                        label: String, action: Selector) -> NSToolbarItem {
+        let item = NSToolbarItem(itemIdentifier: id)
+        item.label = label
+        item.toolTip = label
+        item.isBordered = true
+        item.target = self
+        item.action = action
+        if let symbol {
+            item.image = NSImage(systemSymbolName: symbol, accessibilityDescription: label)
+        } else if let asset, let image = NSImage(named: asset) {
+            image.isTemplate = true
+            item.image = image
+        }
+        return item
+    }
+
+    @objc private func searchChanged(_ sender: NSSearchField) {
+        worktreeVM.searchText = sender.stringValue
+    }
+    @objc private func importTapped() { worktreeVM.isShowingImportPR = true }
+    @objc private func refreshTapped() { Task { await worktreeVM.loadWorktrees() } }
+    @objc private func settingsTapped() { worktreeVM.isShowingSettings = true }
+    @objc private func newTapped() { worktreeVM.isShowingCreateSheet = true }
 }
