@@ -1,5 +1,4 @@
 import Foundation
-import os
 
 protocol PullRequestFetching: Sendable {
     func fetchPullRequests(repositoryPath: String) async -> [String: PullRequestInfo]
@@ -18,18 +17,23 @@ extension PullRequestFetching {
 /// Gracefully degrades when `gh` is not installed, not authenticated, or the repository is not on GitHub.
 final class PullRequestService: PullRequestFetching, Sendable {
 
-    private static let logger = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "com.ohmyworktree",
-        category: "PullRequestService"
-    )
-
     private let gitExecutor: GitCommandExecuting
     /// Resolved once at init to avoid repeated filesystem checks and `which` subprocess spawns.
     private let resolvedGhCliPath: String?
 
-    init(gitExecutor: GitCommandExecuting = GitCommandExecutor(), ghCliPath: String? = nil) {
+    /// - Parameters:
+    ///   - ghCliPath: an explicit `gh` path; when `nil`, `ghCliResolver` runs.
+    ///   - ghCliResolver: resolves the `gh` path when none is supplied. Defaults
+    ///     to the real `findGhCli`; tests inject a resolver (e.g. one returning
+    ///     `nil`) to drive the "gh not found" branch deterministically. Production
+    ///     supplies neither argument, so its behavior is unchanged.
+    init(
+        gitExecutor: GitCommandExecuting = GitCommandExecutor(),
+        ghCliPath: String? = nil,
+        ghCliResolver: () -> String? = { PullRequestService.findGhCli() }
+    ) {
         self.gitExecutor = gitExecutor
-        self.resolvedGhCliPath = ghCliPath ?? Self.findGhCli()
+        self.resolvedGhCliPath = ghCliPath ?? ghCliResolver()
     }
 
     // MARK: - Public API
@@ -39,7 +43,7 @@ final class PullRequestService: PullRequestFetching, Sendable {
     /// Note: Limited to the 100 most recent PRs across all states.
     func fetchPullRequests(repositoryPath: String) async -> [String: PullRequestInfo] {
         guard let ghPath = resolvedGhCliPath else {
-            Self.logger.debug("gh CLI not found, skipping PR fetch")
+            AppLog.debug("gh CLI not found, skipping PR fetch", category: "PullRequestService")
             return [:]
         }
         guard await isGitHubRepository(repositoryPath: repositoryPath) else { return [:] }
@@ -52,12 +56,12 @@ final class PullRequestService: PullRequestFetching, Sendable {
             )
 
             guard result.exitCode == 0 else {
-                Self.logger.debug("gh pr list failed with exit code \(result.exitCode)")
+                AppLog.debug("gh pr list failed with exit code \(result.exitCode)", category: "PullRequestService")
                 return [:]
             }
             return parsePullRequests(from: result.stdout)
         } catch {
-            Self.logger.debug("Failed to fetch PRs: \(error.localizedDescription)")
+            AppLog.debug("Failed to fetch PRs: \(error.localizedDescription)", category: "PullRequestService")
             return [:]
         }
     }
@@ -91,7 +95,7 @@ final class PullRequestService: PullRequestFetching, Sendable {
             guard result.exitCode == 0 else { return nil }
             return parsePullRequestList(from: result.stdout)
         } catch {
-            Self.logger.debug("Failed to fetch PR list: \(error.localizedDescription)")
+            AppLog.debug("Failed to fetch PR list: \(error.localizedDescription)", category: "PullRequestService")
             return nil
         }
     }
@@ -100,12 +104,17 @@ final class PullRequestService: PullRequestFetching, Sendable {
 
     /// Checks common paths for the `gh` CLI binary, then falls back to `which`
     /// so installs via nix, asdf, mise, etc. are discovered.
-    private static func findGhCli() -> String? {
-        let commonPaths = [
+    /// - Parameter commonPaths: hardcoded locations to probe before falling back
+    ///   to `PATH`. Defaults to the real list; tests override it so the `which`
+    ///   fallback can be exercised deterministically regardless of the host.
+    ///   Production calls this with no argument, so its behavior is unchanged.
+    static func findGhCli(
+        commonPaths: [String] = [
             "/opt/homebrew/bin/gh",
             "/usr/local/bin/gh",
             "/usr/bin/gh"
         ]
+    ) -> String? {
         if let found = commonPaths.first(where: { FileManager.default.isExecutableFile(atPath: $0) }) {
             return found
         }
@@ -113,10 +122,14 @@ final class PullRequestService: PullRequestFetching, Sendable {
     }
 
     /// Runs `/usr/bin/which` to resolve a command from the system PATH.
-    private static func resolveFromPath(_ command: String) -> String? {
+    /// - Parameter whichPath: the `which` executable to spawn. Defaults to the
+    ///   real `/usr/bin/which`; tests override it (e.g. with a missing path) to
+    ///   exercise the spawn-failure branch. Production passes no argument, so its
+    ///   behavior is unchanged.
+    static func resolveFromPath(_ command: String, whichPath: String = "/usr/bin/which") -> String? {
         let process = Process()
         let pipe = Pipe()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
+        process.executableURL = URL(fileURLWithPath: whichPath)
         process.arguments = [command]
         process.standardOutput = pipe
         process.standardError = Pipe()
@@ -203,7 +216,7 @@ final class PullRequestService: PullRequestFetching, Sendable {
                 )
             }
         } catch {
-            Self.logger.debug("Failed to parse PR list JSON: \(error.localizedDescription)")
+            AppLog.debug("Failed to parse PR list JSON: \(error.localizedDescription)", category: "PullRequestService")
             return nil
         }
     }
@@ -246,7 +259,7 @@ final class PullRequestService: PullRequestFetching, Sendable {
             }
             return result
         } catch {
-            Self.logger.debug("Failed to parse PR JSON: \(error.localizedDescription)")
+            AppLog.debug("Failed to parse PR JSON: \(error.localizedDescription)", category: "PullRequestService")
             return [:]
         }
     }

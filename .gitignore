@@ -26,3 +26,7 @@ release/
 
 # Claude Code internal session data
 .claude/worktrees/
+
+# Python
+__pycache__/
+*.pyc

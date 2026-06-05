@@ -357,4 +357,31 @@ extension WorktreeListViewModelTests {
 
 }
 
+// MARK: - quickRemoveWorktree
+
+extension WorktreeListViewModelTests {
+
+    @Test func quickRemoveWorktree_enqueuesQuickRemoveJob() {
+        sut.worktrees = [rootWorktree, featureWorktree]
+
+        sut.quickRemoveWorktree(featureWorktree)
+
+        #expect(sut.jobQueue.jobs.count == 1)
+        #expect(sut.jobQueue.jobs[0].kind == .quickRemove)
+        #expect(sut.jobQueue.jobs[0].worktreeID == featureWorktree.id)
+        #expect(sut.jobQueue.jobs[0].worktreePath == featureWorktree.path)
+        #expect(sut.jobQueue.jobs[0].folderName == featureWorktree.folderName)
+        #expect(sut.jobQueue.jobs[0].repositoryPath == testRepo.path)
+        #expect(sut.jobQueue.jobs[0].repositoryID == testRepo.id)
+    }
+
+    @Test func quickRemoveWorktree_noRepository_doesNotEnqueue() {
+        sut.repository = nil
+
+        sut.quickRemoveWorktree(featureWorktree)
+
+        #expect(sut.jobQueue.jobs.isEmpty)
+    }
+}
+
 // MockNoPRService is defined in MockGitExecutor.swift
