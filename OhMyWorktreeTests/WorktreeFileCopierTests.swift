@@ -324,4 +324,39 @@ final class WorktreeFileCopierTests {
         #expect(result.copiedFiles == ["a/b/c/d/config.yml"])
         #expect(fileExists("a/b/c/d/config.yml"))
     }
+
+    @Test func copyFailure_recordsError() throws {
+        createWorktreeInclude(".env*")
+        let sourcePath = (repoDir as NSString).appendingPathComponent(".env")
+        createFile(".env", content: "SECRET")
+        // Make the source unreadable so copyItem throws while the file is still
+        // enumerated and passes fileExists — exercising the catch/error path.
+        try fm.setAttributes([.posixPermissions: 0o000], ofItemAtPath: sourcePath)
+        defer { try? fm.setAttributes([.posixPermissions: 0o644], ofItemAtPath: sourcePath) }
+
+        let result = sut.copyFiles(from: repoDir, to: worktreeDir)
+
+        #expect(result.copiedFiles.isEmpty)
+        #expect(result.errors.count == 1)
+        #expect(result.errors[0].hasPrefix(".env:"))
+        #expect(false == fileExists(".env"))
+    }
+
+    @Test func worktreeInclude_unenumerableDirectory_returnsEmpty() {
+        // When .worktreeinclude yields patterns but the directory cannot be
+        // enumerated, findMatchingFiles returns []. FileManager.enumerator(atPath:)
+        // returns nil for an empty path, while contents(atPath:) on a relative
+        // ".worktreeinclude" resolves against the current working directory.
+        createWorktreeInclude(".env*")
+        createFile(".env")
+
+        let savedCWD = fm.currentDirectoryPath
+        defer { _ = fm.changeCurrentDirectoryPath(savedCWD) }
+        #expect(fm.changeCurrentDirectoryPath(repoDir))
+
+        let result = sut.copyFiles(from: "", to: worktreeDir)
+
+        #expect(result.copiedFiles.isEmpty)
+        #expect(result.errors.isEmpty)
+    }
 }

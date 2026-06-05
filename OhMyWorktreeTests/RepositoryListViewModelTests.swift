@@ -258,4 +258,87 @@ struct RepositoryListViewModelTests {
         // Cleanup
         await sut.store.removeRepository(id: repo1.id)
     }
+
+    // MARK: - loadRepositories clears selection + UserDefaults when store is empty
+
+    @Test func loadRepositories_clearsSelectionAndUserDefaultsWhenStoreEmpty() async throws {
+        // Use an ISOLATED, empty store (not RepositoryStore.shared) so this test
+        // cannot race with suites that mutate the shared singleton (e.g.
+        // AppDelegateColdStartTests). `.serialized` only orders tests within a
+        // suite, not across suites, so draining `.shared` here was racy on CI.
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("repo-store-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let vm = RepositoryListViewModel(
+            store: RepositoryStore(storageDirectory: dir),
+            userDefaults: testDefaults)
+
+        // Select a phantom repository that is NOT in the (empty) store and persist its ID.
+        let phantom = Repository(name: "phantom", path: "/tmp/repo-empty-phantom")
+        vm.selectedRepository = phantom
+        testDefaults.set(phantom.id.uuidString, forKey: RepositoryListViewModel.lastSelectedRepositoryIDKey)
+
+        await vm.loadRepositories()
+
+        // Empty store → no fallback → selection cleared and UserDefaults key removed.
+        #expect(vm.repositories.isEmpty)
+        #expect(vm.selectedRepository == nil)
+        #expect(testDefaults.string(forKey: RepositoryListViewModel.lastSelectedRepositoryIDKey) == nil)
+    }
+
+    // MARK: - addRepository invalid path surfaces error
+
+    @Test func addRepository_invalidGitRepository_setsErrorAndDoesNotAdd() async throws {
+        // A real directory that is NOT a git repository → isValidGitRepository == false.
+        let path = "/tmp/repo-invalid-\(UUID().uuidString)"
+        let fm = FileManager.default
+        try fm.createDirectory(atPath: path, withIntermediateDirectories: true, attributes: nil)
+        defer { try? fm.removeItem(atPath: path) }
+
+        await sut.addRepository(at: path)
+
+        #expect(sut.errorMessage != nil, "Invalid git repository should set an error message")
+        #expect(false == sut.repositories.contains(where: { $0.path == path }),
+                "Invalid repository must not be added")
+    }
+
+    // MARK: - removeSelectedRepository
+
+    @Test func removeSelectedRepository_removesCurrentSelection() async {
+        let repo = Repository(name: "repo-remove-selected", path: "/tmp/repo-remove-selected")
+        await sut.store.addRepository(repo)
+        await sut.selectRepository(repo)
+        #expect(sut.selectedRepository?.id == repo.id)
+
+        await sut.removeSelectedRepository()
+
+        // The removed repo must no longer be the selection nor in the store.
+        #expect(sut.selectedRepository?.id != repo.id)
+        let stored = await sut.store.getRepositories()
+        #expect(false == stored.contains(where: { $0.id == repo.id }))
+
+        // Cleanup (best-effort; already removed).
+        await sut.store.removeRepository(id: repo.id)
+    }
+
+    @Test func removeSelectedRepository_noSelection_doesNothing() async {
+        sut.selectedRepository = nil
+
+        // Guard path: returns early without touching the store.
+        await sut.removeSelectedRepository()
+
+        #expect(sut.selectedRepository == nil)
+    }
+
+    // MARK: - clearError
+
+    @Test func clearError_resetsErrorMessage() {
+        sut.errorMessage = "boom"
+        #expect(sut.errorMessage != nil)
+
+        sut.clearError()
+
+        #expect(sut.errorMessage == nil)
+    }
 }

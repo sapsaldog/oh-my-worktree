@@ -129,6 +129,18 @@ struct HotkeyRecorderViewModelTests {
         #expect(vm.displayString == "Type shortcut...")
     }
 
+    @Test func displayString_conflict_showsCombo() {
+        let vm = HotkeyRecorderViewModel(action: .openSettings, shortcutManager: shortcutManager)
+        vm.startRecording()
+        _ = vm.handleKey(keyCode: UInt16(kVK_ANSI_N), modifiers: [.command])
+
+        #expect(vm.state == .conflict(
+            actionName: ShortcutAction.addWorktree.displayName,
+            combo: "⌘N"
+        ))
+        #expect(vm.displayString == "⌘N")
+    }
+
     // MARK: - Override Clears Conflicting Action
 
     @Test func resolveConflict_override_clearsConflictingActionCombo() {

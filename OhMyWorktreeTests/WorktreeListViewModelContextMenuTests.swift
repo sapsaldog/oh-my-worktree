@@ -191,4 +191,42 @@ extension WorktreeListViewModelTests {
         #expect(false == actions.canForceRemove, "Multi-select with locked worktree must disable force remove")
         #expect(false == actions.canQuickRemove, "Multi-select with locked worktree must disable quick remove")
     }
+
+    // MARK: nil-repository coverage (exercises the `?? false` fallback autoclosures)
+
+    /// Multi-select with NO repository set. `repository.map { … }` returns nil, so the
+    /// `?? false` fallback autoclosure in the `allRemovable` predicate (L24) executes.
+    @Test func contextMenuActions_multiSelected_noRepository_isRootDefaultsFalse() {
+        sut.repository = nil
+        sut.worktrees = [rootWorktree, featureWorktree]
+        sut.selectedWorktreeIDs = [rootWorktree.id, featureWorktree.id]
+
+        let actions = sut.contextMenuActions(for: rootWorktree)
+
+        // With no repository, isRoot resolves to false → both worktrees look removable.
+        #expect(actions.canRemove)
+        #expect(actions.canForceRemove)
+        #expect(actions.canQuickRemove)
+        // Multi-select disables non-remove actions regardless.
+        #expect(false == actions.canOpen)
+        #expect(false == actions.canShowInFinder)
+    }
+
+    /// Single-item path with NO repository set. `repository.map { … }` returns nil, so the
+    /// `?? false` fallback autoclosure for the single-item `isRoot` check (L44) executes.
+    @Test func contextMenuActions_singleSelected_noRepository_isRootDefaultsFalse() {
+        sut.repository = nil
+        sut.worktrees = [rootWorktree, featureWorktree]
+        sut.selectedWorktreeIDs = []
+
+        let actions = sut.contextMenuActions(for: rootWorktree)
+
+        // isRoot defaults to false (no repository) → a non-bare, non-locked worktree is removable.
+        #expect(actions.canRemove)
+        #expect(actions.canForceRemove)
+        #expect(actions.canQuickRemove)
+        #expect(actions.canOpen)
+        #expect(actions.canShowInFinder)
+        #expect(actions.canCopyPath)
+    }
 }
