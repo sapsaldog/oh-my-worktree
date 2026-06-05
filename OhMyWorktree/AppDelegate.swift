@@ -41,6 +41,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private let headMonitor = GitHeadMonitor()
     private let windowObserver = WindowObserver()
     var liveBranchName: String?
+    /// Retains the main window's toolbar delegate (NSToolbar holds it weakly).
+    var mainToolbarDelegate: MainToolbarDelegate?
 
     // MARK: - NSApplicationDelegate
 

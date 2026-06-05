@@ -1,37 +1,34 @@
 import SwiftUI
 
-/// Unified Liquid Glass toolbar (height 52), matching the v5 prototype's
-/// `.omw-toolbar`: traffic-light clearance · spring · search (230) · import ·
-/// refresh · settings · ＋(accent). No window title — repo lives in the sidebar.
-struct GlassToolbar: View {
-    @Binding var searchText: String
-    var isRefreshing: Bool
-    var onImport: () -> Void
-    var onRefresh: () -> Void
-    var onSettings: () -> Void
-    var onNew: () -> Void
+/// The window toolbar's right-aligned controls (search · import · refresh ·
+/// settings · ＋), hosted inside a native `NSToolbar(.unified)` so macOS
+/// vertically centers the traffic lights for us. A `.flexibleSpace` toolbar
+/// item keeps this cluster on the right; the unified toolbar provides the bar.
+struct ToolbarControls: View {
+    @Bindable var worktreeVM: WorktreeListViewModel
+    @AppStorage("accentColorName") private var accentColorName = AccentChoice.default.rawValue
+
+    private var accent: Color { AccentChoice.named(accentColorName).color }
 
     var body: some View {
         HStack(spacing: 10) {
-            Color.clear.frame(width: 72, height: 1)   // native traffic-light clearance
-
-            Spacer(minLength: 12)
-
             searchField.frame(width: 230)
 
             ToolbarRoundButton(systemImage: "arrow.triangle.pull", assetImage: "GitHubMark",
-                               help: "Import from Pull Request", action: onImport)
-            ToolbarRoundButton(systemImage: "arrow.clockwise", help: "Refresh (⌘R)", spinning: isRefreshing, action: onRefresh)
-            ToolbarRoundButton(systemImage: "gearshape", help: "Settings (⌘,)", action: onSettings)
-            ToolbarRoundButton(systemImage: "plus", help: "New Worktree (⌘N)", filled: true, action: onNew)
+                               help: "Import from Pull Request") { worktreeVM.isShowingImportPR = true }
+            ToolbarRoundButton(systemImage: "arrow.clockwise", help: "Refresh (⌘R)",
+                               spinning: worktreeVM.isLoading) { Task { await worktreeVM.loadWorktrees() } }
+            ToolbarRoundButton(systemImage: "gearshape", help: "Settings (⌘,)") {
+                worktreeVM.isShowingSettings = true
+            }
+            ToolbarRoundButton(systemImage: "plus", help: "New Worktree (⌘N)", filled: true) {
+                worktreeVM.isShowingCreateSheet = true
+            }
         }
         .padding(.horizontal, 14)
         .frame(height: 52)
-        .frame(maxWidth: .infinity)
-        .glassEffect(.regular, in: Rectangle())
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(OMWColor.separator).frame(height: 0.5)
-        }
+        .environment(\.omwAccent, accent)
+        .tint(accent)
     }
 
     private var searchField: some View {
@@ -39,7 +36,7 @@ struct GlassToolbar: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 12))
                 .foregroundStyle(OMWColor.labelTertiary)
-            TextField("Filter worktrees…", text: $searchText)
+            TextField("Filter worktrees…", text: $worktreeVM.searchText)
                 .textFieldStyle(.plain)
                 .font(.system(size: 13))
         }

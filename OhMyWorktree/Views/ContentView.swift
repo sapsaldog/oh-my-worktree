@@ -15,15 +15,6 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
-                GlassToolbar(
-                    searchText: $worktreeViewModel.searchText,
-                    isRefreshing: worktreeViewModel.isLoading,
-                    onImport: { worktreeViewModel.isShowingImportPR = true },
-                    onRefresh: { Task { await worktreeViewModel.loadWorktrees() } },
-                    onSettings: { worktreeViewModel.isShowingSettings = true },
-                    onNew: { worktreeViewModel.isShowingCreateSheet = true }
-                )
-
                 HStack(spacing: 0) {
                     RepositorySidebar(
                         repoVM: repoViewModel,
@@ -62,12 +53,7 @@ struct ContentView: View {
         .environment(\.omwAccent, accent)
         .frame(minWidth: 860, minHeight: 520)
         .background(OMWColor.bgWindow)
-        // Extend the glass toolbar up under the transparent titlebar so the
-        // native traffic lights sit inline in the toolbar row (matching the
-        // prototype's single-row lid), not in an empty strip above it.
-        .ignoresSafeArea(.container, edges: .top)
-        // Sets the window title used by AppDelegate's "Open Main Window" lookup;
-        // hidden visually by .windowStyle(.hiddenTitleBar) on the WindowGroup.
+        // Sets the window title used by AppDelegate's "Open Main Window" lookup.
         .navigationTitle("Oh My Worktree")
         .fileImporter(
             isPresented: $repoViewModel.showingFileDialog,

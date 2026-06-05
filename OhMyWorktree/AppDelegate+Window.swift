@@ -59,60 +59,26 @@ extension AppDelegate {
         showOrCreateWindow(
             title: Self.mainWindowTitle,
             size: NSSize(width: 1180, height: 740),
-            styleMask: [.titled, .closable, .resizable, .miniaturizable, .fullSizeContentView],
+            styleMask: [.titled, .closable, .resizable, .miniaturizable],
             configure: { window in
-                window.titlebarAppearsTransparent = true
                 window.titleVisibility = .hidden
                 window.isMovableByWindowBackground = true
                 window.minSize = NSSize(width: 860, height: 520)
-                // No native tab bar (its "+" would intrude on the toolbar row).
                 window.tabbingMode = .disallowed
-                // Re-center the traffic lights as the window resizes.
-                window.delegate = self
-            },
-            onShow: { window in
-                // Center the native traffic lights in the 52pt glass toolbar now,
-                // and again next tick to win against the titlebar's own layout pass.
-                Self.centerTrafficLights(in: window, toolbarHeight: 52)
-                Task { @MainActor in Self.centerTrafficLights(in: window, toolbarHeight: 52) }
+                // A native unified toolbar hosts the controls and lets macOS
+                // vertically center the traffic lights for us.
+                let delegate = MainToolbarDelegate(worktreeVM: worktreeVM)
+                self.mainToolbarDelegate = delegate
+                let toolbar = NSToolbar(identifier: "OMWMainToolbar")
+                toolbar.delegate = delegate
+                toolbar.showsBaselineSeparator = false
+                window.toolbar = toolbar
+                window.toolbarStyle = .unified
             }
         ) {
             ContentView(repoViewModel: repoVM, worktreeViewModel: worktreeVM)
                 .environment(store)
                 .frame(minWidth: 860, minHeight: 520)
-        }
-    }
-
-    /// Vertically centers the native traffic-light buttons within the custom
-    /// `toolbarHeight`-tall glass toolbar (they otherwise sit near the very top,
-    /// misaligned with the toolbar controls) by positioning their frames directly.
-    static func centerTrafficLights(in window: NSWindow, toolbarHeight: CGFloat) {
-        let buttons = [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton]
-            .compactMap { window.standardWindowButton($0) }
-        guard let container = buttons.first?.superview else { return }
-        container.clipsToBounds = false
-        container.layoutSubtreeIfNeeded()
-        let markerID = "omwTrafficLight"
-        let buttonViews = Set(buttons.map { $0 as NSView })
-        let originalX = Dictionary(uniqueKeysWithValues: buttons.map { ($0, $0.frame.minX) })
-        // Drop our previous pins *and* the system's own placement of these buttons,
-        // so the titlebar can't snap them back to the top on the next layout pass.
-        func involvesButton(_ constraint: NSLayoutConstraint) -> Bool {
-            if constraint.identifier == markerID { return true }
-            if let view = constraint.firstItem as? NSView, buttonViews.contains(view) { return true }
-            if let view = constraint.secondItem as? NSView, buttonViews.contains(view) { return true }
-            return false
-        }
-        NSLayoutConstraint.deactivate(container.constraints.filter(involvesButton))
-        for button in buttons {
-            button.translatesAutoresizingMaskIntoConstraints = false
-            let leading = button.leadingAnchor.constraint(equalTo: container.leadingAnchor,
-                                                          constant: originalX[button] ?? 0)
-            let centerY = button.centerYAnchor.constraint(equalTo: container.topAnchor,
-                                                          constant: toolbarHeight / 2)
-            leading.identifier = markerID
-            centerY.identifier = markerID
-            NSLayoutConstraint.activate([leading, centerY])
         }
     }
 
@@ -130,11 +96,34 @@ extension AppDelegate {
     }
 }
 
-extension AppDelegate: NSWindowDelegate {
-    /// Re-center the traffic lights after the system re-lays them out on resize.
-    func windowDidResize(_ notification: Notification) {
-        guard let window = notification.object as? NSWindow,
-              window.title == Self.mainWindowTitle else { return }
-        Self.centerTrafficLights(in: window, toolbarHeight: 52)
+// MARK: - Main window toolbar
+
+/// Hosts the toolbar controls in a native unified `NSToolbar`. A flexible space
+/// keeps them right-aligned; the unified style lets macOS vertically center the
+/// traffic lights, which can't be done reliably from outside the window.
+@MainActor
+final class MainToolbarDelegate: NSObject, NSToolbarDelegate {
+    private let worktreeVM: WorktreeListViewModel
+    private static let controls = NSToolbarItem.Identifier("OMWControls")
+
+    init(worktreeVM: WorktreeListViewModel) {
+        self.worktreeVM = worktreeVM
+    }
+
+    func toolbar(_ toolbar: NSToolbar,
+                 itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier,
+                 willBeInsertedIntoToolbar flag: Bool) -> NSToolbarItem? {
+        guard itemIdentifier == Self.controls else { return nil }
+        let item = NSToolbarItem(itemIdentifier: itemIdentifier)
+        item.view = NSHostingView(rootView: ToolbarControls(worktreeVM: worktreeVM))
+        return item
+    }
+
+    func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
+        [.flexibleSpace, Self.controls]
+    }
+
+    func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
+        [.flexibleSpace, Self.controls]
     }
 }
