@@ -139,6 +139,19 @@ private struct ShortcutButtonsView: View {
             shortcutButton(for: .refreshWorktrees) {
                 Task { await worktreeViewModel.loadWorktrees() }
             }
+            shortcutButton(for: .gitPull) {
+                guard let worktree = worktreeViewModel.selectedWorktree else { return }
+                worktreeViewModel.gitPull(worktree)
+            }
+            shortcutButton(for: .showInFinder) {
+                guard let worktree = worktreeViewModel.selectedWorktree else { return }
+                NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: worktree.path)
+            }
+            shortcutButton(for: .copyPath) {
+                guard let worktree = worktreeViewModel.selectedWorktree else { return }
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(worktree.path, forType: .string)
+            }
         }
         .frame(width: 0, height: 0)
         .opacity(0)
