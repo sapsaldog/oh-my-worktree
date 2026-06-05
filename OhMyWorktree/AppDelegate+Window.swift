@@ -65,15 +65,19 @@ extension AppDelegate {
                 window.isMovableByWindowBackground = true
                 window.minSize = NSSize(width: 860, height: 520)
                 window.tabbingMode = .disallowed
-                // A native unified toolbar hosts the controls and lets macOS
-                // vertically center the traffic lights for us.
-                let delegate = MainToolbarDelegate(worktreeVM: worktreeVM)
-                self.mainToolbarDelegate = delegate
-                let toolbar = NSToolbar(identifier: "OMWMainToolbar")
-                toolbar.delegate = delegate
-                toolbar.showsBaselineSeparator = false
-                window.toolbar = toolbar
+                // An empty unified toolbar provides the bar and lets macOS center
+                // the traffic lights; the controls live in a trailing titlebar
+                // accessory sized to its own fitting size. This is the documented
+                // way to host SwiftUI in the titlebar — NSToolbarItem custom views
+                // render empty inside this NSHostingController window.
+                window.toolbar = NSToolbar()
                 window.toolbarStyle = .unified
+                let controls = NSHostingView(rootView: ToolbarControls(worktreeVM: worktreeVM))
+                controls.frame.size = controls.fittingSize
+                let accessory = NSTitlebarAccessoryViewController()
+                accessory.view = controls
+                accessory.layoutAttribute = .trailing
+                window.addTitlebarAccessoryViewController(accessory)
             }
         ) {
             ContentView(repoViewModel: repoVM, worktreeViewModel: worktreeVM)
@@ -93,47 +97,5 @@ extension AppDelegate {
         ) {
             SettingsView(updaterManager: updaterManager, store: shortcutStore)
         }
-    }
-}
-
-// MARK: - Main window toolbar
-
-/// Hosts the toolbar controls (search + buttons) in a single unified `NSToolbar`
-/// item, sized to the SwiftUI view's own fitting size — no hardcoded dimensions.
-/// The unified style lets macOS vertically center the traffic lights; a flexible
-/// space keeps the controls right-aligned.
-@MainActor
-final class MainToolbarDelegate: NSObject, NSToolbarDelegate {
-    private let worktreeVM: WorktreeListViewModel
-    private static let controls = NSToolbarItem.Identifier("OMWControls")
-
-    init(worktreeVM: WorktreeListViewModel) {
-        self.worktreeVM = worktreeVM
-    }
-
-    func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        [.flexibleSpace, Self.controls]
-    }
-
-    func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        [.flexibleSpace, Self.controls]
-    }
-
-    func toolbar(_ toolbar: NSToolbar,
-                 itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier,
-                 willBeInsertedIntoToolbar flag: Bool) -> NSToolbarItem? {
-        guard itemIdentifier == Self.controls else { return nil }
-        let hosting = NSHostingView(rootView: ToolbarControls(worktreeVM: worktreeVM))
-        // Size to the controls' own fitting size (floored, in case it's not laid
-        // out yet) — no magic numbers.
-        let fitting = hosting.fittingSize
-        hosting.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            hosting.widthAnchor.constraint(equalToConstant: max(fitting.width, 400)),
-            hosting.heightAnchor.constraint(equalToConstant: max(fitting.height, 52))
-        ])
-        let item = NSToolbarItem(itemIdentifier: itemIdentifier)
-        item.view = hosting
-        return item
     }
 }
