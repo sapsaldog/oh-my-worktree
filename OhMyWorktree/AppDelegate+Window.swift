@@ -59,7 +59,8 @@ extension AppDelegate {
         showOrCreateWindow(
             title: Self.mainWindowTitle,
             size: NSSize(width: 1180, height: 740),
-            styleMask: [.titled, .closable, .resizable, .miniaturizable],
+            styleMask: [.titled, .unifiedTitleAndToolbar, .fullSizeContentView,
+                        .closable, .resizable, .miniaturizable],
             configure: { window in
                 window.titleVisibility = .hidden
                 window.isMovableByWindowBackground = true
@@ -73,7 +74,10 @@ extension AppDelegate {
                 window.toolbar = NSToolbar()
                 window.toolbarStyle = .unified
                 let controls = NSHostingView(rootView: ToolbarControls(worktreeVM: worktreeVM))
-                controls.frame.size = controls.fittingSize
+                controls.layoutSubtreeIfNeeded()
+                var size = controls.fittingSize
+                if size.width < 1 || size.height < 1 { size = NSSize(width: 460, height: 52) }
+                controls.frame.size = size
                 let accessory = NSTitlebarAccessoryViewController()
                 accessory.view = controls
                 accessory.layoutAttribute = .trailing
