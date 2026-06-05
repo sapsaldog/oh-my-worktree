@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 
 @testable import OhMyWorktree
@@ -119,5 +120,44 @@ struct ExternalToolLauncherTests {
             )
         }
         #expect(callCount == 2, "Should stop at the failing call")
+    }
+
+    // MARK: - cmux Socket Path Resolution
+
+    @Test func resolveCmuxSocketPath_readsModernStatePointer() {
+        let home = URL(fileURLWithPath: "/Users/test")
+        let modernPointer = home.appendingPathComponent(".local/state/cmux/last-socket-path").path
+        let resolved = ExternalToolLauncher.resolveCmuxSocketPath(
+            home: home,
+            readPointer: { $0.path == modernPointer ? "/custom/live/cmux.sock\n" : nil }
+        )
+        #expect(resolved == "/custom/live/cmux.sock")
+    }
+
+    @Test func resolveCmuxSocketPath_usesModernDefaultWhenNoPointer() {
+        let home = URL(fileURLWithPath: "/Users/test")
+        let resolved = ExternalToolLauncher.resolveCmuxSocketPath(
+            home: home,
+            readPointer: { _ in nil }
+        )
+        #expect(resolved == "/Users/test/.local/state/cmux/cmux.sock")
+    }
+
+    @Test func resolveCmuxSocketPath_usesModernDefaultWhenPointerBlank() {
+        let home = URL(fileURLWithPath: "/Users/test")
+        let resolved = ExternalToolLauncher.resolveCmuxSocketPath(
+            home: home,
+            readPointer: { _ in "   \n" }
+        )
+        #expect(resolved == "/Users/test/.local/state/cmux/cmux.sock")
+    }
+
+    @Test func resolveCmuxSocketPath_trimsSurroundingWhitespace() {
+        let home = URL(fileURLWithPath: "/Users/test")
+        let resolved = ExternalToolLauncher.resolveCmuxSocketPath(
+            home: home,
+            readPointer: { _ in "  /custom/live/cmux.sock  \n" }
+        )
+        #expect(resolved == "/custom/live/cmux.sock")
     }
 }
