@@ -3,6 +3,8 @@
 # line coverage on every non-excluded file (see coverage-exclude.txt).
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
+# The Xcode project is gitignored and generated from project.yml.
+xcodegen generate
 RESULT="build/CoverageResult.xcresult"
 mkdir -p build
 rm -rf "$RESULT" build/DerivedData
