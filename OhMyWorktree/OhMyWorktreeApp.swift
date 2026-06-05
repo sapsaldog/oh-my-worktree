@@ -18,6 +18,7 @@ struct OhMyWorktreeApp: App {
         WindowGroup(id: "main") {
             ContentView(repoViewModel: repoViewModel, worktreeViewModel: worktreeViewModel)
                 .environment(shortcutStore)
+                .environment(updaterManager)
         }
         .defaultSize(width: 1180, height: 740)
         .windowStyle(.hiddenTitleBar)

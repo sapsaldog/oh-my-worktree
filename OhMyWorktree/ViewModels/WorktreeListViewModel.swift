@@ -49,6 +49,9 @@ final class WorktreeListViewModel {
     /// Controls the New Worktree sheet.
     var isShowingCreateSheet = false
 
+    /// Controls the Settings sheet.
+    var isShowingSettings = false
+
     // Delete confirmation triggers (set by hidden shortcut buttons, observed by WorktreeListView)
     enum PendingDelete: Equatable {
         case remove, forceRemove, quickRemove

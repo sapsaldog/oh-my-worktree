@@ -5,6 +5,7 @@ struct ContentView: View {
     @Bindable var repoViewModel: RepositoryListViewModel
     @Bindable var worktreeViewModel: WorktreeListViewModel
     @Environment(ShortcutStore.self) var shortcutStore
+    @Environment(UpdaterManager.self) private var updaterManager: UpdaterManager?
     @AppStorage("accentColorName") private var accentColorName = AccentChoice.default.rawValue
 
     private var accent: Color { AccentChoice.named(accentColorName).color }
@@ -18,7 +19,7 @@ struct ContentView: View {
                     isRefreshing: worktreeViewModel.isLoading,
                     onImport: { worktreeViewModel.isShowingImportPR = true },
                     onRefresh: { Task { await worktreeViewModel.loadWorktrees() } },
-                    onSettings: { openSettings() },
+                    onSettings: { worktreeViewModel.isShowingSettings = true },
                     onNew: { worktreeViewModel.isShowingCreateSheet = true }
                 )
 
@@ -28,8 +29,8 @@ struct ContentView: View {
                         selectedWorktreeCount: worktreeViewModel.worktrees.count,
                         onSelect: { repo in Task { await repoViewModel.selectRepository(repo) } },
                         onAddRepo: { repoViewModel.showingFileDialog = true },
-                        onSettings: { openSettings() },
-                        onCheckUpdates: { checkForUpdates() }
+                        onSettings: { worktreeViewModel.isShowingSettings = true },
+                        onCheckUpdates: { updaterManager?.checkForUpdates() }
                     )
                     WorktreeListColumn(worktreeVM: worktreeViewModel)
                     DetailPaneView(
@@ -81,6 +82,9 @@ struct ContentView: View {
                 worktreeViewModel: worktreeViewModel,
                 repoName: repoViewModel.selectedRepository?.name ?? "this repository"
             )
+        }
+        .sheet(isPresented: $worktreeViewModel.isShowingSettings) {
+            settingsSheet
         }
         .alert(
             "Error",
@@ -180,12 +184,21 @@ struct ContentView: View {
         return tools
     }
 
-    private func openSettings() {
-        (NSApp.delegate as? AppDelegate)?.showOrCreateSettingsWindow()
-    }
-
-    private func checkForUpdates() {
-        (NSApp.delegate as? AppDelegate)?.updaterManager?.checkForUpdates()
+    @ViewBuilder
+    private var settingsSheet: some View {
+        if let updaterManager {
+            VStack(spacing: 0) {
+                SettingsView(updaterManager: updaterManager, store: shortcutStore)
+                Divider()
+                HStack {
+                    Spacer()
+                    Button("Done") { worktreeViewModel.isShowingSettings = false }
+                        .keyboardShortcut(.defaultAction)
+                }
+                .padding(12)
+            }
+            .frame(width: 540, height: 480)
+        }
     }
 
     private var shortcutButtons: some View {
