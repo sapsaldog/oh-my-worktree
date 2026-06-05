@@ -115,9 +115,14 @@ final class MainToolbarDelegate: NSObject, NSToolbarDelegate {
                  willBeInsertedIntoToolbar flag: Bool) -> NSToolbarItem? {
         guard itemIdentifier == Self.controls else { return nil }
         let hosting = NSHostingView(rootView: ToolbarControls(worktreeVM: worktreeVM))
-        // Size the item to the controls' intrinsic size; without this the toolbar
-        // gives the hosting view an arbitrary frame and the layout breaks.
-        hosting.sizingOptions = [.intrinsicContentSize]
+        // Pin an explicit size: intrinsic sizing collapses the hosting view to
+        // nothing, while no sizing lets the toolbar over-expand it. Width =
+        // 14 padding + 230 search + 4×(10 gap + 30 button) + 14 padding = 418.
+        hosting.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            hosting.widthAnchor.constraint(equalToConstant: 418),
+            hosting.heightAnchor.constraint(equalToConstant: 52)
+        ])
         let item = NSToolbarItem(itemIdentifier: itemIdentifier)
         item.view = hosting
         return item
