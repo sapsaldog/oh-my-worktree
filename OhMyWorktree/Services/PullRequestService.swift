@@ -1,5 +1,4 @@
 import Foundation
-import os
 
 protocol PullRequestFetching: Sendable {
     func fetchPullRequests(repositoryPath: String) async -> [String: PullRequestInfo]
@@ -17,11 +16,6 @@ extension PullRequestFetching {
 /// Fetches GitHub pull request information using the `gh` CLI.
 /// Gracefully degrades when `gh` is not installed, not authenticated, or the repository is not on GitHub.
 final class PullRequestService: PullRequestFetching, Sendable {
-
-    private static let logger = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "com.ohmyworktree",
-        category: "PullRequestService"
-    )
 
     private let gitExecutor: GitCommandExecuting
     /// Resolved once at init to avoid repeated filesystem checks and `which` subprocess spawns.
@@ -49,7 +43,7 @@ final class PullRequestService: PullRequestFetching, Sendable {
     /// Note: Limited to the 100 most recent PRs across all states.
     func fetchPullRequests(repositoryPath: String) async -> [String: PullRequestInfo] {
         guard let ghPath = resolvedGhCliPath else {
-            Self.logger.debug("gh CLI not found, skipping PR fetch")
+            AppLog.debug("gh CLI not found, skipping PR fetch", category: "PullRequestService")
             return [:]
         }
         guard await isGitHubRepository(repositoryPath: repositoryPath) else { return [:] }
@@ -62,12 +56,12 @@ final class PullRequestService: PullRequestFetching, Sendable {
             )
 
             guard result.exitCode == 0 else {
-                Self.logger.debug("gh pr list failed with exit code \(result.exitCode)")
+                AppLog.debug("gh pr list failed with exit code \(result.exitCode)", category: "PullRequestService")
                 return [:]
             }
             return parsePullRequests(from: result.stdout)
         } catch {
-            Self.logger.debug("Failed to fetch PRs: \(error.localizedDescription)")
+            AppLog.debug("Failed to fetch PRs: \(error.localizedDescription)", category: "PullRequestService")
             return [:]
         }
     }
@@ -101,7 +95,7 @@ final class PullRequestService: PullRequestFetching, Sendable {
             guard result.exitCode == 0 else { return nil }
             return parsePullRequestList(from: result.stdout)
         } catch {
-            Self.logger.debug("Failed to fetch PR list: \(error.localizedDescription)")
+            AppLog.debug("Failed to fetch PR list: \(error.localizedDescription)", category: "PullRequestService")
             return nil
         }
     }
@@ -222,7 +216,7 @@ final class PullRequestService: PullRequestFetching, Sendable {
                 )
             }
         } catch {
-            Self.logger.debug("Failed to parse PR list JSON: \(error.localizedDescription)")
+            AppLog.debug("Failed to parse PR list JSON: \(error.localizedDescription)", category: "PullRequestService")
             return nil
         }
     }
@@ -265,7 +259,7 @@ final class PullRequestService: PullRequestFetching, Sendable {
             }
             return result
         } catch {
-            Self.logger.debug("Failed to parse PR JSON: \(error.localizedDescription)")
+            AppLog.debug("Failed to parse PR JSON: \(error.localizedDescription)", category: "PullRequestService")
             return [:]
         }
     }

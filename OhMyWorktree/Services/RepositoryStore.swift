@@ -4,10 +4,7 @@ import os
 actor RepositoryStore {
     static let shared = RepositoryStore()
 
-    private static let logger = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "com.ohmyworktree",
-        category: "RepositoryStore"
-    )
+    private static let logger = AppLog.logger("RepositoryStore")
 
     // No default values: init body performs definite initialization, which is
     // allowed in a nonisolated actor init (Swift 6). Default values would make

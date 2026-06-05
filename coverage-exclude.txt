@@ -37,6 +37,21 @@ OhMyWorktree/Models/Worktree.swift
 OhMyWorktree/Services/ExternalToolLauncher.swift
 OhMyWorktree/ViewModels/WorktreeListViewModel+ExternalTools.swift
 
+# OS-framework wrappers — a unit-test process cannot execute these lines:
+#   GitHeadMonitor  — DispatchSource file watcher on .git/HEAD
+#   WindowObserver  — AppKit NSWindow observation
+#   NotificationManager — UNUserNotificationCenter (auth denied/headless on CI)
+#   UpdaterManager  — Sparkle SPUStandardUpdaterController
+# Their logic is mostly irreducible system glue; excluded by design. (Could be
+# split into a thin seam + testable core later, but not worth it for now.)
+OhMyWorktree/Services/GitHeadMonitor.swift
+OhMyWorktree/Services/WindowObserver.swift
+OhMyWorktree/Services/NotificationManager.swift
+OhMyWorktree/Services/UpdaterManager.swift
+
+# Logging seam — irreducible Logger/bundle-id autoclosures (see AppLog.swift).
+OhMyWorktree/Services/AppLog.swift
+
 # Thin system-call adapters (irreducible seams) are appended here as they are
 # extracted in later phases, e.g.:
 # OhMyWorktree/Services/<Name>+SystemSeam.swift
