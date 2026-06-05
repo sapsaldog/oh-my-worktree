@@ -9,6 +9,7 @@ Thank you for your interest in contributing! This guide will help you get starte
 - **macOS 15+** (Sequoia or later)
 - **Git 2.30+**
 - **Swift 5.9+**
+- **XcodeGen** (`brew install xcodegen`) — generates the Xcode project from `project.yml`
 
 ### Getting Started
 1. Clone the repository:
@@ -17,12 +18,19 @@ Thank you for your interest in contributing! This guide will help you get starte
    cd oh-my-worktree
    ```
 
-2. Open the Xcode project:
+2. Generate the Xcode project (it is **not** committed — XcodeGen builds it from `project.yml`):
+   ```bash
+   brew install xcodegen   # if not already installed
+   xcodegen generate
+   ```
+   Re-run `xcodegen generate` whenever `project.yml` changes.
+
+3. Open the Xcode project:
    ```bash
    open OhMyWorktree.xcodeproj
    ```
 
-3. Select your target device (Mac) and build.
+4. Select your target device (Mac) and build.
 
 ## Building and Running
 

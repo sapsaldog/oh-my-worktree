@@ -53,19 +53,25 @@ Download the latest release from [GitHub Releases](https://github.com/sapsaldog/
    cd oh-my-worktree
    ```
 
-2. Open the Xcode project:
+2. Generate the Xcode project (XcodeGen builds it from `project.yml`; it is not committed):
+   ```bash
+   brew install xcodegen   # if not already installed
+   xcodegen generate
+   ```
+
+3. Open the Xcode project:
    ```bash
    open OhMyWorktree.xcodeproj
    ```
 
-3. Select the `OhMyWorktree` scheme and build target (⌘B)
+4. Select the `OhMyWorktree` scheme and build target (⌘B)
 
-4. Run the app (⌘R) or find the built binary in:
+5. Run the app (⌘R) or find the built binary in:
    ```
    /Library/Developer/Xcode/DerivedData/OhMyWorktree-.../Build/Products/Release/OhMyWorktree.app
    ```
 
-5. For production use, copy the app to `/Applications/`:
+6. For production use, copy the app to `/Applications/`:
    ```bash
    cp -r OhMyWorktree.app /Applications/
    ```
