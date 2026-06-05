@@ -26,7 +26,8 @@ struct OhMyWorktreeApp: App {
         .commands {
             CommandGroup(replacing: .appSettings) {
                 Button("Settings...") {
-                    appDelegate.showOrCreateSettingsWindow()
+                    appDelegate.showOrCreateMainWindow()
+                    worktreeViewModel.isShowingSettings = true
                 }
                 .keyboardShortcut(",", modifiers: .command)
             }

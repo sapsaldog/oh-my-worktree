@@ -193,17 +193,7 @@ struct ContentView: View {
     @ViewBuilder
     private var settingsSheet: some View {
         if let updaterManager {
-            VStack(spacing: 0) {
-                SettingsView(updaterManager: updaterManager, store: shortcutStore)
-                Divider()
-                HStack {
-                    Spacer()
-                    Button("Done") { worktreeViewModel.isShowingSettings = false }
-                        .keyboardShortcut(.defaultAction)
-                }
-                .padding(12)
-            }
-            .frame(width: 540, height: 480)
+            SettingsSheetContent(updaterManager: updaterManager, store: shortcutStore)
         }
     }
 
