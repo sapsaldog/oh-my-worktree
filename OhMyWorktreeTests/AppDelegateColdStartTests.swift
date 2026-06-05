@@ -92,19 +92,21 @@ final class AppDelegateColdStartTests {
         // (Window creation depends on NSApp context, but the method must not crash)
     }
 
-    // MARK: - Settings does not crash on cold start
+    // MARK: - Settings opens via the sheet flag
 
-    @Test func settingsClickedDoesNotCrash() async throws {
+    @Test func settingsClickedSetsSheetFlag() async throws {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
-        appDelegate.updaterManager = UpdaterManager()
-        appDelegate.shortcutStore = ShortcutStore()
+        let worktreeVM = WorktreeListViewModel()
+        appDelegate.repoViewModel = RepositoryListViewModel()
+        appDelegate.worktreeViewModel = worktreeVM
+
+        #expect(false == worktreeVM.isShowingSettings)
 
         let menuItem = NSMenuItem(title: "Settings...", action: nil, keyEquivalent: "")
         appDelegate.settingsClicked(menuItem)
 
-        let settingsWindows = NSApp.windows.filter { $0.title == AppDelegate.settingsWindowTitle }
-        #expect(settingsWindows.count == 1, "Settings window should be created on cold start")
+        try await pollUntil { worktreeVM.isShowingSettings }
     }
 
     // MARK: - Import PR triggers sheet flag
@@ -125,20 +127,6 @@ final class AppDelegateColdStartTests {
     }
 
     // MARK: - Window reuse (no duplicates)
-
-    @Test func settingsWindowIsReused() async throws {
-        let appDelegate = AppDelegate()
-        appDelegate.setupStatusItem()
-        appDelegate.updaterManager = UpdaterManager()
-        appDelegate.shortcutStore = ShortcutStore()
-
-        let menuItem = NSMenuItem(title: "Settings...", action: nil, keyEquivalent: "")
-        appDelegate.settingsClicked(menuItem)
-        appDelegate.settingsClicked(menuItem)
-
-        let settingsWindows = NSApp.windows.filter { $0.title == AppDelegate.settingsWindowTitle }
-        #expect(settingsWindows.count == 1, "Clicking Settings twice should reuse the same window")
-    }
 
     @Test func mainWindowIsReused() async throws {
         let appDelegate = AppDelegate()
