@@ -25,10 +25,12 @@
 ```bash
 git clone https://github.com/sapsaldog/oh-my-worktree.git
 cd oh-my-worktree
+brew install xcodegen   # generates the Xcode project from project.yml
+xcodegen generate
 open OhMyWorktree.xcodeproj
 ```
 
-Select the `OhMyWorktree` scheme, then **Build & Run** (⌘R). Requires **Xcode 16** or later.
+Select the `OhMyWorktree` scheme, then **Build & Run** (⌘R). Requires **Xcode 16** and [**XcodeGen**](https://github.com/yonaskolb/XcodeGen) — the `.xcodeproj` is generated from `project.yml`, not committed.
 
 ## First Launch
 
