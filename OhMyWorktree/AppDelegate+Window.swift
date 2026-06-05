@@ -114,8 +114,12 @@ final class MainToolbarDelegate: NSObject, NSToolbarDelegate {
                  itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier,
                  willBeInsertedIntoToolbar flag: Bool) -> NSToolbarItem? {
         guard itemIdentifier == Self.controls else { return nil }
+        let hosting = NSHostingView(rootView: ToolbarControls(worktreeVM: worktreeVM))
+        // Size the item to the controls' intrinsic size; without this the toolbar
+        // gives the hosting view an arbitrary frame and the layout breaks.
+        hosting.sizingOptions = [.intrinsicContentSize]
         let item = NSToolbarItem(itemIdentifier: itemIdentifier)
-        item.view = NSHostingView(rootView: ToolbarControls(worktreeVM: worktreeVM))
+        item.view = hosting
         return item
     }
 
