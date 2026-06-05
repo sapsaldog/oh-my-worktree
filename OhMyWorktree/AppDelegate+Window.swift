@@ -89,19 +89,30 @@ extension AppDelegate {
     static func centerTrafficLights(in window: NSWindow, toolbarHeight: CGFloat) {
         let buttons = [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton]
             .compactMap { window.standardWindowButton($0) }
-        guard let close = buttons.first,
-              let container = close.superview,
-              let contentView = window.contentView else { return }
+        guard let container = buttons.first?.superview else { return }
         container.clipsToBounds = false
-        container.superview?.clipsToBounds = false
-        // Desired button center: vertically centered in the toolbar, measured from
-        // the window's top, mapped into the button container's coordinate space.
-        let targetFromTop = CGPoint(x: 0, y: contentView.bounds.height - toolbarHeight / 2)
-        let target = contentView.convert(targetFromTop, to: container)
+        container.layoutSubtreeIfNeeded()
+        let markerID = "omwTrafficLight"
+        let buttonViews = Set(buttons.map { $0 as NSView })
+        let originalX = Dictionary(uniqueKeysWithValues: buttons.map { ($0, $0.frame.minX) })
+        // Drop our previous pins *and* the system's own placement of these buttons,
+        // so the titlebar can't snap them back to the top on the next layout pass.
+        func involvesButton(_ constraint: NSLayoutConstraint) -> Bool {
+            if constraint.identifier == markerID { return true }
+            if let view = constraint.firstItem as? NSView, buttonViews.contains(view) { return true }
+            if let view = constraint.secondItem as? NSView, buttonViews.contains(view) { return true }
+            return false
+        }
+        NSLayoutConstraint.deactivate(container.constraints.filter(involvesButton))
         for button in buttons {
-            button.translatesAutoresizingMaskIntoConstraints = true
-            button.setFrameOrigin(NSPoint(x: button.frame.origin.x,
-                                          y: target.y - button.bounds.height / 2))
+            button.translatesAutoresizingMaskIntoConstraints = false
+            let leading = button.leadingAnchor.constraint(equalTo: container.leadingAnchor,
+                                                          constant: originalX[button] ?? 0)
+            let centerY = button.centerYAnchor.constraint(equalTo: container.topAnchor,
+                                                          constant: toolbarHeight / 2)
+            leading.identifier = markerID
+            centerY.identifier = markerID
+            NSLayoutConstraint.activate([leading, centerY])
         }
     }
 
