@@ -5,6 +5,7 @@ struct ActionTool: Identifiable {
     let id: String
     let name: String
     let systemImage: String
+    let bundleID: String?
     let open: () -> Void
 }
 
@@ -289,32 +290,12 @@ struct DetailPaneView: View {
                 .foregroundStyle(OMWColor.labelTertiary)
             Spacer()
             HStack(spacing: 7) {
-                ForEach(Array(tools.enumerated()), id: \.element.id) { index, tool in
-                    if index == 0 {
-                        Button(action: tool.open) {
-                            HStack(spacing: 6) {
-                                Image(systemName: tool.systemImage).font(.system(size: 15))
-                                Text(tool.name).font(.system(size: 12, weight: .semibold))
-                            }
-                            .foregroundStyle(OMWColor.onAccent)
-                            .padding(.horizontal, 13)
-                            .frame(height: 32)
-                            .background(accent, in: Capsule())
-                        }
-                        .buttonStyle(.plain)
-                        .help("Open in \(tool.name)")
-                    } else {
-                        Button(action: tool.open) {
-                            Image(systemName: tool.systemImage)
-                                .font(.system(size: 15))
-                                .foregroundStyle(OMWColor.labelSecondary)
-                                .frame(width: 32, height: 32)
-                                .background(OMWColor.controlBg, in: Circle())
-                                .overlay(Circle().strokeBorder(OMWColor.separator, lineWidth: 0.5))
-                        }
-                        .buttonStyle(.plain)
-                        .help("Open in \(tool.name)")
+                ForEach(tools) { tool in
+                    Button(action: tool.open) {
+                        ToolIcon(bundleID: tool.bundleID, fallbackSystemImage: tool.systemImage)
                     }
+                    .buttonStyle(.plain)
+                    .help("Open in \(tool.name)")
                 }
             }
         }

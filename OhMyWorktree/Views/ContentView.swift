@@ -157,27 +157,33 @@ struct ContentView: View {
         guard let wt = selectedWorktree else { return [] }
         var tools: [ActionTool] = []
         if worktreeViewModel.isITermAvailable {
-            tools.append(ActionTool(id: "iterm", name: "iTerm", systemImage: "terminal") {
+            tools.append(ActionTool(id: "iterm", name: "iTerm", systemImage: "terminal",
+                                    bundleID: "com.googlecode.iterm2") {
                 Task { await worktreeViewModel.openInITerm(wt) }
             })
         }
         if worktreeViewModel.isGhosttyAvailable {
-            tools.append(ActionTool(id: "ghostty", name: "Ghostty", systemImage: "terminal.fill") {
+            tools.append(ActionTool(id: "ghostty", name: "Ghostty", systemImage: "terminal.fill",
+                                    bundleID: "com.mitchellh.ghostty") {
                 Task { await worktreeViewModel.openInGhostty(wt) }
             })
         }
         if worktreeViewModel.isCmuxAvailable {
-            tools.append(ActionTool(id: "cmux", name: "cmux", systemImage: "square.grid.3x3") {
+            tools.append(ActionTool(id: "cmux", name: "cmux", systemImage: "square.grid.3x3",
+                                    bundleID: nil) {
                 Task { await worktreeViewModel.openInCmux(wt) }
             })
         }
         if worktreeViewModel.isVSCodeAvailable {
-            tools.append(ActionTool(id: "vscode", name: "VSCode", systemImage: "chevron.left.forwardslash.chevron.right") {
+            tools.append(ActionTool(id: "vscode", name: "VSCode",
+                                    systemImage: "chevron.left.forwardslash.chevron.right",
+                                    bundleID: "com.microsoft.VSCode") {
                 Task { await worktreeViewModel.openInVSCode(wt) }
             })
         }
         if worktreeViewModel.isCursorAvailable {
-            tools.append(ActionTool(id: "cursor", name: "Cursor", systemImage: "cursorarrow") {
+            tools.append(ActionTool(id: "cursor", name: "Cursor", systemImage: "cursorarrow",
+                                    bundleID: "com.todesktop.230313mzl4w4u92") {
                 Task { await worktreeViewModel.openInCursor(wt) }
             })
         }
