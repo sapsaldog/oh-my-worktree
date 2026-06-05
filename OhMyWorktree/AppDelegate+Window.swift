@@ -67,10 +67,14 @@ extension AppDelegate {
                 window.minSize = NSSize(width: 860, height: 520)
                 // No native tab bar (its "+" would intrude on the toolbar row).
                 window.tabbingMode = .disallowed
+                // Re-center the traffic lights as the window resizes.
+                window.delegate = self
             },
             onShow: { window in
-                // Vertically center the traffic lights in the 52pt glass toolbar.
+                // Center the native traffic lights in the 52pt glass toolbar now,
+                // and again next tick to win against the titlebar's own layout pass.
                 Self.centerTrafficLights(in: window, toolbarHeight: 52)
+                Task { @MainActor in Self.centerTrafficLights(in: window, toolbarHeight: 52) }
             }
         ) {
             ContentView(repoViewModel: repoVM, worktreeViewModel: worktreeVM)
@@ -81,27 +85,23 @@ extension AppDelegate {
 
     /// Vertically centers the native traffic-light buttons within the custom
     /// `toolbarHeight`-tall glass toolbar (they otherwise sit near the very top,
-    /// misaligned with the toolbar controls). Uses Auto Layout so the position
-    /// survives live resize, and applies its constraints only once.
+    /// misaligned with the toolbar controls) by positioning their frames directly.
     static func centerTrafficLights(in window: NSWindow, toolbarHeight: CGFloat) {
         let buttons = [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton]
             .compactMap { window.standardWindowButton($0) }
-        guard buttons.count == 3, let container = buttons.first?.superview else { return }
-        let markerID = "omwTrafficLightCenter"
-        // Apply our constraints only once (the window may be reused).
-        guard !container.constraints.contains(where: { $0.identifier == markerID }) else { return }
+        guard let close = buttons.first,
+              let container = close.superview,
+              let contentView = window.contentView else { return }
         container.clipsToBounds = false
-        container.layoutSubtreeIfNeeded()
-        // Shift the buttons down from the titlebar center to the toolbar center.
-        let offset = (toolbarHeight - container.bounds.height) / 2
-        guard offset > 0 else { return }
-        let originalXs = buttons.map(\.frame.minX)
-        for (button, originalX) in zip(buttons, originalXs) {
-            button.translatesAutoresizingMaskIntoConstraints = false
-            let leading = button.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: originalX)
-            let centerY = button.centerYAnchor.constraint(equalTo: container.centerYAnchor, constant: offset)
-            centerY.identifier = markerID
-            NSLayoutConstraint.activate([leading, centerY])
+        container.superview?.clipsToBounds = false
+        // Desired button center: vertically centered in the toolbar, measured from
+        // the window's top, mapped into the button container's coordinate space.
+        let targetFromTop = CGPoint(x: 0, y: contentView.bounds.height - toolbarHeight / 2)
+        let target = contentView.convert(targetFromTop, to: container)
+        for button in buttons {
+            button.translatesAutoresizingMaskIntoConstraints = true
+            button.setFrameOrigin(NSPoint(x: button.frame.origin.x,
+                                          y: target.y - button.bounds.height / 2))
         }
     }
 
@@ -116,5 +116,14 @@ extension AppDelegate {
         ) {
             SettingsView(updaterManager: updaterManager, store: shortcutStore)
         }
+    }
+}
+
+extension AppDelegate: NSWindowDelegate {
+    /// Re-center the traffic lights after the system re-lays them out on resize.
+    func windowDidResize(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow,
+              window.title == Self.mainWindowTitle else { return }
+        Self.centerTrafficLights(in: window, toolbarHeight: 52)
     }
 }
