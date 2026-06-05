@@ -261,30 +261,30 @@ struct RepositoryListViewModelTests {
 
     // MARK: - loadRepositories clears selection + UserDefaults when store is empty
 
-    @Test func loadRepositories_clearsSelectionAndUserDefaultsWhenStoreEmpty() async {
-        // Drain the shared store so getRepositories() returns an empty list.
-        // The suite is serialized, so no other test runs concurrently; we restore at the end.
-        let existing = await sut.store.getRepositories()
-        for repo in existing {
-            await sut.store.removeRepository(id: repo.id)
-        }
+    @Test func loadRepositories_clearsSelectionAndUserDefaultsWhenStoreEmpty() async throws {
+        // Use an ISOLATED, empty store (not RepositoryStore.shared) so this test
+        // cannot race with suites that mutate the shared singleton (e.g.
+        // AppDelegateColdStartTests). `.serialized` only orders tests within a
+        // suite, not across suites, so draining `.shared` here was racy on CI.
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("repo-store-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let vm = RepositoryListViewModel(
+            store: RepositoryStore(storageDirectory: dir),
+            userDefaults: testDefaults)
 
-        // Select a phantom repository that is NOT in the (now empty) store and persist its ID.
+        // Select a phantom repository that is NOT in the (empty) store and persist its ID.
         let phantom = Repository(name: "phantom", path: "/tmp/repo-empty-phantom")
-        sut.selectedRepository = phantom
+        vm.selectedRepository = phantom
         testDefaults.set(phantom.id.uuidString, forKey: RepositoryListViewModel.lastSelectedRepositoryIDKey)
 
-        await sut.loadRepositories()
+        await vm.loadRepositories()
 
         // Empty store → no fallback → selection cleared and UserDefaults key removed.
-        #expect(sut.repositories.isEmpty)
-        #expect(sut.selectedRepository == nil)
+        #expect(vm.repositories.isEmpty)
+        #expect(vm.selectedRepository == nil)
         #expect(testDefaults.string(forKey: RepositoryListViewModel.lastSelectedRepositoryIDKey) == nil)
-
-        // Restore the store to its prior contents.
-        for repo in existing {
-            await sut.store.addRepository(repo)
-        }
     }
 
     // MARK: - addRepository invalid path surfaces error
