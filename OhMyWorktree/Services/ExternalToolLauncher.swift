@@ -84,11 +84,10 @@ final class ExternalToolLauncher: Sendable {
             throw OhMyWorktreeError.externalToolNotFound(tool: "cmux")
         }
 
-        let socketPath = FileManager.default
-            .urls(for: .applicationSupportDirectory, in: .userDomainMask)
-            .first!
-            .appendingPathComponent("cmux/cmux.sock")
-            .path
+        let socketPath = Self.resolveCmuxSocketPath(
+            home: FileManager.default.homeDirectoryForCurrentUser,
+            readPointer: { try? String(contentsOf: $0, encoding: .utf8) }
+        )
 
         // If cmux is not running, launch it and wait for the socket
         if !FileManager.default.fileExists(atPath: socketPath) {
@@ -110,6 +109,28 @@ final class ExternalToolLauncher: Sendable {
         try cmuxSocketCommand(socketPath: socketPath) { send in
             try Self.runCmuxOpenProtocol(path: path, send: send)
         }
+    }
+
+    /// Resolves cmux's control-socket path.
+    ///
+    /// cmux writes the absolute path of its live socket into a `last-socket-path`
+    /// file under `~/.local/state/cmux`. Reading that advertised path keeps the
+    /// integration working when a cmux update moves the socket, instead of
+    /// hardcoding a path that goes stale. Falls back to that directory's default
+    /// socket path when no pointer file exists (e.g. cmux has not run yet).
+    static func resolveCmuxSocketPath(
+        home: URL,
+        readPointer: (URL) -> String?
+    ) -> String {
+        let stateDirectory = home.appendingPathComponent(".local/state/cmux")
+        let pointer = stateDirectory.appendingPathComponent("last-socket-path")
+        if let raw = readPointer(pointer) {
+            let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty {
+                return trimmed
+            }
+        }
+        return stateDirectory.appendingPathComponent("cmux.sock").path
     }
 
     // MARK: - cmux Protocol
