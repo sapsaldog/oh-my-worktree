@@ -29,7 +29,7 @@ struct ContentView: View {
                         onSelect: { repo in Task { await repoViewModel.selectRepository(repo) } },
                         onAddRepo: { repoViewModel.showingFileDialog = true },
                         onSettings: { openSettings() },
-                        onCheckUpdates: { openSettings() }
+                        onCheckUpdates: { checkForUpdates() }
                     )
                     WorktreeListColumn(worktreeVM: worktreeViewModel)
                     DetailPaneView(
@@ -56,6 +56,9 @@ struct ContentView: View {
         .environment(\.omwAccent, accent)
         .frame(minWidth: 860, minHeight: 520)
         .background(OMWColor.bgWindow)
+        // Sets the window title used by AppDelegate's "Open Main Window" lookup;
+        // hidden visually by .windowStyle(.hiddenTitleBar) on the WindowGroup.
+        .navigationTitle("Oh My Worktree")
         .fileImporter(
             isPresented: $repoViewModel.showingFileDialog,
             allowedContentTypes: [.folder],
@@ -179,6 +182,10 @@ struct ContentView: View {
 
     private func openSettings() {
         (NSApp.delegate as? AppDelegate)?.showOrCreateSettingsWindow()
+    }
+
+    private func checkForUpdates() {
+        (NSApp.delegate as? AppDelegate)?.updaterManager?.checkForUpdates()
     }
 
     private var shortcutButtons: some View {

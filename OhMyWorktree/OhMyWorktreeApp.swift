@@ -18,10 +18,10 @@ struct OhMyWorktreeApp: App {
         WindowGroup(id: "main") {
             ContentView(repoViewModel: repoViewModel, worktreeViewModel: worktreeViewModel)
                 .environment(shortcutStore)
-                .frame(minWidth: 400, minHeight: 300)
         }
-        .defaultSize(width: 500, height: 400)
-        .windowResizability(.contentSize)
+        .defaultSize(width: 1180, height: 740)
+        .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentMinSize)
         .commands {
             CommandGroup(replacing: .appSettings) {
                 Button("Settings...") {
