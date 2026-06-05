@@ -15,8 +15,8 @@ enum AccentChoice: String, CaseIterable, Identifiable, Sendable {
 
     var id: String { rawValue }
 
-    /// The default accent when no preference is stored (prototype default).
-    static let `default`: AccentChoice = .purple
+    /// The default accent when no preference is stored.
+    static let `default`: AccentChoice = .blue
 
     /// 0–255 sRGB components.
     var rgb: (red: Int, green: Int, blue: Int) {

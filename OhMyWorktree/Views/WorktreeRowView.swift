@@ -5,18 +5,26 @@ struct WorktreeRowView: View {
     var isRoot: Bool = false
     var pullRequest: PullRequestInfo?
     var jobState: BackgroundJobState?
+    var isSelected: Bool = false
     var isRenaming: Bool = false
     var onOpenPullRequest: (() -> Void)?
     var onRename: ((String) -> Void)?
     var onCancelRename: (() -> Void)?
 
+    @Environment(\.omwAccent) private var accent
     @State private var editingName: String = ""
     @State private var didCancelRename = false
     @FocusState private var isTextFieldFocused: Bool
 
+    /// On-accent when the row is selected (prototype: selected-row text is white),
+    /// otherwise the supplied base color.
+    private func fg(_ base: Color, _ selectedOpacity: Double = 1) -> Color {
+        isSelected ? OMWColor.onAccent.opacity(selectedOpacity) : base
+    }
+
     var body: some View {
         HStack(spacing: 11) {
-            StatusDot(color: worktree.statusColor(isRoot: isRoot))
+            StatusDot(color: worktree.statusColor(isRoot: isRoot), selected: isSelected)
                 .accessibilityLabel(worktree.statusLabel(isRoot: isRoot))
 
             VStack(alignment: .leading, spacing: 3) {
@@ -31,10 +39,14 @@ struct WorktreeRowView: View {
             } else if let relative = worktree.relativeLastActivity {
                 Text(relative)
                     .font(.system(size: 11))
-                    .foregroundStyle(OMWColor.labelTertiary)
+                    .foregroundStyle(fg(OMWColor.labelTertiary, 0.85))
             }
         }
-        .padding(.vertical, 3)
+        // Match prototype .wt-row { padding: 9px 12px }.
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        // Selection uses the app accent (prototype), not the system-blue highlight.
+        .background(isSelected ? accent : Color.clear, in: RoundedRectangle(cornerRadius: OMWRadius.md))
         .opacity(jobState?.isActive == true ? 0.7 : 1.0)
     }
 
@@ -62,6 +74,7 @@ struct WorktreeRowView: View {
             } else {
                 Text(worktree.displayName)
                     .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(fg(OMWColor.labelPrimary))
                     .lineLimit(1)
             }
 
@@ -83,19 +96,22 @@ struct WorktreeRowView: View {
     private var line2: some View {
         HStack(spacing: 6) {
             HStack(spacing: 4) {
-                Image(systemName: "folder")
-                    .font(.system(size: 11))
-                    .foregroundStyle(OMWColor.labelSecondary)
+                Image("Folder")
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 11, height: 11)
+                    .foregroundStyle(fg(OMWColor.labelSecondary, 0.9))
                 Text(worktree.folderName)
                     .font(.system(size: 11))
-                    .foregroundStyle(OMWColor.labelSecondary)
+                    .foregroundStyle(fg(OMWColor.labelSecondary, 0.9))
                     .lineLimit(1)
             }
             if !worktree.commitHash.isEmpty {
-                Text("·").foregroundStyle(OMWColor.labelQuaternary)
+                Text("·").foregroundStyle(fg(OMWColor.labelQuaternary, 0.6))
                 Text(String(worktree.commitHash.prefix(7)))
                     .font(.omwMono(11))
-                    .foregroundStyle(OMWColor.labelTertiary)
+                    .foregroundStyle(fg(OMWColor.labelTertiary, 0.85))
             }
         }
     }

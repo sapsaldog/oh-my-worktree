@@ -1,11 +1,10 @@
 import SwiftUI
 
 /// A launchable external tool for the detail pane action bar.
+/// `id` selects the prototype's bundled `tool-{id}` icon asset.
 struct ActionTool: Identifiable {
     let id: String
     let name: String
-    let systemImage: String
-    let bundleID: String?
     let open: () -> Void
 }
 
@@ -17,6 +16,7 @@ struct DetailPaneView: View {
     var pullRequest: PullRequestInfo?
     var detail: WorktreeDetail?
     var tools: [ActionTool]
+    var width: CGFloat
     var onOpenPR: () -> Void
 
     @Environment(\.omwAccent) private var accent
@@ -30,12 +30,9 @@ struct DetailPaneView: View {
                 emptyState
             }
         }
-        .frame(width: 360)
+        .frame(width: width)
         .frame(maxHeight: .infinity)
         .background(OMWColor.bgGrouped)
-        .overlay(alignment: .leading) {
-            Rectangle().fill(OMWColor.separator).frame(width: 0.5)
-        }
     }
 
     // MARK: - Empty
@@ -292,7 +289,7 @@ struct DetailPaneView: View {
             HStack(spacing: 7) {
                 ForEach(tools) { tool in
                     Button(action: tool.open) {
-                        ToolIcon(bundleID: tool.bundleID, fallbackSystemImage: tool.systemImage)
+                        ToolIcon(toolID: tool.id)
                     }
                     .buttonStyle(.plain)
                     .help("Open in \(tool.name)")

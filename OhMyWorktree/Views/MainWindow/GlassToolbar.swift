@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// Unified Liquid Glass toolbar (height 52): traffic-light clearance · window
-/// title · spring · search (230) · import · refresh · settings · ＋(accent).
+/// Unified Liquid Glass toolbar (height 52), matching the v5 prototype's
+/// `.omw-toolbar`: traffic-light clearance · spring · search (230) · import ·
+/// refresh · settings · ＋(accent). No window title — repo lives in the sidebar.
 struct GlassToolbar: View {
-    var title: String
     @Binding var searchText: String
     var isRefreshing: Bool
     var onImport: () -> Void
@@ -11,19 +11,9 @@ struct GlassToolbar: View {
     var onSettings: () -> Void
     var onNew: () -> Void
 
-    @Environment(\.omwAccent) private var accent
-
     var body: some View {
         HStack(spacing: 10) {
             Color.clear.frame(width: 72, height: 1)   // native traffic-light clearance
-
-            HStack(spacing: 8) {
-                Circle().fill(accent).frame(width: 7, height: 7)
-                Text(title)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(OMWColor.labelSecondary)
-                    .lineLimit(1)
-            }
 
             Spacer(minLength: 12)
 

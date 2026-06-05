@@ -4,6 +4,7 @@ import SwiftUI
 /// (Settings / Check for Updates). Sits on the window's glass as a vibrant panel.
 struct RepositorySidebar: View {
     var repoVM: RepositoryListViewModel
+    var width: CGFloat
     var selectedWorktreeCount: Int
     var onSelect: (Repository) -> Void
     var onAddRepo: () -> Void
@@ -28,18 +29,16 @@ struct RepositorySidebar: View {
         .padding(.horizontal, 8)
         .padding(.top, 6)
         .padding(.bottom, 8)
-        .frame(width: 220)
+        .frame(width: width)
         .background(OMWColor.sidebar)
-        .overlay(alignment: .trailing) {
-            Rectangle().fill(OMWColor.separator).frame(width: 0.5)
-        }
     }
 
     private var header: some View {
         HStack {
             Text("Repositories")
                 .font(.system(size: 11, weight: .bold))
-                .tracking(0.3)
+                .textCase(.uppercase)
+                .tracking(0.33)
                 .foregroundStyle(OMWColor.labelTertiary)
             Spacer()
             Button(action: onAddRepo) {
@@ -61,8 +60,11 @@ struct RepositorySidebar: View {
             onSelect(repo)
         } label: {
             HStack(spacing: 9) {
-                Image(systemName: "folder.fill")
-                    .font(.system(size: 14))
+                Image("FolderGit2")
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 16, height: 16)
                     .foregroundStyle(isSelected ? OMWColor.onAccent : accent)
                 Text(repo.name)
                     .font(.system(size: 13, weight: .medium))

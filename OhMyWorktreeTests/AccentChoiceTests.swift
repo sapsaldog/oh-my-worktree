@@ -11,8 +11,8 @@ struct AccentChoiceTests {
         #expect(AccentChoice.allCases == [.graphite, .blue, .purple, .green, .orange, .pink])
     }
 
-    @Test func defaultIsPurple() {
-        #expect(AccentChoice.default == .purple)
+    @Test func defaultIsBlue() {
+        #expect(AccentChoice.default == .blue)
     }
 
     @Test func identifierIsRawName() {
@@ -36,9 +36,9 @@ struct AccentChoiceTests {
     }
 
     @Test func namedFallsBackToDefault() {
-        #expect(AccentChoice.named(nil) == .purple)
-        #expect(AccentChoice.named("Chartreuse") == .purple)
-        #expect(AccentChoice.named("") == .purple)
+        #expect(AccentChoice.named(nil) == .blue)
+        #expect(AccentChoice.named("Chartreuse") == .blue)
+        #expect(AccentChoice.named("") == .blue)
     }
 
     @Test func colorMatchesRGBComponents() throws {

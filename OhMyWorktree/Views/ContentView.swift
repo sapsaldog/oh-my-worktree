@@ -7,6 +7,8 @@ struct ContentView: View {
     @Environment(ShortcutStore.self) var shortcutStore
     @Environment(UpdaterManager.self) private var updaterManager: UpdaterManager?
     @AppStorage("accentColorName") private var accentColorName = AccentChoice.default.rawValue
+    @AppStorage("sidebarWidth") private var sidebarWidth: Double = 220
+    @AppStorage("detailWidth") private var detailWidth: Double = 360
 
     private var accent: Color { AccentChoice.named(accentColorName).color }
 
@@ -14,7 +16,6 @@ struct ContentView: View {
         ZStack {
             VStack(spacing: 0) {
                 GlassToolbar(
-                    title: repoViewModel.selectedRepository?.name ?? "Oh My Worktree",
                     searchText: $worktreeViewModel.searchText,
                     isRefreshing: worktreeViewModel.isLoading,
                     onImport: { worktreeViewModel.isShowingImportPR = true },
@@ -26,19 +27,23 @@ struct ContentView: View {
                 HStack(spacing: 0) {
                     RepositorySidebar(
                         repoVM: repoViewModel,
+                        width: CGFloat(sidebarWidth),
                         selectedWorktreeCount: worktreeViewModel.worktrees.count,
                         onSelect: { repo in Task { await repoViewModel.selectRepository(repo) } },
                         onAddRepo: { repoViewModel.showingFileDialog = true },
                         onSettings: { worktreeViewModel.isShowingSettings = true },
                         onCheckUpdates: { updaterManager?.checkForUpdates() }
                     )
+                    ColumnResizer(width: $sidebarWidth, range: 180...320)
                     WorktreeListColumn(worktreeVM: worktreeViewModel)
+                    ColumnResizer(width: $detailWidth, range: 300...520, inverted: true)
                     DetailPaneView(
                         worktree: selectedWorktree,
                         isRoot: isRootSelected,
                         pullRequest: selectedPullRequest,
                         detail: worktreeViewModel.selectedWorktreeDetail,
                         tools: detailTools,
+                        width: CGFloat(detailWidth),
                         onOpenPR: {
                             if let wt = selectedWorktree { worktreeViewModel.openPullRequest(for: wt) }
                         }
@@ -57,6 +62,10 @@ struct ContentView: View {
         .environment(\.omwAccent, accent)
         .frame(minWidth: 860, minHeight: 520)
         .background(OMWColor.bgWindow)
+        // Extend the glass toolbar up under the transparent titlebar so the
+        // native traffic lights sit inline in the toolbar row (matching the
+        // prototype's single-row lid), not in an empty strip above it.
+        .ignoresSafeArea(.container, edges: .top)
         // Sets the window title used by AppDelegate's "Open Main Window" lookup;
         // hidden visually by .windowStyle(.hiddenTitleBar) on the WindowGroup.
         .navigationTitle("Oh My Worktree")
@@ -157,33 +166,27 @@ struct ContentView: View {
         guard let wt = selectedWorktree else { return [] }
         var tools: [ActionTool] = []
         if worktreeViewModel.isITermAvailable {
-            tools.append(ActionTool(id: "iterm", name: "iTerm", systemImage: "terminal",
-                                    bundleID: "com.googlecode.iterm2") {
+            tools.append(ActionTool(id: "iterm", name: "iTerm") {
                 Task { await worktreeViewModel.openInITerm(wt) }
             })
         }
         if worktreeViewModel.isGhosttyAvailable {
-            tools.append(ActionTool(id: "ghostty", name: "Ghostty", systemImage: "terminal.fill",
-                                    bundleID: "com.mitchellh.ghostty") {
+            tools.append(ActionTool(id: "ghostty", name: "Ghostty") {
                 Task { await worktreeViewModel.openInGhostty(wt) }
             })
         }
         if worktreeViewModel.isCmuxAvailable {
-            tools.append(ActionTool(id: "cmux", name: "cmux", systemImage: "square.grid.3x3",
-                                    bundleID: nil) {
+            tools.append(ActionTool(id: "cmux", name: "cmux") {
                 Task { await worktreeViewModel.openInCmux(wt) }
             })
         }
         if worktreeViewModel.isVSCodeAvailable {
-            tools.append(ActionTool(id: "vscode", name: "VSCode",
-                                    systemImage: "chevron.left.forwardslash.chevron.right",
-                                    bundleID: "com.microsoft.VSCode") {
+            tools.append(ActionTool(id: "vscode", name: "VSCode") {
                 Task { await worktreeViewModel.openInVSCode(wt) }
             })
         }
         if worktreeViewModel.isCursorAvailable {
-            tools.append(ActionTool(id: "cursor", name: "Cursor", systemImage: "cursorarrow",
-                                    bundleID: "com.todesktop.230313mzl4w4u92") {
+            tools.append(ActionTool(id: "cursor", name: "Cursor") {
                 Task { await worktreeViewModel.openInCursor(wt) }
             })
         }
@@ -203,6 +206,44 @@ struct ContentView: View {
             worktreeViewModel: worktreeViewModel,
             store: shortcutStore
         )
+    }
+}
+
+// MARK: - Draggable column divider
+
+/// Thin separator between the sidebar and the list; drag to resize the sidebar.
+/// Width is clamped to `range` and persisted by the caller via `@AppStorage`.
+private struct ColumnResizer: View {
+    @Binding var width: Double
+    let range: ClosedRange<Double>
+    /// `true` when the resized column is to the *right* of the handle (e.g. the
+    /// detail pane): dragging the handle left widens it, so invert the delta.
+    var inverted: Bool = false
+    @State private var dragStartWidth: Double?
+
+    var body: some View {
+        Rectangle()
+            .fill(OMWColor.separator)
+            .frame(width: 0.5)
+            .frame(maxHeight: .infinity)
+            .overlay {
+                Color.clear
+                    .frame(width: 11)
+                    .contentShape(Rectangle())
+                    .onHover { hovering in
+                        if hovering { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
+                    }
+                    .gesture(
+                        DragGesture(minimumDistance: 1)
+                            .onChanged { value in
+                                if dragStartWidth == nil { dragStartWidth = width }
+                                let delta = Double(value.translation.width) * (inverted ? -1 : 1)
+                                let next = (dragStartWidth ?? width) + delta
+                                width = min(max(next, range.lowerBound), range.upperBound)
+                            }
+                            .onEnded { _ in dragStartWidth = nil }
+                    )
+            }
     }
 }
 

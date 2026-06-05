@@ -20,6 +20,9 @@ struct TableViewFocuser: NSViewRepresentable {
             guard let window = nsView.window,
                   let tableView = Self.findTableView(in: window.contentView)
             else { return }
+            // Custom accent selection is drawn per-row; suppress the system-blue
+            // highlight so the selection matches the app accent.
+            tableView.selectionHighlightStyle = .none
             if window.firstResponder === window || window.firstResponder === window.contentView {
                 window.makeFirstResponder(tableView)
             }

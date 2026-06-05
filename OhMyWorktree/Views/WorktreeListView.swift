@@ -63,7 +63,10 @@ struct WorktreeListView: View {
         return List(selection: $selectedIDs) {
             ForEach(viewModel.filteredWorktrees) { worktree in
                 worktreeRow(for: worktree, jobStates: jobStates)
-                    .listRowInsets(EdgeInsets(top: 2, leading: 4, bottom: 2, trailing: 4))
+                    // Row owns its 9×12 padding; keep cell insets tight (prototype
+                    // .omw-list { padding: 2px 10px 12px }) so rows breathe like the design.
+                    .listRowInsets(EdgeInsets(top: 1, leading: 6, bottom: 1, trailing: 6))
+                    .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                     .tag(worktree.id)
                     .contextMenu {
@@ -159,6 +162,7 @@ struct WorktreeListView: View {
             isRoot: isRoot,
             pullRequest: pullRequest(for: worktree),
             jobState: jobState,
+            isSelected: selectedIDs.contains(worktree.id),
             isRenaming: renamingWorktreeID == worktree.id,
             onOpenPullRequest: { viewModel.openPullRequest(for: worktree) },
             onRename: { newName in

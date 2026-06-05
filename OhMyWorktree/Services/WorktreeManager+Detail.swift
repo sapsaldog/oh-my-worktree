@@ -119,4 +119,26 @@ extension WorktreeManager {
             return Commit(hash: fields[0], message: fields[1], author: fields[2], date: date)
         }
     }
+
+    // MARK: Copied (Git-ignored) files
+
+    /// Narrows `candidates` (relative paths) to the ones Git ignores in
+    /// `worktreePath`, via `git check-ignore`. These are the local files that were
+    /// actually copied into the worktree — tracked files such as a committed
+    /// `.env.example` arrive with the checkout, are never copied, and so are
+    /// excluded. Best-effort: returns `[]` on failure.
+    func gitIgnoredFiles(_ candidates: [String], worktreePath: String) async -> [String] {
+        guard !candidates.isEmpty else { return [] }
+        guard let result = try? await executor.execute(
+            arguments: ["check-ignore", "--"] + candidates,
+            workingDirectory: worktreePath
+        ) else { return [] }
+        let ignored = Set(
+            result.stdout
+                .split(separator: "\n")
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+        )
+        return candidates.filter { ignored.contains($0) }
+    }
 }

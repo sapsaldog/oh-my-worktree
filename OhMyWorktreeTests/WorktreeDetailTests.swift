@@ -219,4 +219,33 @@ struct WorktreeDetailQueryTests {
         #expect(detail.diff == DiffStat(added: 2, removed: 1, files: 1))
         #expect(detail.commits.count == 1)
     }
+
+    // MARK: Copied (Git-ignored) files
+
+    @Test func gitIgnoredFilesEmptyReturnsEmptyWithoutCallingGit() async {
+        let mgr = makeManager { _ in CommandResult(stdout: "unused", stderr: "", exitCode: 0) }
+        #expect(await mgr.gitIgnoredFiles([], worktreePath: "/x").isEmpty)
+    }
+
+    @Test func gitIgnoredFilesKeepsOnlyIgnored() async {
+        // check-ignore echoes only the ignored paths; the committed template
+        // (.env.example) is absent and so is dropped.
+        let mgr = makeManager { args in
+            args.first == "check-ignore"
+                ? CommandResult(stdout: "apps/.env\nconfig/secrets.json\n", stderr: "", exitCode: 0)
+                : CommandResult(stdout: "", stderr: "", exitCode: 0)
+        }
+        let result = await mgr.gitIgnoredFiles(
+            ["apps/.env", "apps/.env.example", "config/secrets.json"],
+            worktreePath: "/x"
+        )
+        #expect(result == ["apps/.env", "config/secrets.json"])
+    }
+
+    @Test func gitIgnoredFilesThrowReturnsEmpty() async {
+        let mock = MockDetailGitExecutor()
+        mock.errorToThrow = DetailTestError.boom
+        let mgr = WorktreeManager(executor: mock, fileManager: MockNoOpFileManager())
+        #expect(await mgr.gitIgnoredFiles(["a/.env"], worktreePath: "/x").isEmpty)
+    }
 }
