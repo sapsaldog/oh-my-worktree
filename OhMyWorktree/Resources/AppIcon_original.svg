@@ -1,38 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <!-- Dark squircle background -->
-  <rect width="1024" height="1024" rx="230" fill="#13151A" />
-
-  <!-- 
-    Branches are drawn first so they neatly emerge from beneath the main trunk.
-    Smooth cubic beziers are used with perfectly vertical control points at the forks and endpoints 
-    to create natural, flowing Git-style curves. 
-  -->
-  
-  <!-- Left Branch (Teal) -->
-  <path d="M 512 680 C 512 530, 300 550, 300 420" fill="none" stroke="#45B7AA" stroke-width="28" stroke-linecap="round" />
-  
-  <!-- Right Branch (Soft Purple) -->
-  <path d="M 512 480 C 512 380, 724 400, 724 300" fill="none" stroke="#9B72CF" stroke-width="28" stroke-linecap="round" />
-
-  <!-- Main Vertical Trunk (Cool Blue) -->
-  <line x1="512" y1="840" x2="512" y2="220" stroke="#4F7CAC" stroke-width="28" stroke-linecap="round" />
-
-  <!-- 
-    Nodes at endpoints and fork points. 
-    The background-colored stroke creates a beautifully sharp 6px negative space gap 
-    between the nodes and the intersecting lines, typical of premium macOS icons.
-  -->
-  <g stroke="#13151A" stroke-width="12">
-    <!-- Trunk Nodes (Cool Blue) -->
-    <circle cx="512" cy="840" r="30" fill="#4F7CAC" />
-    <circle cx="512" cy="680" r="30" fill="#4F7CAC" />
-    <circle cx="512" cy="480" r="30" fill="#4F7CAC" />
-    <circle cx="512" cy="220" r="30" fill="#4F7CAC" />
-
-    <!-- Left Branch Endpoint Node (Teal) -->
-    <circle cx="300" cy="420" r="30" fill="#45B7AA" />
-    
-    <!-- Right Branch Endpoint Node (Soft Purple) -->
-    <circle cx="724" cy="300" r="30" fill="#9B72CF" />
+<!-- Oh My Worktree app icon — "Midnight" (Icon Concepts.html, variation v1).
+     Apple continuous-corner squircle, dark gradient #23262F->#16181F->#0D0E12,
+     subtle top sheen + faint hairline rim, white Lucide "folder-git-2" mark.
+     Source of truth for AppIcon.appiconset PNGs (16-1024px). -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0.34" y2="1">
+      <stop offset="0" stop-color="#23262F"/>
+      <stop offset="0.55" stop-color="#16181F"/>
+      <stop offset="1" stop-color="#0D0E12"/>
+    </linearGradient>
+    <linearGradient id="sh" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.14"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="c"><path d="M1024.00 512.00L1023.64 659.45L1022.55 711.17L1020.73 749.28L1018.17 780.45L1014.88 807.17L1010.83 830.68L1006.03 851.72L1000.46 870.73L994.10 888.04L986.93 903.87L978.93 918.38L970.07 931.69L960.31 943.90L949.62 955.08L937.93 965.31L925.18 974.61L911.28 983.04L896.13 990.62L879.59 997.38L861.46 1003.34L841.48 1008.53L819.27 1012.95L794.27 1016.62L765.53 1019.54L731.34 1021.73L687.82 1023.18L621.10 1023.91L402.90 1023.91L336.18 1023.18L292.66 1021.73L258.47 1019.54L229.73 1016.62L204.73 1012.95L182.52 1008.53L162.54 1003.34L144.41 997.38L127.87 990.62L112.72 983.04L98.82 974.61L86.07 965.31L74.38 955.08L63.69 943.90L53.93 931.69L45.07 918.38L37.07 903.87L29.90 888.04L23.54 870.73L17.97 851.72L13.17 830.68L9.12 807.17L5.83 780.45L3.27 749.28L1.45 711.17L0.36 659.45L0.00 512.00L0.36 364.55L1.45 312.83L3.27 274.72L5.83 243.55L9.12 216.83L13.17 193.32L17.97 172.28L23.54 153.27L29.90 135.96L37.07 120.13L45.07 105.62L53.93 92.31L63.69 80.10L74.38 68.92L86.07 58.69L98.82 49.39L112.72 40.96L127.87 33.38L144.41 26.62L162.54 20.66L182.52 15.47L204.73 11.05L229.73 7.38L258.47 4.46L292.66 2.27L336.18 0.82L402.90 0.09L621.10 0.09L687.82 0.82L731.34 2.27L765.53 4.46L794.27 7.38L819.27 11.05L841.48 15.47L861.46 20.66L879.59 26.62L896.13 33.38L911.28 40.96L925.18 49.39L937.93 58.69L949.62 68.92L960.31 80.10L970.07 92.31L978.93 105.62L986.93 120.13L994.10 135.96L1000.46 153.27L1006.03 172.28L1010.83 193.32L1014.88 216.83L1018.17 243.55L1020.73 274.72L1022.55 312.83L1023.64 364.55L1024.00 512.00Z"/></clipPath>
+  </defs>
+  <g clip-path="url(#c)">
+    <rect width="1024" height="1024" fill="url(#g)"/>
+    <rect width="1024" height="1024" fill="url(#sh)"/>
   </g>
+  <g transform="translate(168.23,168.23) scale(28.6476)" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v5"/><path d="M18 19a5 5 0 0 1-5-5v8"/><circle cx="13" cy="12" r="2"/><circle cx="20" cy="19" r="2"/>
+  </g>
+  <path d="M1024.00 512.00L1023.64 659.45L1022.55 711.17L1020.73 749.28L1018.17 780.45L1014.88 807.17L1010.83 830.68L1006.03 851.72L1000.46 870.73L994.10 888.04L986.93 903.87L978.93 918.38L970.07 931.69L960.31 943.90L949.62 955.08L937.93 965.31L925.18 974.61L911.28 983.04L896.13 990.62L879.59 997.38L861.46 1003.34L841.48 1008.53L819.27 1012.95L794.27 1016.62L765.53 1019.54L731.34 1021.73L687.82 1023.18L621.10 1023.91L402.90 1023.91L336.18 1023.18L292.66 1021.73L258.47 1019.54L229.73 1016.62L204.73 1012.95L182.52 1008.53L162.54 1003.34L144.41 997.38L127.87 990.62L112.72 983.04L98.82 974.61L86.07 965.31L74.38 955.08L63.69 943.90L53.93 931.69L45.07 918.38L37.07 903.87L29.90 888.04L23.54 870.73L17.97 851.72L13.17 830.68L9.12 807.17L5.83 780.45L3.27 749.28L1.45 711.17L0.36 659.45L0.00 512.00L0.36 364.55L1.45 312.83L3.27 274.72L5.83 243.55L9.12 216.83L13.17 193.32L17.97 172.28L23.54 153.27L29.90 135.96L37.07 120.13L45.07 105.62L53.93 92.31L63.69 80.10L74.38 68.92L86.07 58.69L98.82 49.39L112.72 40.96L127.87 33.38L144.41 26.62L162.54 20.66L182.52 15.47L204.73 11.05L229.73 7.38L258.47 4.46L292.66 2.27L336.18 0.82L402.90 0.09L621.10 0.09L687.82 0.82L731.34 2.27L765.53 4.46L794.27 7.38L819.27 11.05L841.48 15.47L861.46 20.66L879.59 26.62L896.13 33.38L911.28 40.96L925.18 49.39L937.93 58.69L949.62 68.92L960.31 80.10L970.07 92.31L978.93 105.62L986.93 120.13L994.10 135.96L1000.46 153.27L1006.03 172.28L1010.83 193.32L1014.88 216.83L1018.17 243.55L1020.73 274.72L1022.55 312.83L1023.64 364.55L1024.00 512.00Z" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="6"/>
 </svg>

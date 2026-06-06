@@ -1,22 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
-  <!-- Rounded rectangle border (Notion-style, thick) -->
-  <rect x="4" y="4" width="92" height="92" rx="16" ry="16"
-        fill="none" stroke="#000000" stroke-width="8"/>
-
-  <!-- Main Vertical Trunk -->
-  <line x1="50" y1="22" x2="50" y2="78" stroke="#000000" stroke-width="7" stroke-linecap="round"/>
-
-  <!-- Left Branch -->
-  <path d="M 50 62 C 50 50, 33 52, 33 42" fill="none" stroke="#000000" stroke-width="7" stroke-linecap="round"/>
-
-  <!-- Right Branch -->
-  <path d="M 50 46 C 50 38, 67 39, 67 30" fill="none" stroke="#000000" stroke-width="7" stroke-linecap="round"/>
-
-  <!-- Nodes -->
-  <circle cx="50" cy="78" r="5.5" fill="#000000"/>
-  <circle cx="50" cy="62" r="5.5" fill="#000000"/>
-  <circle cx="50" cy="46" r="5.5" fill="#000000"/>
-  <circle cx="50" cy="22" r="5.5" fill="#000000"/>
-  <circle cx="33" cy="42" r="5.5" fill="#000000"/>
-  <circle cx="67" cy="30" r="5.5" fill="#000000"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+     fill="none" stroke="#000000" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Oh My Worktree menu-bar mark (Icon Concepts.html) — Lucide "folder-git-2"
+       as a monochrome template: a folder outline with a git branch/PR graph inside.
+       Source of truth for MenuBarIcon.imageset (menubar_icon.png 18px / @2x 36px).
+       Shipped with isTemplate = true, so macOS tints it: dark on light menu bars,
+       white on dark menu bars. -->
+  <path d="M9 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v5"/>
+  <path d="M18 19a5 5 0 0 1-5-5v8"/>
+  <circle cx="13" cy="12" r="2"/>
+  <circle cx="20" cy="19" r="2"/>
 </svg>
