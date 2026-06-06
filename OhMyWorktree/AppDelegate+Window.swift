@@ -69,6 +69,7 @@ extension AppDelegate {
                 window.isMovableByWindowBackground = true
                 window.minSize = NSSize(width: 860, height: 520)
                 window.tabbingMode = .disallowed
+                window.delegate = self
             }
         ) {
             ContentView(repoViewModel: repoVM, worktreeViewModel: worktreeVM)
@@ -87,6 +88,42 @@ extension AppDelegate {
             styleMask: [.titled, .closable]
         ) {
             SettingsView(updaterManager: updaterManager, store: shortcutStore)
+        }
+    }
+}
+
+// MARK: - Traffic-light centering
+
+extension AppDelegate: NSWindowDelegate {
+    func windowDidResize(_ notification: Notification) { recenterTrafficLights(notification) }
+    func windowDidUpdate(_ notification: Notification) { recenterTrafficLights(notification) }
+
+    private func recenterTrafficLights(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow,
+              window.title == Self.mainWindowTitle else { return }
+        Self.centerTrafficLights(in: window)
+    }
+
+    /// Moves the native traffic-light buttons to the vertical center of the 52pt
+    /// glass toolbar (they otherwise sit at the standard titlebar position, ~12pt
+    /// too high). Re-applied on every window update so the system can't reset it.
+    static func centerTrafficLights(in window: NSWindow, toolbarHeight: CGFloat = 52) {
+        let buttons = [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton]
+            .compactMap { window.standardWindowButton($0) }
+        guard let container = buttons.first?.superview,
+              let contentView = window.contentView else { return }
+        container.superview?.clipsToBounds = false
+        container.clipsToBounds = false
+        // Map the toolbar's vertical center (measured from the window top) into the
+        // button container's coordinate space.
+        let centerInContainer = contentView.convert(
+            CGPoint(x: 0, y: contentView.bounds.height - toolbarHeight / 2), to: container
+        )
+        for button in buttons {
+            let desiredY = centerInContainer.y - button.frame.height / 2
+            if abs(button.frame.origin.y - desiredY) > 0.5 {
+                button.setFrameOrigin(NSPoint(x: button.frame.origin.x, y: desiredY))
+            }
         }
     }
 }
