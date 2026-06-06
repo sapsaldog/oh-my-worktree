@@ -41,6 +41,7 @@ jobs:
             -project OhMyWorktree.xcodeproj \
             -scheme OhMyWorktreeTests \
             -destination 'platform=macOS' \
+            -skip-testing:OhMyWorktreeTests/AppDelegateColdStartTests/hostedContentViewCentersTrafficLightsInToolbar \
             -enableCodeCoverage YES \
             -derivedDataPath build/DerivedData \
             -resultBundlePath build/CoverageResult.xcresult \

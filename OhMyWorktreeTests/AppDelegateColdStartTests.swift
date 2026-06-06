@@ -214,9 +214,7 @@ final class AppDelegateColdStartTests {
                "Main window title should match AppDelegate.mainWindowTitle")
     }
 
-    @Test(.enabled(if: ProcessInfo.processInfo.environment["CI"] == nil,
-                   "Needs a window server; hangs on the headless CI runner."))
-    func hostedContentViewCentersTrafficLightsInToolbar() async throws {
+    @Test func hostedContentViewCentersTrafficLightsInToolbar() async throws {
         let window = NSWindow(
             contentRect: .zero,
             styleMask: [.titled, .closable, .resizable, .miniaturizable, .fullSizeContentView],
