@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// The window toolbar's right-aligned controls (search · import · refresh ·
-/// settings · ＋), hosted inside a native `NSToolbar(.unified)` toolbar item so
-/// macOS vertically centers the traffic lights. The hosting view is sized to
-/// this view's own fitting size, so there are no hardcoded dimensions.
+/// The window's glass top bar, rendered as the first row of the content (under
+/// the transparent titlebar via `.fullSizeContentView`), so it shows reliably:
+/// native traffic-light clearance · spring · search (230) · import · refresh ·
+/// settings · ＋(accent). The native traffic lights overlay the left clearance.
 struct ToolbarControls: View {
     @Bindable var worktreeVM: WorktreeListViewModel
     @AppStorage("accentColorName") private var accentColorName = AccentChoice.default.rawValue
@@ -12,6 +12,10 @@ struct ToolbarControls: View {
 
     var body: some View {
         HStack(spacing: 10) {
+            Color.clear.frame(width: 72, height: 1)   // native traffic-light clearance
+
+            Spacer(minLength: 12)
+
             searchField.frame(width: 230)
 
             ToolbarRoundButton(systemImage: "arrow.triangle.pull", assetImage: "GitHubMark",
@@ -27,7 +31,11 @@ struct ToolbarControls: View {
         }
         .padding(.horizontal, 14)
         .frame(height: 52)
-        .fixedSize()
+        .frame(maxWidth: .infinity)
+        .glassEffect(.regular, in: Rectangle())
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(OMWColor.separator).frame(height: 0.5)
+        }
         .environment(\.omwAccent, accent)
         .tint(accent)
     }

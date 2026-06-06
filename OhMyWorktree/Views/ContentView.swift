@@ -15,6 +15,8 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
+                ToolbarControls(worktreeVM: worktreeViewModel)
+
                 HStack(spacing: 0) {
                     RepositorySidebar(
                         repoVM: repoViewModel,
@@ -53,6 +55,9 @@ struct ContentView: View {
         .environment(\.omwAccent, accent)
         .frame(minWidth: 860, minHeight: 520)
         .background(OMWColor.bgWindow)
+        // Extend the glass toolbar up under the transparent titlebar so the
+        // native traffic lights overlay its left clearance.
+        .ignoresSafeArea(.container, edges: .top)
         // Sets the window title used by AppDelegate's "Open Main Window" lookup.
         .navigationTitle("Oh My Worktree")
         .fileImporter(

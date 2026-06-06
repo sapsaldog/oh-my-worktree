@@ -59,29 +59,16 @@ extension AppDelegate {
         showOrCreateWindow(
             title: Self.mainWindowTitle,
             size: NSSize(width: 1180, height: 740),
-            styleMask: [.titled, .unifiedTitleAndToolbar, .fullSizeContentView,
-                        .closable, .resizable, .miniaturizable],
+            styleMask: [.titled, .closable, .resizable, .miniaturizable, .fullSizeContentView],
             configure: { window in
+                // The glass toolbar is the first row of the content and extends up
+                // under this transparent titlebar; the native traffic lights overlay
+                // its left clearance.
+                window.titlebarAppearsTransparent = true
                 window.titleVisibility = .hidden
                 window.isMovableByWindowBackground = true
                 window.minSize = NSSize(width: 860, height: 520)
                 window.tabbingMode = .disallowed
-                // An empty unified toolbar provides the bar and lets macOS center
-                // the traffic lights; the controls live in a trailing titlebar
-                // accessory sized to its own fitting size. This is the documented
-                // way to host SwiftUI in the titlebar — NSToolbarItem custom views
-                // render empty inside this NSHostingController window.
-                window.toolbar = NSToolbar()
-                window.toolbarStyle = .unified
-                let controls = NSHostingView(rootView: ToolbarControls(worktreeVM: worktreeVM))
-                controls.layoutSubtreeIfNeeded()
-                var size = controls.fittingSize
-                if size.width < 1 || size.height < 1 { size = NSSize(width: 460, height: 52) }
-                controls.frame.size = size
-                let accessory = NSTitlebarAccessoryViewController()
-                accessory.view = controls
-                accessory.layoutAttribute = .trailing
-                window.addTitlebarAccessoryViewController(accessory)
             }
         ) {
             ContentView(repoViewModel: repoVM, worktreeViewModel: worktreeVM)
