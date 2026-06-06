@@ -55,6 +55,7 @@ struct ContentView: View {
         .environment(\.omwAccent, accent)
         .frame(minWidth: 860, minHeight: 520)
         .background(OMWColor.bgWindow)
+        .background(MainWindowChromeConfigurator().allowsHitTesting(false))
         // Extend the glass toolbar up under the transparent titlebar so the
         // native traffic lights overlay its left clearance.
         .ignoresSafeArea(.container, edges: .top)
@@ -313,5 +314,84 @@ private struct ShortcutButtonsView: View {
     ) {
         guard let worktree = worktreeViewModel.selectedWorktree else { return }
         Task { await action(worktreeViewModel, worktree) }
+    }
+}
+
+// MARK: - Window chrome bridge
+
+private struct MainWindowChromeConfigurator: NSViewRepresentable {
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    func makeNSView(context: Context) -> WindowProbeView {
+        let view = WindowProbeView()
+        view.setAccessibilityElement(false)
+        view.onWindowChange = { window in
+            context.coordinator.attach(to: window)
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: WindowProbeView, context: Context) {
+        context.coordinator.attach(to: nsView.window)
+    }
+
+    final class WindowProbeView: NSView {
+        var onWindowChange: ((NSWindow?) -> Void)?
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            onWindowChange?(window)
+        }
+    }
+
+    @MainActor
+    final class Coordinator {
+        private weak var window: NSWindow?
+        private var observerTokens: [NSObjectProtocol] = []
+
+        deinit {
+            observerTokens.forEach(NotificationCenter.default.removeObserver)
+        }
+
+        func attach(to newWindow: NSWindow?) {
+            guard window !== newWindow else { return }
+            stopObserving()
+            window = newWindow
+
+            guard let newWindow else { return }
+            AppDelegate.configureMainWindowChrome(newWindow)
+            startObserving(newWindow)
+            AppDelegate.centerTrafficLightsAfterLayout(in: newWindow)
+        }
+
+        private func startObserving(_ window: NSWindow) {
+            let names: [Notification.Name] = [
+                NSWindow.didResizeNotification,
+                NSWindow.didUpdateNotification
+            ]
+            observerTokens = names.map { name in
+                NotificationCenter.default.addObserver(
+                    forName: name,
+                    object: window,
+                    queue: .main
+                ) { [weak self] _ in
+                    Task { @MainActor in
+                        self?.recenterTrafficLights()
+                    }
+                }
+            }
+        }
+
+        private func stopObserving() {
+            observerTokens.forEach(NotificationCenter.default.removeObserver)
+            observerTokens.removeAll()
+        }
+
+        private func recenterTrafficLights() {
+            guard let window else { return }
+            AppDelegate.centerTrafficLights(in: window)
+        }
     }
 }

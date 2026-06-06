@@ -4,6 +4,17 @@ import SwiftUI
 // MARK: - Window Management
 
 extension AppDelegate {
+    private static let mainWindowMinimumSize = NSSize(width: 860, height: 520)
+
+    static func configureMainWindowChrome(_ window: NSWindow) {
+        window.title = Self.mainWindowTitle
+        window.styleMask.insert(.fullSizeContentView)
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.isMovableByWindowBackground = true
+        window.minSize = Self.mainWindowMinimumSize
+        window.tabbingMode = .disallowed
+    }
 
     /// Shows an existing window with the given title, or creates a new one.
     func showOrCreateWindow(
@@ -64,12 +75,9 @@ extension AppDelegate {
                 // The glass toolbar is the first row of the content and extends up
                 // under this transparent titlebar; the native traffic lights overlay
                 // its left clearance.
-                window.titlebarAppearsTransparent = true
-                window.titleVisibility = .hidden
-                window.isMovableByWindowBackground = true
-                window.minSize = NSSize(width: 860, height: 520)
-                window.tabbingMode = .disallowed
+                Self.configureMainWindowChrome(window)
                 window.delegate = self
+                Self.centerTrafficLightsAfterLayout(in: window)
             }
         ) {
             ContentView(repoViewModel: repoVM, worktreeViewModel: worktreeVM)
@@ -107,23 +115,40 @@ extension AppDelegate: NSWindowDelegate {
     /// Moves the native traffic-light buttons to the vertical center of the 52pt
     /// glass toolbar (they otherwise sit at the standard titlebar position, ~12pt
     /// too high). Re-applied on every window update so the system can't reset it.
-    static func centerTrafficLights(in window: NSWindow, toolbarHeight: CGFloat = 52) {
+    static func centerTrafficLights(
+        in window: NSWindow,
+        toolbarHeight: CGFloat = 52,
+        trafficLightLeadingInset: CGFloat = 17
+    ) {
         let buttons = [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton]
             .compactMap { window.standardWindowButton($0) }
         guard let container = buttons.first?.superview,
               let contentView = window.contentView else { return }
         container.superview?.clipsToBounds = false
         container.clipsToBounds = false
-        // Map the toolbar's vertical center (measured from the window top) into the
-        // button container's coordinate space.
-        let centerInContainer = contentView.convert(
-            CGPoint(x: 0, y: contentView.bounds.height - toolbarHeight / 2), to: container
+        // Map the toolbar's vertical center from window coordinates into the
+        // button container. NSHostingController content views do not convert
+        // reliably across the titlebar hierarchy.
+        let centerInContainer = container.convert(
+            CGPoint(x: 0, y: contentView.bounds.height - toolbarHeight / 2), from: nil
         )
+        let currentLeadingInset = buttons.map { $0.frame.origin.x }.min() ?? trafficLightLeadingInset
+        let horizontalDelta = trafficLightLeadingInset - currentLeadingInset
         for button in buttons {
+            let desiredX = button.frame.origin.x + horizontalDelta
             let desiredY = centerInContainer.y - button.frame.height / 2
-            if abs(button.frame.origin.y - desiredY) > 0.5 {
-                button.setFrameOrigin(NSPoint(x: button.frame.origin.x, y: desiredY))
+            if abs(button.frame.origin.x - desiredX) > 0.5 || abs(button.frame.origin.y - desiredY) > 0.5 {
+                button.setFrameOrigin(NSPoint(x: desiredX, y: desiredY))
             }
+        }
+    }
+
+    static func centerTrafficLightsAfterLayout(in window: NSWindow) {
+        centerTrafficLights(in: window)
+        DispatchQueue.main.async { [weak window] in
+            guard let window else { return }
+            window.contentView?.layoutSubtreeIfNeeded()
+            centerTrafficLights(in: window)
         }
     }
 }
