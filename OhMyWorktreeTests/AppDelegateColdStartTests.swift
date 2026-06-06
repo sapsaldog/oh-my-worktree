@@ -2,6 +2,7 @@ import Foundation
 import Testing
 
 import AppKit
+import SwiftUI
 
 @testable import OhMyWorktree
 
@@ -92,19 +93,21 @@ final class AppDelegateColdStartTests {
         // (Window creation depends on NSApp context, but the method must not crash)
     }
 
-    // MARK: - Settings does not crash on cold start
+    // MARK: - Settings opens via the sheet flag
 
-    @Test func settingsClickedDoesNotCrash() async throws {
+    @Test func settingsClickedSetsSheetFlag() async throws {
         let appDelegate = AppDelegate()
         appDelegate.setupStatusItem()
-        appDelegate.updaterManager = UpdaterManager()
-        appDelegate.shortcutStore = ShortcutStore()
+        let worktreeVM = WorktreeListViewModel()
+        appDelegate.repoViewModel = RepositoryListViewModel()
+        appDelegate.worktreeViewModel = worktreeVM
+
+        #expect(false == worktreeVM.isShowingSettings)
 
         let menuItem = NSMenuItem(title: "Settings...", action: nil, keyEquivalent: "")
         appDelegate.settingsClicked(menuItem)
 
-        let settingsWindows = NSApp.windows.filter { $0.title == AppDelegate.settingsWindowTitle }
-        #expect(settingsWindows.count == 1, "Settings window should be created on cold start")
+        try await pollUntil { worktreeVM.isShowingSettings }
     }
 
     // MARK: - Import PR triggers sheet flag
@@ -125,20 +128,6 @@ final class AppDelegateColdStartTests {
     }
 
     // MARK: - Window reuse (no duplicates)
-
-    @Test func settingsWindowIsReused() async throws {
-        let appDelegate = AppDelegate()
-        appDelegate.setupStatusItem()
-        appDelegate.updaterManager = UpdaterManager()
-        appDelegate.shortcutStore = ShortcutStore()
-
-        let menuItem = NSMenuItem(title: "Settings...", action: nil, keyEquivalent: "")
-        appDelegate.settingsClicked(menuItem)
-        appDelegate.settingsClicked(menuItem)
-
-        let settingsWindows = NSApp.windows.filter { $0.title == AppDelegate.settingsWindowTitle }
-        #expect(settingsWindows.count == 1, "Clicking Settings twice should reuse the same window")
-    }
 
     @Test func mainWindowIsReused() async throws {
         let appDelegate = AppDelegate()
@@ -223,6 +212,58 @@ final class AppDelegateColdStartTests {
         let mainWindows = NSApp.windows.filter { $0.title == AppDelegate.mainWindowTitle }
         #expect(mainWindows.count == 1,
                "Main window title should match AppDelegate.mainWindowTitle")
+    }
+
+    @Test func hostedContentViewCentersTrafficLightsInToolbar() async throws {
+        let window = NSWindow(
+            contentRect: .zero,
+            styleMask: [.titled, .closable, .resizable, .miniaturizable, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        defer { window.close() }
+
+        let rootView = ContentView(
+            repoViewModel: RepositoryListViewModel(),
+            worktreeViewModel: WorktreeListViewModel()
+        )
+        .environment(ShortcutStore())
+
+        window.title = AppDelegate.mainWindowTitle
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.contentViewController = NSHostingController(rootView: rootView)
+        window.setContentSize(NSSize(width: 1180, height: 740))
+        window.makeKeyAndOrderFront(nil)
+
+        let toolbarCenterDistanceFromTop: CGFloat = 26
+        let closeButtonCenterDistanceFromLeft: CGFloat = 24
+        try await pollUntil(timeout: .seconds(1)) {
+            guard let center = self.trafficLightCloseButtonCenter(in: window) else {
+                return false
+            }
+            return abs(center.distanceFromTop - toolbarCenterDistanceFromTop) < 1 &&
+                abs(center.distanceFromLeft - closeButtonCenterDistanceFromLeft) < 1
+        }
+    }
+
+    private func trafficLightCloseButtonCenter(in window: NSWindow) -> (
+        distanceFromLeft: CGFloat,
+        distanceFromTop: CGFloat
+    )? {
+        guard let closeButton = window.standardWindowButton(.closeButton),
+              let buttonContainer = closeButton.superview,
+              let contentView = window.contentView else {
+            return nil
+        }
+        let centerInWindow = buttonContainer.convert(
+            NSPoint(x: closeButton.frame.midX, y: closeButton.frame.midY),
+            to: nil
+        )
+        return (
+            distanceFromLeft: centerInWindow.x,
+            distanceFromTop: contentView.bounds.height - centerInWindow.y
+        )
     }
 
     // MARK: - Test environment detection

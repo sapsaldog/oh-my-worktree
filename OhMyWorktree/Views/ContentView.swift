@@ -1,19 +1,91 @@
+import AppKit
 import SwiftUI
 
 struct ContentView: View {
-    var repoViewModel: RepositoryListViewModel
+    @Bindable var repoViewModel: RepositoryListViewModel
     @Bindable var worktreeViewModel: WorktreeListViewModel
     @Environment(ShortcutStore.self) var shortcutStore
+    @Environment(UpdaterManager.self) private var updaterManager: UpdaterManager?
+    @AppStorage("accentColorName") private var accentColorName = AccentChoice.default.rawValue
+    @AppStorage("sidebarWidth") private var sidebarWidth: Double = 220
+    @AppStorage("detailWidth") private var detailWidth: Double = 360
+
+    private var accent: Color { AccentChoice.named(accentColorName).color }
 
     var body: some View {
         ZStack {
-            mainContent
+            VStack(spacing: 0) {
+                ToolbarControls(worktreeVM: worktreeViewModel)
+
+                HStack(spacing: 0) {
+                    RepositorySidebar(
+                        repoVM: repoViewModel,
+                        width: CGFloat(sidebarWidth),
+                        selectedWorktreeCount: worktreeViewModel.worktrees.count,
+                        onSelect: { repo in Task { await repoViewModel.selectRepository(repo) } },
+                        onAddRepo: { repoViewModel.showingFileDialog = true },
+                        onSettings: { worktreeViewModel.isShowingSettings = true },
+                        onCheckUpdates: { updaterManager?.checkForUpdates() }
+                    )
+                    ColumnResizer(width: $sidebarWidth, range: 180...320)
+                    WorktreeListColumn(worktreeVM: worktreeViewModel)
+                    ColumnResizer(width: $detailWidth, range: 300...520, inverted: true)
+                    DetailPaneView(
+                        worktree: selectedWorktree,
+                        isRoot: isRootSelected,
+                        pullRequest: selectedPullRequest,
+                        detail: worktreeViewModel.selectedWorktreeDetail,
+                        tools: detailTools,
+                        width: CGFloat(detailWidth),
+                        onOpenPR: {
+                            if let wt = selectedWorktree { worktreeViewModel.openPullRequest(for: wt) }
+                        }
+                    )
+                }
+
+                WindowStatusBar(
+                    worktreeViewModel: worktreeViewModel,
+                    pathText: statusBarPath,
+                    repositoryID: repoViewModel.selectedRepository?.id
+                )
+            }
             shortcutButtons
         }
-        .frame(minWidth: 400, minHeight: 300)
+        .tint(accent)
+        .environment(\.omwAccent, accent)
+        .frame(minWidth: 860, minHeight: 520)
+        .background(OMWColor.bgWindow)
+        .background(MainWindowChromeConfigurator().allowsHitTesting(false))
+        // Extend the glass toolbar up under the transparent titlebar so the
+        // native traffic lights overlay its left clearance.
+        .ignoresSafeArea(.container, edges: .top)
+        // Sets the window title used by AppDelegate's "Open Main Window" lookup.
         .navigationTitle("Oh My Worktree")
+        .fileImporter(
+            isPresented: $repoViewModel.showingFileDialog,
+            allowedContentTypes: [.folder],
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                guard let url = urls.first else { return }
+                let path = url.path(percentEncoded: false)
+                Task { await repoViewModel.addRepository(at: path) }
+            case .failure(let error):
+                repoViewModel.errorMessage = error.localizedDescription
+            }
+        }
         .sheet(isPresented: $worktreeViewModel.isShowingImportPR) {
             ImportPRView(worktreeViewModel: worktreeViewModel)
+        }
+        .sheet(isPresented: $worktreeViewModel.isShowingCreateSheet) {
+            CreateWorktreeSheet(
+                worktreeViewModel: worktreeViewModel,
+                repoName: repoViewModel.selectedRepository?.name ?? "this repository"
+            )
+        }
+        .sheet(isPresented: $worktreeViewModel.isShowingSettings) {
+            settingsSheet
         }
         .alert(
             "Error",
@@ -54,10 +126,70 @@ struct ContentView: View {
                 await worktreeViewModel.loadWorktrees(debounce: true)
             }
         }
+        .task(id: selectedWorktree?.id) {
+            await worktreeViewModel.loadDetail(for: selectedWorktree)
+        }
     }
 
-    private var mainContent: some View {
-        MainContentView(repoViewModel: repoViewModel, worktreeViewModel: worktreeViewModel)
+    // MARK: - Derived state
+
+    private var selectedWorktree: Worktree? {
+        guard worktreeViewModel.selectedWorktreeIDs.count == 1,
+              let id = worktreeViewModel.selectedWorktreeIDs.first else { return nil }
+        return worktreeViewModel.worktrees.first { $0.id == id }
+    }
+
+    private var selectedPullRequest: PullRequestInfo? {
+        guard let wt = selectedWorktree else { return nil }
+        return wt.branch.flatMap { worktreeViewModel.pullRequests[$0] }
+            ?? wt.prRemoteBranch.flatMap { worktreeViewModel.pullRequests[$0] }
+    }
+
+    private var isRootSelected: Bool {
+        guard let wt = selectedWorktree, let repo = repoViewModel.selectedRepository else { return false }
+        return wt.isRoot(of: repo)
+    }
+
+    private var statusBarPath: String {
+        selectedWorktree?.path ?? repoViewModel.selectedRepository?.path ?? ""
+    }
+
+    private var detailTools: [ActionTool] {
+        guard let wt = selectedWorktree else { return [] }
+        var tools: [ActionTool] = []
+        if worktreeViewModel.isITermAvailable {
+            tools.append(ActionTool(id: "iterm", name: "iTerm") {
+                Task { await worktreeViewModel.openInITerm(wt) }
+            })
+        }
+        if worktreeViewModel.isGhosttyAvailable {
+            tools.append(ActionTool(id: "ghostty", name: "Ghostty") {
+                Task { await worktreeViewModel.openInGhostty(wt) }
+            })
+        }
+        if worktreeViewModel.isCmuxAvailable {
+            tools.append(ActionTool(id: "cmux", name: "cmux") {
+                Task { await worktreeViewModel.openInCmux(wt) }
+            })
+        }
+        if worktreeViewModel.isVSCodeAvailable {
+            tools.append(ActionTool(id: "vscode", name: "VSCode") {
+                Task { await worktreeViewModel.openInVSCode(wt) }
+            })
+        }
+        if worktreeViewModel.isCursorAvailable {
+            tools.append(ActionTool(id: "cursor", name: "Cursor") {
+                Task { await worktreeViewModel.openInCursor(wt) }
+            })
+        }
+        return tools
+    }
+
+    @ViewBuilder
+    private var settingsSheet: some View {
+        if let updaterManager {
+            SettingsSheetContent(updaterManager: updaterManager, store: shortcutStore)
+        }
     }
 
     private var shortcutButtons: some View {
@@ -69,32 +201,45 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Subviews
+// MARK: - Draggable column divider
 
-private struct MainContentView: View {
-    var repoViewModel: RepositoryListViewModel
-    var worktreeViewModel: WorktreeListViewModel
+/// Thin separator between the sidebar and the list; drag to resize the sidebar.
+/// Width is clamped to `range` and persisted by the caller via `@AppStorage`.
+private struct ColumnResizer: View {
+    @Binding var width: Double
+    let range: ClosedRange<Double>
+    /// `true` when the resized column is to the *right* of the handle (e.g. the
+    /// detail pane): dragging the handle left widens it, so invert the delta.
+    var inverted: Bool = false
+    @State private var dragStartWidth: Double?
 
     var body: some View {
-        VStack(spacing: 0) {
-            RepositorySelectorView(viewModel: repoViewModel)
-                .padding(.horizontal, 12)
-                .padding(.top, 12)
-                .padding(.bottom, 8)
-
-            Divider()
-
-            WorktreeListView(viewModel: worktreeViewModel)
-                .frame(maxHeight: .infinity)
-
-            Divider()
-
-            QueueStatusBarView(viewModel: worktreeViewModel)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-        }
+        Rectangle()
+            .fill(OMWColor.separator)
+            .frame(width: 0.5)
+            .frame(maxHeight: .infinity)
+            .overlay {
+                Color.clear
+                    .frame(width: 11)
+                    .contentShape(Rectangle())
+                    .onHover { hovering in
+                        if hovering { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
+                    }
+                    .gesture(
+                        DragGesture(minimumDistance: 1)
+                            .onChanged { value in
+                                if dragStartWidth == nil { dragStartWidth = width }
+                                let delta = Double(value.translation.width) * (inverted ? -1 : 1)
+                                let next = (dragStartWidth ?? width) + delta
+                                width = min(max(next, range.lowerBound), range.upperBound)
+                            }
+                            .onEnded { _ in dragStartWidth = nil }
+                    )
+            }
     }
 }
+
+// MARK: - Hidden keyboard-shortcut buttons
 
 private struct ShortcutButtonsView: View {
     var repoViewModel: RepositoryListViewModel
@@ -110,7 +255,7 @@ private struct ShortcutButtonsView: View {
                 repoViewModel.showingFileDialog = true
             }
             shortcutButton(for: .addWorktree) {
-                Task { await worktreeViewModel.addWorktree() }
+                worktreeViewModel.isShowingCreateSheet = true
             }
             shortcutButton(for: .removeWorktree) {
                 worktreeViewModel.pendingDelete = .remove
@@ -169,5 +314,84 @@ private struct ShortcutButtonsView: View {
     ) {
         guard let worktree = worktreeViewModel.selectedWorktree else { return }
         Task { await action(worktreeViewModel, worktree) }
+    }
+}
+
+// MARK: - Window chrome bridge
+
+private struct MainWindowChromeConfigurator: NSViewRepresentable {
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    func makeNSView(context: Context) -> WindowProbeView {
+        let view = WindowProbeView()
+        view.setAccessibilityElement(false)
+        view.onWindowChange = { window in
+            context.coordinator.attach(to: window)
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: WindowProbeView, context: Context) {
+        context.coordinator.attach(to: nsView.window)
+    }
+
+    final class WindowProbeView: NSView {
+        var onWindowChange: ((NSWindow?) -> Void)?
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            onWindowChange?(window)
+        }
+    }
+
+    @MainActor
+    final class Coordinator {
+        private weak var window: NSWindow?
+        private var observerTokens: [NSObjectProtocol] = []
+
+        deinit {
+            observerTokens.forEach(NotificationCenter.default.removeObserver)
+        }
+
+        func attach(to newWindow: NSWindow?) {
+            guard window !== newWindow else { return }
+            stopObserving()
+            window = newWindow
+
+            guard let newWindow else { return }
+            AppDelegate.configureMainWindowChrome(newWindow)
+            startObserving(newWindow)
+            AppDelegate.centerTrafficLightsAfterLayout(in: newWindow)
+        }
+
+        private func startObserving(_ window: NSWindow) {
+            let names: [Notification.Name] = [
+                NSWindow.didResizeNotification,
+                NSWindow.didUpdateNotification
+            ]
+            observerTokens = names.map { name in
+                NotificationCenter.default.addObserver(
+                    forName: name,
+                    object: window,
+                    queue: .main
+                ) { [weak self] _ in
+                    Task { @MainActor in
+                        self?.recenterTrafficLights()
+                    }
+                }
+            }
+        }
+
+        private func stopObserving() {
+            observerTokens.forEach(NotificationCenter.default.removeObserver)
+            observerTokens.removeAll()
+        }
+
+        private func recenterTrafficLights() {
+            guard let window else { return }
+            AppDelegate.centerTrafficLights(in: window)
+        }
     }
 }

@@ -51,7 +51,12 @@ final class PullRequestService: PullRequestFetching, Sendable {
         do {
             let result = try await gitExecutor.execute(
                 command: ghPath,
-                arguments: ["pr", "list", "--json", "number,url,headRefName,state", "--state", "all", "--limit", "100"],
+                arguments: [
+                    "pr", "list",
+                    "--json", "number,url,headRefName,state,title,author,updatedAt,isDraft,reviewDecision,statusCheckRollup",
+                    "--state", "all",
+                    "--limit", "100"
+                ],
                 workingDirectory: repositoryPath
             )
 
@@ -178,43 +183,13 @@ final class PullRequestService: PullRequestFetching, Sendable {
         return formatter
     }()
 
-    /// Parses the rich JSON output from `gh pr list` (with title, author, updatedAt, isDraft) into an array.
+    /// Parses the rich JSON output from `gh pr list` into an ordered array.
     /// Returns `nil` on parse error; returns an empty array when the JSON array is empty.
     private func parsePullRequestList(from jsonString: String) -> [PullRequestInfo]? {
         guard let data = jsonString.data(using: .utf8) else { return nil }
-
-        struct GhPR: Decodable {
-            let number: Int
-            let url: String
-            let headRefName: String
-            let state: String?
-            let title: String
-            let author: GhAuthor?
-            let updatedAt: String?
-            let isDraft: Bool?
-
-            struct GhAuthor: Decodable { let login: String }
-        }
-
         do {
-            let prs = try JSONDecoder().decode([GhPR].self, from: data)
-            return prs.compactMap { pr in
-                guard let url = URL(string: pr.url) else { return nil }
-                let state = pr.state.flatMap { PullRequestState(rawValue: $0) } ?? .open
-                let updatedAt = pr.updatedAt.flatMap {
-                    Self.isoFormatterWithFractional.date(from: $0) ?? Self.isoFormatterWithoutFractional.date(from: $0)
-                }
-                return PullRequestInfo(
-                    number: pr.number,
-                    url: url,
-                    branch: pr.headRefName,
-                    state: state,
-                    title: pr.title,
-                    author: pr.author?.login ?? "",
-                    updatedAt: updatedAt,
-                    isDraft: pr.isDraft ?? false
-                )
-            }
+            let prs = try JSONDecoder().decode([GhPRPayload].self, from: data)
+            return prs.compactMap { makeInfo(from: $0) }
         } catch {
             AppLog.debug("Failed to parse PR list JSON: \(error.localizedDescription)", category: "PullRequestService")
             return nil
@@ -225,35 +200,16 @@ final class PullRequestService: PullRequestFetching, Sendable {
     /// When multiple PRs exist for the same branch, open PRs take priority; otherwise the most recent one wins.
     private func parsePullRequests(from jsonString: String) -> [String: PullRequestInfo] {
         guard let data = jsonString.data(using: .utf8) else { return [:] }
-
-        struct GhPullRequest: Decodable {
-            let number: Int
-            let url: String
-            let headRefName: String
-            let state: String?
-        }
-
         do {
-            let prs = try JSONDecoder().decode([GhPullRequest].self, from: data)
+            let prs = try JSONDecoder().decode([GhPRPayload].self, from: data)
             var result: [String: PullRequestInfo] = [:]
             for pr in prs {
-                guard let url = URL(string: pr.url) else { continue }
-                let state = pr.state.flatMap { PullRequestState(rawValue: $0) } ?? .open
-                let info = PullRequestInfo(
-                    number: pr.number,
-                    url: url,
-                    branch: pr.headRefName,
-                    state: state
-                )
+                guard let info = makeInfo(from: pr) else { continue }
                 // gh returns PRs in reverse-chronological order, so the first entry per branch
-                // is the most recent. Preserve it in two cases:
-                //   1. The existing PR is open — open PRs always take priority.
-                //   2. The new PR is not open — never replace with a closed/merged PR.
-                // In other words, we only overwrite when existing is non-open AND the new one is open.
+                // is the most recent. Only overwrite when the existing entry is non-open AND the
+                // new one is open (open PRs always win; never replace with a closed/merged PR).
                 if let existing = result[pr.headRefName] {
-                    if existing.state == .open || info.state != .open {
-                        continue
-                    }
+                    if existing.state == .open || info.state != .open { continue }
                 }
                 result[pr.headRefName] = info
             }
@@ -262,5 +218,75 @@ final class PullRequestService: PullRequestFetching, Sendable {
             AppLog.debug("Failed to parse PR JSON: \(error.localizedDescription)", category: "PullRequestService")
             return [:]
         }
+    }
+
+    /// Maps a decoded gh PR payload to a `PullRequestInfo`, dropping entries with invalid URLs.
+    private func makeInfo(from pr: GhPRPayload) -> PullRequestInfo? {
+        guard let url = URL(string: pr.url) else { return nil }
+        let state = pr.state.flatMap { PullRequestState(rawValue: $0) } ?? .open
+        let updatedAt = pr.updatedAt.flatMap {
+            Self.isoFormatterWithFractional.date(from: $0) ?? Self.isoFormatterWithoutFractional.date(from: $0)
+        }
+        return PullRequestInfo(
+            number: pr.number,
+            url: url,
+            branch: pr.headRefName,
+            state: state,
+            title: pr.title ?? "",
+            author: pr.author?.login ?? "",
+            updatedAt: updatedAt,
+            isDraft: pr.isDraft ?? false,
+            reviewDecision: Self.parseReviewDecision(pr.reviewDecision),
+            checkStatus: Self.reduceCheckStatus(pr.statusCheckRollup)
+        )
+    }
+
+    /// Maps gh's `reviewDecision` enum string to `ReviewDecision`.
+    static func parseReviewDecision(_ raw: String?) -> ReviewDecision {
+        switch raw {
+        case "APPROVED": return .approved
+        case "CHANGES_REQUESTED": return .changesRequested
+        case "REVIEW_REQUIRED": return .reviewRequired
+        default: return .none
+        }
+    }
+
+    /// Reduces gh's `statusCheckRollup` array to a single CI status. Failure dominates,
+    /// then pending; a non-empty all-success rollup is passing; empty/missing is none.
+    private static func reduceCheckStatus(_ items: [GhPRPayload.Check]?) -> CheckStatus {
+        guard let items, !items.isEmpty else { return .none }
+        let failureConclusions: Set<String> = [
+            "FAILURE", "TIMED_OUT", "CANCELLED", "ACTION_REQUIRED", "STARTUP_FAILURE", "STALE"
+        ]
+        let pendingStatuses: Set<String> = ["QUEUED", "IN_PROGRESS", "PENDING", "WAITING", "REQUESTED"]
+        var anyPending = false
+        for item in items {
+            if let conclusion = item.conclusion, failureConclusions.contains(conclusion) { return .failing }
+            if let state = item.state, state == "FAILURE" || state == "ERROR" { return .failing }
+            if let status = item.status, pendingStatuses.contains(status) { anyPending = true }
+            if let state = item.state, state == "PENDING" || state == "EXPECTED" { anyPending = true }
+        }
+        return anyPending ? .pending : .passing
+    }
+}
+
+// Decoded shape of a single `gh pr list --json …` entry (shared by both parsers).
+private struct GhPRPayload: Decodable {
+    let number: Int
+    let url: String
+    let headRefName: String
+    let state: String?
+    let title: String?
+    let author: Author?
+    let updatedAt: String?
+    let isDraft: Bool?
+    let reviewDecision: String?
+    let statusCheckRollup: [Check]?
+
+    struct Author: Decodable { let login: String }
+    struct Check: Decodable {
+        let status: String?
+        let conclusion: String?
+        let state: String?
     }
 }

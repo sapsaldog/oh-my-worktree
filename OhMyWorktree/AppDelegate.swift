@@ -45,13 +45,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - NSApplicationDelegate
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.accessory)
-        setupStatusItem()
+        // Under XCTest the process is hosted by the app target. Creating the
+        // accessory menu-bar status item makes the headless CI runner churn (and
+        // eventually crash) status-item scenes. Tests that exercise the status
+        // item call setupStatusItem() directly, so skip all GUI launch setup here.
+        guard !Self.isRunningTests else { return }
 
-        if !Self.isRunningTests {
-            windowObserver.startObserving()
-            registerGlobalHotkeyHandler()
-        }
+        NSApp.setActivationPolicy(.accessory)
+        NSApp.appearance = AppearanceMode.named(
+            UserDefaults.standard.string(forKey: "appearanceMode")
+        ).nsAppearance
+        setupStatusItem()
+        windowObserver.startObserving()
+        registerGlobalHotkeyHandler()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {

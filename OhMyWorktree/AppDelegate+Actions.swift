@@ -145,7 +145,10 @@ extension AppDelegate {
     }
 
     @objc func settingsClicked(_ sender: NSMenuItem) {
-        showOrCreateSettingsWindow()
+        showOrCreateMainWindow()
+        Task { @MainActor [weak self] in
+            self?.worktreeViewModel?.isShowingSettings = true
+        }
     }
 
     @objc func checkForUpdatesClicked(_ sender: NSMenuItem) {

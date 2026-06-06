@@ -47,7 +47,11 @@ final class MockGitCommandExecutor: GitCommandExecuting, @unchecked Sendable {
     func stubGhPrList(json: String, ghPath: String = "/usr/local/bin/gh") {
         results.append((
             command: ghPath,
-            arguments: ["pr", "list", "--json", "number,url,headRefName,state", "--state", "all", "--limit", "100"],
+            arguments: [
+                "pr", "list",
+                "--json", "number,url,headRefName,state,title,author,updatedAt,isDraft,reviewDecision,statusCheckRollup",
+                "--state", "all", "--limit", "100"
+            ],
             result: .success(CommandResult(stdout: json, stderr: "", exitCode: 0))
         ))
     }
@@ -55,7 +59,11 @@ final class MockGitCommandExecutor: GitCommandExecuting, @unchecked Sendable {
     func stubGhPrListFailure(ghPath: String = "/usr/local/bin/gh") {
         results.append((
             command: ghPath,
-            arguments: ["pr", "list", "--json", "number,url,headRefName,state", "--state", "all", "--limit", "100"],
+            arguments: [
+                "pr", "list",
+                "--json", "number,url,headRefName,state,title,author,updatedAt,isDraft,reviewDecision,statusCheckRollup",
+                "--state", "all", "--limit", "100"
+            ],
             result: .success(CommandResult(stdout: "", stderr: "error", exitCode: 1))
         ))
     }
@@ -63,7 +71,11 @@ final class MockGitCommandExecutor: GitCommandExecuting, @unchecked Sendable {
     func stubGhPrListThrows(ghPath: String = "/usr/local/bin/gh") {
         results.append((
             command: ghPath,
-            arguments: ["pr", "list", "--json", "number,url,headRefName,state", "--state", "all", "--limit", "100"],
+            arguments: [
+                "pr", "list",
+                "--json", "number,url,headRefName,state,title,author,updatedAt,isDraft,reviewDecision,statusCheckRollup",
+                "--state", "all", "--limit", "100"
+            ],
             result: .failure(NSError(domain: "test", code: 1, userInfo: [NSLocalizedDescriptionKey: "connection failed"]))
         ))
     }
