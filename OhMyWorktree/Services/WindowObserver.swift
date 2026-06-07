@@ -3,9 +3,10 @@ import AppKit
 /// Observes window lifecycle events and dynamically toggles the app's activation policy
 /// between `.accessory` (menu-bar-only) and `.regular` (Dock + Cmd+Tab).
 ///
-/// When at least one app window is visible or miniaturized, the app switches to `.regular`
-/// so that Cmd+` and Cmd+Tab work. When all windows are closed, it switches back to `.accessory`
-/// so the Dock icon disappears.
+/// The app switches to `.regular` whenever an app window is visible or miniaturized
+/// (so Cmd+` and Cmd+Tab work) *or* whenever the user enabled "Show icon in Dock".
+/// When neither holds, it returns to `.accessory` so the Dock icon disappears.
+/// The decision itself lives in `DockPolicy`.
 @MainActor
 final class WindowObserver {
 
@@ -41,6 +42,12 @@ final class WindowObserver {
             name: NSWindow.didDeminiaturizeNotification,
             object: nil
         )
+        center.addObserver(
+            self,
+            selector: #selector(showInDockSettingChanged(_:)),
+            name: .showInDockSettingChanged,
+            object: nil
+        )
     }
 
     // MARK: - Notification Handlers
@@ -68,6 +75,10 @@ final class WindowObserver {
         updateActivationPolicy()
     }
 
+    @objc private func showInDockSettingChanged(_ notification: Notification) {
+        updateActivationPolicy()
+    }
+
     // MARK: - Policy Management
 
     private func updateActivationPolicy() {
@@ -75,7 +86,8 @@ final class WindowObserver {
             isAppWindow(window) && (window.isVisible || window.isMiniaturized)
         }
 
-        let desiredPolicy: NSApplication.ActivationPolicy = hasAppWindows ? .regular : .accessory
+        let showInDock = UserDefaults.standard.bool(forKey: DockPolicy.defaultsKey)
+        let desiredPolicy = DockPolicy.activationPolicy(showInDock: showInDock, hasAppWindows: hasAppWindows)
         let currentPolicy = NSApp.activationPolicy()
 
         guard desiredPolicy != currentPolicy else { return }
@@ -119,4 +131,10 @@ final class WindowObserver {
     deinit {
         NotificationCenter.default.removeObserver(self)
     }
+}
+
+extension Notification.Name {
+    /// Posted when the user toggles "Show icon in Dock". `WindowObserver`
+    /// re-evaluates the activation policy in response.
+    static let showInDockSettingChanged = Notification.Name("com.ohmyworktree.showInDockSettingChanged")
 }
