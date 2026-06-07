@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// Left column (220): REPOSITORIES header + repo rows + footer
@@ -10,8 +11,11 @@ struct RepositorySidebar: View {
     var onAddRepo: () -> Void
     var onSettings: () -> Void
     var onCheckUpdates: () -> Void
+    var onRequestRemove: (Repository) -> Void
 
     @Environment(\.omwAccent) private var accent
+    /// Row currently hovered as a drop target during a drag-to-reorder.
+    @State private var dropTargetRepoID: UUID?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -56,34 +60,83 @@ struct RepositorySidebar: View {
 
     private func row(_ repo: Repository) -> some View {
         let isSelected = repoVM.selectedRepository?.id == repo.id
-        return Button {
-            onSelect(repo)
-        } label: {
-            HStack(spacing: 9) {
-                Image("FolderGit2")
-                    .renderingMode(.template)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 16, height: 16)
-                    .foregroundStyle(isSelected ? OMWColor.onAccent : accent)
-                Text(repo.name)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(isSelected ? OMWColor.onAccent : OMWColor.labelPrimary)
-                    .lineLimit(1)
-                Spacer(minLength: 4)
-                if isSelected {
-                    Text("\(selectedWorktreeCount)")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(OMWColor.onAccent.opacity(0.75))
-                }
-            }
-            .padding(.horizontal, 10)
-            .frame(height: 32)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(isSelected ? accent : Color.clear, in: RoundedRectangle(cornerRadius: OMWRadius.md))
-            .contentShape(Rectangle())
+        return Button { onSelect(repo) } label: {
+            rowLabel(repo, isSelected: isSelected)
         }
         .buttonStyle(.plain)
+        .overlay(alignment: .top) { dropIndicator(for: repo) }
+        .draggable(repo.id.uuidString)
+        .dropDestination(for: String.self) { items, _ in
+            handleDrop(items, onto: repo)
+        } isTargeted: { targeted in
+            setDropTarget(repo.id, targeted: targeted)
+        }
+        .contextMenu { repoContextMenu(repo) }
+    }
+
+    private func rowLabel(_ repo: Repository, isSelected: Bool) -> some View {
+        HStack(spacing: 9) {
+            Image("FolderGit2")
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 16, height: 16)
+                .foregroundStyle(isSelected ? OMWColor.onAccent : accent)
+            Text(repo.name)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(isSelected ? OMWColor.onAccent : OMWColor.labelPrimary)
+                .lineLimit(1)
+            Spacer(minLength: 4)
+            if isSelected {
+                Text("\(selectedWorktreeCount)")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(OMWColor.onAccent.opacity(0.75))
+            }
+        }
+        .padding(.horizontal, 10)
+        .frame(height: 32)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(isSelected ? accent : Color.clear, in: RoundedRectangle(cornerRadius: OMWRadius.md))
+        .contentShape(Rectangle())
+    }
+
+    /// Accent insertion line on the hovered drop target (CSS `.sb-row.drop-target`).
+    @ViewBuilder
+    private func dropIndicator(for repo: Repository) -> some View {
+        if dropTargetRepoID == repo.id {
+            Capsule().fill(accent).frame(height: 1.5).padding(.horizontal, 2)
+        }
+    }
+
+    private func handleDrop(_ items: [String], onto repo: Repository) -> Bool {
+        dropTargetRepoID = nil
+        guard let first = items.first, let fromID = UUID(uuidString: first) else { return false }
+        Task { await repoVM.moveRepository(fromID, to: repo.id) }
+        return true
+    }
+
+    private func setDropTarget(_ id: UUID, targeted: Bool) {
+        if targeted {
+            dropTargetRepoID = id
+        } else if dropTargetRepoID == id {
+            dropTargetRepoID = nil
+        }
+    }
+
+    @ViewBuilder
+    private func repoContextMenu(_ repo: Repository) -> some View {
+        Button("Show in Finder") {
+            NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: repo.path)
+        }
+        Button("Copy Path") {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(repo.path, forType: .string)
+        }
+        .keyboardShortcut("c", modifiers: .command)
+        Divider()
+        Button("Remove Repository…", role: .destructive) {
+            onRequestRemove(repo)
+        }
     }
 
     private var footer: some View {

@@ -9,6 +9,7 @@ struct ContentView: View {
     @AppStorage("accentColorName") private var accentColorName = AccentChoice.default.rawValue
     @AppStorage("sidebarWidth") private var sidebarWidth: Double = 220
     @AppStorage("detailWidth") private var detailWidth: Double = 360
+    @State private var repoPendingRemoval: Repository?
 
     private var accent: Color { AccentChoice.named(accentColorName).color }
 
@@ -16,38 +17,14 @@ struct ContentView: View {
         ZStack {
             VStack(spacing: 0) {
                 ToolbarControls(worktreeVM: worktreeViewModel)
-
-                HStack(spacing: 0) {
-                    RepositorySidebar(
-                        repoVM: repoViewModel,
-                        width: CGFloat(sidebarWidth),
-                        selectedWorktreeCount: worktreeViewModel.worktrees.count,
-                        onSelect: { repo in Task { await repoViewModel.selectRepository(repo) } },
-                        onAddRepo: { repoViewModel.showingFileDialog = true },
-                        onSettings: { worktreeViewModel.isShowingSettings = true },
-                        onCheckUpdates: { updaterManager?.checkForUpdates() }
-                    )
-                    ColumnResizer(width: $sidebarWidth, range: 180...320)
-                    WorktreeListColumn(worktreeVM: worktreeViewModel)
-                    ColumnResizer(width: $detailWidth, range: 300...520, inverted: true)
-                    DetailPaneView(
-                        worktree: selectedWorktree,
-                        isRoot: isRootSelected,
-                        pullRequest: selectedPullRequest,
-                        detail: worktreeViewModel.selectedWorktreeDetail,
-                        tools: detailTools,
-                        width: CGFloat(detailWidth),
-                        onOpenPR: {
-                            if let wt = selectedWorktree { worktreeViewModel.openPullRequest(for: wt) }
-                        }
+                workspaceRow
+                if !repoViewModel.repositories.isEmpty {
+                    WindowStatusBar(
+                        worktreeViewModel: worktreeViewModel,
+                        pathText: statusBarPath,
+                        repositoryID: repoViewModel.selectedRepository?.id
                     )
                 }
-
-                WindowStatusBar(
-                    worktreeViewModel: worktreeViewModel,
-                    pathText: statusBarPath,
-                    repositoryID: repoViewModel.selectedRepository?.id
-                )
             }
             shortcutButtons
         }
@@ -106,6 +83,23 @@ struct ContentView: View {
         } message: {
             Text(repoViewModel.errorMessage ?? worktreeViewModel.errorMessage ?? "")
         }
+        .alert(
+            repoPendingRemoval.map { "Remove \u{201C}\($0.name)\u{201D} from Oh My Worktree?" } ?? "",
+            isPresented: .init(
+                get: { repoPendingRemoval != nil },
+                set: { if !$0 { repoPendingRemoval = nil } }
+            ),
+            presenting: repoPendingRemoval
+        ) { repo in
+            Button("Remove Repository", role: .destructive) {
+                Task { await repoViewModel.removeRepository(repo) }
+                repoPendingRemoval = nil
+            }
+            Button("Cancel", role: .cancel) { repoPendingRemoval = nil }
+        } message: { _ in
+            Text("This removes it from your repository list only. "
+                + "The repository and its worktrees stay on disk — nothing is deleted.")
+        }
         .task {
             if repoViewModel.repositories.isEmpty {
                 await repoViewModel.loadRepositories()
@@ -129,6 +123,53 @@ struct ContentView: View {
         .task(id: selectedWorktree?.id) {
             await worktreeViewModel.loadDetail(for: selectedWorktree)
         }
+    }
+
+    // MARK: - Workspace layout
+
+    /// Sidebar + (empty state | worktree list + detail). Extracted from `body`
+    /// to keep each SwiftUI expression small enough for the type-checker.
+    private var workspaceRow: some View {
+        HStack(spacing: 0) {
+            RepositorySidebar(
+                repoVM: repoViewModel,
+                width: CGFloat(sidebarWidth),
+                selectedWorktreeCount: worktreeViewModel.worktrees.count,
+                onSelect: { repo in Task { await repoViewModel.selectRepository(repo) } },
+                onAddRepo: { repoViewModel.showingFileDialog = true },
+                onSettings: { worktreeViewModel.isShowingSettings = true },
+                onCheckUpdates: { updaterManager?.checkForUpdates() },
+                onRequestRemove: { repoPendingRemoval = $0 }
+            )
+            ColumnResizer(width: $sidebarWidth, range: 180...320)
+            if repoViewModel.repositories.isEmpty {
+                RepositoryEmptyState(
+                    onAdd: { repoViewModel.showingFileDialog = true },
+                    onDropFolder: { url in
+                        Task { await repoViewModel.addRepository(at: url.path(percentEncoded: false)) }
+                    }
+                )
+            } else {
+                worktreeColumns
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var worktreeColumns: some View {
+        WorktreeListColumn(worktreeVM: worktreeViewModel)
+        ColumnResizer(width: $detailWidth, range: 300...520, inverted: true)
+        DetailPaneView(
+            worktree: selectedWorktree,
+            isRoot: isRootSelected,
+            pullRequest: selectedPullRequest,
+            detail: worktreeViewModel.selectedWorktreeDetail,
+            tools: detailTools,
+            width: CGFloat(detailWidth),
+            onOpenPR: {
+                if let wt = selectedWorktree { worktreeViewModel.openPullRequest(for: wt) }
+            }
+        )
     }
 
     // MARK: - Derived state

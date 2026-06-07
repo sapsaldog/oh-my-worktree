@@ -33,6 +33,7 @@ enum OMWColor {
     static let fillPrimary = dynamic(light: (0, 0, 0, 0.1), dark: (255, 255, 255, 0.1))
     static let fillSecondary = dynamic(light: (0, 0, 0, 0.08), dark: (255, 255, 255, 0.08))
     static let fillTertiary = dynamic(light: (0, 0, 0, 0.05), dark: (255, 255, 255, 0.05))
+    static let fillQuaternary = dynamic(light: (0, 0, 0, 0.03), dark: (255, 255, 255, 0.03))
     static let separator = dynamic(light: (0, 0, 0, 0.12), dark: (255, 255, 255, 0.14))
 
     // MARK: Backgrounds

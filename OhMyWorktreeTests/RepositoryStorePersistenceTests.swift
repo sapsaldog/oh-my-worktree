@@ -304,4 +304,64 @@ final class RepositoryStorePersistenceTests {
 
         #expect(await store.getRepositories().isEmpty)
     }
+
+    // MARK: - reorderRepositories
+
+    @Test func reorderRepositories_reordersInMemory() async {
+        let store = makeStore()
+        let a = Repository(name: "A", path: "/tmp/ro-a-\(UUID().uuidString)")
+        let b = Repository(name: "B", path: "/tmp/ro-b-\(UUID().uuidString)")
+        let c = Repository(name: "C", path: "/tmp/ro-c-\(UUID().uuidString)")
+        await store.addRepository(a)
+        await store.addRepository(b)
+        await store.addRepository(c)
+
+        await store.reorderRepositories(orderedIDs: [c.id, a.id, b.id])
+
+        let all = await store.getRepositories()
+        #expect(all.map(\.id) == [c.id, a.id, b.id])
+    }
+
+    @Test func reorderRepositories_persistsAcrossReload() async {
+        let store = makeStore()
+        let a = Repository(name: "A", path: "/tmp/rp-a-\(UUID().uuidString)")
+        let b = Repository(name: "B", path: "/tmp/rp-b-\(UUID().uuidString)")
+        await store.addRepository(a)
+        await store.addRepository(b)
+
+        await store.reorderRepositories(orderedIDs: [b.id, a.id])
+
+        // A fresh store reading the same dir must decode the persisted new order.
+        let reloaded = makeStore()
+        let all = await reloaded.getRepositories()
+        #expect(all.map(\.id) == [b.id, a.id])
+    }
+
+    @Test func reorderRepositories_nonPermutation_isIgnored() async {
+        let store = makeStore()
+        let a = Repository(name: "A", path: "/tmp/rn-a-\(UUID().uuidString)")
+        let b = Repository(name: "B", path: "/tmp/rn-b-\(UUID().uuidString)")
+        await store.addRepository(a)
+        await store.addRepository(b)
+
+        // A missing id plus an unknown id is not a full permutation → no change.
+        await store.reorderRepositories(orderedIDs: [b.id, UUID()])
+
+        let all = await store.getRepositories()
+        #expect(all.map(\.id) == [a.id, b.id])
+    }
+
+    @Test func reorderRepositories_duplicateIDs_isIgnored() async {
+        let store = makeStore()
+        let a = Repository(name: "A", path: "/tmp/rd-a-\(UUID().uuidString)")
+        let b = Repository(name: "B", path: "/tmp/rd-b-\(UUID().uuidString)")
+        await store.addRepository(a)
+        await store.addRepository(b)
+
+        // Same count as the store but a duplicated id (drops one) → must be rejected.
+        await store.reorderRepositories(orderedIDs: [b.id, b.id])
+
+        let all = await store.getRepositories()
+        #expect(all.map(\.id) == [a.id, b.id])
+    }
 }

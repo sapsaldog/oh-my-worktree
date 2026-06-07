@@ -132,6 +132,21 @@ final class RepositoryListViewModel {
         await selectRepository(repositories[prevIndex])
     }
 
+    // MARK: - Reorder
+
+    /// Move the repository identified by `fromID` to the slot currently held by
+    /// `toID`, mirroring the prototype's drag-to-reorder, and persist the order.
+    func moveRepository(_ fromID: UUID, to toID: UUID) async {
+        guard fromID != toID else { return }
+        var arr = repositories
+        guard let from = arr.firstIndex(where: { $0.id == fromID }),
+              let to = arr.firstIndex(where: { $0.id == toID }) else { return }
+        let moved = arr.remove(at: from)
+        arr.insert(moved, at: to)
+        repositories = arr
+        await store.reorderRepositories(orderedIDs: arr.map(\.id))
+    }
+
     // MARK: - Error Handling
 
     func clearError() {
