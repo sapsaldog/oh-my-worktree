@@ -65,6 +65,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         setupStatusItem()
         windowObserver.startObserving()
         registerGlobalHotkeyHandler()
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(menuBarTitleSettingChanged),
+            name: .menuBarTitleSettingChanged,
+            object: nil
+        )
+    }
+
+    /// Refreshes the status-item title when the "Show worktree name in menu bar"
+    /// toggle changes. Mirrors the `.showInDockSettingChanged` pattern.
+    @objc private func menuBarTitleSettingChanged() {
+        updateStatusItemTitle()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -167,12 +180,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 )
             }
             button.imagePosition = .imageLeading
-            button.title = " Oh My Worktree"
         }
 
         let menu = NSMenu()
         menu.delegate = self
         statusItem?.menu = menu
+
+        // Reflect the persisted "show worktree name" toggle (default: icon only).
+        updateStatusItemTitle()
     }
 
     // MARK: - Global Hotkey Setup
@@ -200,15 +215,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func updateStatusItemTitle() {
         guard let button = statusItem?.button else { return }
 
-        if let repo = repoViewModel?.selectedRepository {
-            if let worktree = worktreeViewModel?.selectedWorktree {
-                let branchDisplay = worktree.customName ?? liveBranchName ?? worktree.displayName
-                button.title = " \(repo.name)/\(branchDisplay)"
-            } else {
-                button.title = " \(repo.name)"
-            }
-        } else {
-            button.title = " Oh My Worktree"
+        let worktreeName = worktreeViewModel?.selectedWorktree.map { worktree in
+            worktree.customName ?? liveBranchName ?? worktree.displayName
         }
+        button.title = MenuBarTitle.text(
+            showWorktreeName: UserDefaults.standard.bool(forKey: MenuBarTitle.showWorktreeNameKey),
+            repoName: repoViewModel?.selectedRepository?.name,
+            worktreeName: worktreeName
+        )
     }
+}
+
+extension Notification.Name {
+    /// Posted when the user toggles "Show worktree name in menu bar".
+    /// `AppDelegate` refreshes the status-item title in response.
+    static let menuBarTitleSettingChanged = Notification.Name("com.ohmyworktree.menuBarTitleSettingChanged")
 }
