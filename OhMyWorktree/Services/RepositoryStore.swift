@@ -161,6 +161,19 @@ actor RepositoryStore {
         saveToDisk()
     }
 
+    /// Persist a new ordering for the repository list. `orderedIDs` must be a
+    /// permutation of the current repository IDs (same set, no duplicates);
+    /// anything else is ignored so a stale or partial drag can never drop a repo.
+    func reorderRepositories(orderedIDs: [UUID]) {
+        let byID = Dictionary(uniqueKeysWithValues: repositories.map { ($0.id, $0) })
+        let reordered = orderedIDs.compactMap { byID[$0] }
+        guard reordered.count == repositories.count,
+              Set(orderedIDs) == Set(byID.keys) else { return }
+        repositories = reordered
+        dirtyRepos = true
+        saveToDisk()
+    }
+
     // MARK: - Worktree Metadata
 
     func getWorktreeMetadata(repositoryID: UUID) -> [WorktreeMetadata] {

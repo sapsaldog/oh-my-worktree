@@ -341,4 +341,69 @@ struct RepositoryListViewModelTests {
 
         #expect(sut.errorMessage == nil)
     }
+
+    // MARK: - moveRepository (reordering)
+
+    @Test func moveRepository_reordersToTargetPosition() async {
+        let a = Repository(name: "A", path: "/tmp/mv-a-\(UUID().uuidString)")
+        let b = Repository(name: "B", path: "/tmp/mv-b-\(UUID().uuidString)")
+        let c = Repository(name: "C", path: "/tmp/mv-c-\(UUID().uuidString)")
+        sut.repositories = [a, b, c]
+
+        // Move C onto A's slot → [C, A, B] (matches the prototype's splice semantics).
+        await sut.moveRepository(c.id, to: a.id)
+
+        #expect(sut.repositories.map(\.id) == [c.id, a.id, b.id])
+    }
+
+    @Test func moveRepository_sameID_isNoOp() async {
+        let a = Repository(name: "A", path: "/tmp/mv-same-a-\(UUID().uuidString)")
+        let b = Repository(name: "B", path: "/tmp/mv-same-b-\(UUID().uuidString)")
+        sut.repositories = [a, b]
+
+        await sut.moveRepository(a.id, to: a.id)
+
+        #expect(sut.repositories.map(\.id) == [a.id, b.id])
+    }
+
+    @Test func moveRepository_unknownSourceID_isNoOp() async {
+        let a = Repository(name: "A", path: "/tmp/mv-unk-a-\(UUID().uuidString)")
+        let b = Repository(name: "B", path: "/tmp/mv-unk-b-\(UUID().uuidString)")
+        sut.repositories = [a, b]
+
+        await sut.moveRepository(UUID(), to: a.id)
+
+        #expect(sut.repositories.map(\.id) == [a.id, b.id])
+    }
+
+    @Test func moveRepository_unknownTargetID_isNoOp() async {
+        let a = Repository(name: "A", path: "/tmp/mv-unt-a-\(UUID().uuidString)")
+        let b = Repository(name: "B", path: "/tmp/mv-unt-b-\(UUID().uuidString)")
+        sut.repositories = [a, b]
+
+        await sut.moveRepository(a.id, to: UUID())
+
+        #expect(sut.repositories.map(\.id) == [a.id, b.id])
+    }
+
+    @Test func moveRepository_persistsNewOrderToStore() async throws {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("repo-move-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = RepositoryStore(storageDirectory: dir)
+        let a = Repository(name: "A", path: "/tmp/mv-p-a-\(UUID().uuidString)")
+        let b = Repository(name: "B", path: "/tmp/mv-p-b-\(UUID().uuidString)")
+        let c = Repository(name: "C", path: "/tmp/mv-p-c-\(UUID().uuidString)")
+        await store.addRepository(a)
+        await store.addRepository(b)
+        await store.addRepository(c)
+        let vm = RepositoryListViewModel(store: store, userDefaults: testDefaults)
+        await vm.loadRepositories()
+
+        await vm.moveRepository(c.id, to: a.id)
+
+        let stored = await store.getRepositories()
+        #expect(stored.map(\.id) == [c.id, a.id, b.id])
+    }
 }
