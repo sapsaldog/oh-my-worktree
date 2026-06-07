@@ -11,6 +11,7 @@ private let settingsLogger = Logger(subsystem: "com.ohmyworktree", category: "Se
 struct SettingsSheetContent: View {
     var updaterManager: UpdaterManager
     var store: ShortcutStore
+    var onDismiss: (() -> Void)?
 
     @Environment(\.dismiss) private var dismiss
     @AppStorage("accentColorName") private var accentColorName = AccentChoice.default.rawValue
@@ -45,16 +46,26 @@ struct SettingsSheetContent: View {
             Divider()
             HStack {
                 Spacer()
-                Button("Done") { dismiss() }
+                Button("Done") { close() }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
             }
             .padding(.init(top: 12, leading: 20, bottom: 16, trailing: 20))
         }
-        .frame(width: 500, height: 540)
-        .background(.regularMaterial)
+        .frame(width: 480, height: 540)
+        // Liquid Glass: a thin behind-window material so the worktree window reads
+        // through. See project_glass_sheets_need_presentationbackground.
+        .glassSheet()
         .tint(accent)
         .environment(\.omwAccent, accent)
+    }
+
+    private func close() {
+        if let onDismiss {
+            onDismiss()
+        } else {
+            dismiss()
+        }
     }
 
     @ViewBuilder private var tabContent: some View {

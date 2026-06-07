@@ -5,6 +5,7 @@ import SwiftUI
 struct CreateWorktreeSheet: View {
     @Bindable var worktreeViewModel: WorktreeListViewModel
     var repoName: String
+    var onDismiss: (() -> Void)?
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.omwAccent) private var accent
@@ -26,7 +27,9 @@ struct CreateWorktreeSheet: View {
             footer
         }
         .frame(width: 480)
-        .background(.regularMaterial)
+        // Liquid Glass backdrop — matches the Settings sheet.
+        // See project_glass_sheets_need_presentationbackground.
+        .glassSheet()
         .tint(accent)
         .onAppear(perform: load)
     }
@@ -84,7 +87,7 @@ struct CreateWorktreeSheet: View {
     private var footer: some View {
         HStack {
             Spacer()
-            Button("Cancel") { dismiss() }
+            Button("Cancel") { close() }
                 .keyboardShortcut(.cancelAction)
                 .buttonStyle(.bordered)
                 .buttonBorderShape(.capsule)
@@ -94,7 +97,7 @@ struct CreateWorktreeSheet: View {
                 let base = baseBranch
                 let copy = copyFiles
                 Task { await worktreeViewModel.addWorktree(name: chosen, baseBranch: base, copyFiles: copy) }
-                dismiss()
+                close()
             }
             .keyboardShortcut(.defaultAction)
             .buttonStyle(.borderedProminent)
@@ -103,6 +106,14 @@ struct CreateWorktreeSheet: View {
             .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
         }
         .padding(.init(top: 12, leading: 20, bottom: 16, trailing: 20))
+    }
+
+    private func close() {
+        if let onDismiss {
+            onDismiss()
+        } else {
+            dismiss()
+        }
     }
 
     // MARK: - Base branch selector

@@ -44,6 +44,12 @@ enum OMWColor {
     static let sidebar = dynamic(light: (246, 246, 248, 0.66), dark: (40, 40, 42, 0.62))
     /// Control background (search field, round toolbar buttons, action-bar chips).
     static let controlBg = dynamic(light: (255, 255, 255, 1), dark: (255, 255, 255, 0.1))
+    /// Thin tint over native sheet glass. Keep alpha low so the parent window's
+    /// selection colors and columns read through the blur.
+    static let glassSheetTint = dynamic(light: (255, 255, 255, 0.58), dark: (34, 34, 36, 0.66))
+    /// Top inner sheen on Liquid-Glass surfaces (`--glass-highlight`): a 1px white
+    /// line along the upper edge of sheets/popovers that sells the glass rim.
+    static let glassHighlight = dynamic(light: (255, 255, 255, 0.6), dark: (255, 255, 255, 0.12))
 
     // MARK: System palette (mode-independent)
     static let sysRed = solid(255, 56, 60)
