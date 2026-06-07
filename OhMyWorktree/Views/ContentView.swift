@@ -27,6 +27,7 @@ struct ContentView: View {
                 }
             }
             shortcutButtons
+            modalOverlay
         }
         .tint(accent)
         .environment(\.omwAccent, accent)
@@ -54,19 +55,6 @@ struct ContentView: View {
         }
         .sheet(isPresented: $worktreeViewModel.isShowingImportPR) {
             ImportPRView(worktreeViewModel: worktreeViewModel)
-        }
-        .sheet(isPresented: $worktreeViewModel.isShowingCreateSheet) {
-            CreateWorktreeSheet(
-                worktreeViewModel: worktreeViewModel,
-                repoName: repoViewModel.selectedRepository?.name ?? "this repository"
-            )
-            // `.sheet` does not inherit custom EnvironmentValues from the presenter,
-            // so inject the accent here or the segments/Create button fall back to
-            // the omwAccent @Entry default. See project_omwswitch_needs_omwaccent_injection.
-            .environment(\.omwAccent, accent)
-        }
-        .sheet(isPresented: $worktreeViewModel.isShowingSettings) {
-            settingsSheet
         }
         .alert(
             "Error",
@@ -233,8 +221,46 @@ struct ContentView: View {
     @ViewBuilder
     private var settingsSheet: some View {
         if let updaterManager {
-            SettingsSheetContent(updaterManager: updaterManager, store: shortcutStore)
+            SettingsSheetContent(
+                updaterManager: updaterManager,
+                store: shortcutStore,
+                onDismiss: { worktreeViewModel.isShowingSettings = false }
+            )
         }
+    }
+
+    @ViewBuilder
+    private var modalOverlay: some View {
+        if worktreeViewModel.isShowingCreateSheet {
+            glassModal {
+                CreateWorktreeSheet(
+                    worktreeViewModel: worktreeViewModel,
+                    repoName: repoViewModel.selectedRepository?.name ?? "this repository",
+                    onDismiss: { worktreeViewModel.isShowingCreateSheet = false }
+                )
+                .environment(\.omwAccent, accent)
+            }
+        } else if worktreeViewModel.isShowingSettings {
+            glassModal {
+                settingsSheet
+            }
+        }
+    }
+
+    private func glassModal<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        ZStack {
+            Color.black.opacity(0.46)
+                .ignoresSafeArea()
+                .contentShape(Rectangle())
+                .onTapGesture { }
+
+            content()
+                .shadow(color: .black.opacity(0.36), radius: 28, y: 18)
+                .padding(.horizontal, 24)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .ignoresSafeArea(.container, edges: .top)
+        .zIndex(20)
     }
 
     private var shortcutButtons: some View {
