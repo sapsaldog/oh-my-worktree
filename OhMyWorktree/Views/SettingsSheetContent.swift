@@ -146,6 +146,7 @@ func settingsHairline() -> some View {
 private struct GeneralTab: View {
     @AppStorage("copyEnvFilesEnabled") private var copyEnvFilesEnabled = true
     @AppStorage(DockPolicy.defaultsKey) private var showInDock = false
+    @AppStorage(MenuBarTitle.showWorktreeNameKey) private var showWorktreeName = false
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
     var body: some View {
@@ -166,6 +167,14 @@ private struct GeneralTab: View {
                 Toggle("Show icon in Dock", isOn: $showInDock).toggleStyle(.omwSwitch)
                     .onChange(of: showInDock) { _, _ in
                         NotificationCenter.default.post(name: .showInDockSettingChanged, object: nil)
+                    }
+            }
+            settingsHairline()
+            SettingsRow(icon: "menubar.rectangle", title: "Show worktree name in menu bar",
+                        subtitle: "Display the repository and worktree next to the menu bar icon") {
+                Toggle("Show worktree name in menu bar", isOn: $showWorktreeName).toggleStyle(.omwSwitch)
+                    .onChange(of: showWorktreeName) { _, _ in
+                        NotificationCenter.default.post(name: .menuBarTitleSettingChanged, object: nil)
                     }
             }
         }
