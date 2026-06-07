@@ -83,6 +83,10 @@ struct ContentView: View {
                 worktreeViewModel: worktreeViewModel,
                 repoName: repoViewModel.selectedRepository?.name ?? "this repository"
             )
+            // `.sheet` does not inherit custom EnvironmentValues from the presenter,
+            // so inject the accent here or the segments/Create button fall back to
+            // the omwAccent @Entry default. See project_omwswitch_needs_omwaccent_injection.
+            .environment(\.omwAccent, accent)
         }
         .sheet(isPresented: $worktreeViewModel.isShowingSettings) {
             settingsSheet
