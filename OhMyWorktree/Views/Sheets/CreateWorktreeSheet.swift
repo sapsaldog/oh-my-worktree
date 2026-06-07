@@ -25,7 +25,8 @@ struct CreateWorktreeSheet: View {
             Divider()
             footer
         }
-        .frame(width: 460)
+        .frame(width: 480)
+        .background(.regularMaterial)
         .tint(accent)
         .onAppear(perform: load)
     }
@@ -49,8 +50,16 @@ struct CreateWorktreeSheet: View {
                     TextField("e.g. tokyo-lunch", text: $name)
                         .textFieldStyle(.roundedBorder)
                         .font(.system(.body, design: .monospaced))
-                    Button { name = randomName() } label: { Image(systemName: "shuffle") }
-                        .help("Generate another")
+                    Button { name = randomName() } label: {
+                        Image(systemName: "shuffle")
+                            .font(.system(size: 14))
+                            .foregroundStyle(OMWColor.labelSecondary)
+                            .frame(width: 30, height: 30)
+                            .background(OMWColor.controlBg, in: Circle())
+                            .overlay(Circle().strokeBorder(OMWColor.separator, lineWidth: 0.5))
+                    }
+                    .buttonStyle(.plain)
+                    .help("Generate another")
                 }
                 Text("A new branch will be created and checked out.")
                     .font(.system(size: 11))
@@ -62,24 +71,24 @@ struct CreateWorktreeSheet: View {
                 baseBranchPicker
             }
 
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Copy files to new worktree").font(.system(size: 13, weight: .medium))
-                    Text("Apply .worktreeinclude patterns (.env*, local configs)")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+            SettingsCard {
+                SettingsRow(icon: "doc.on.doc", title: "Copy files to new worktree",
+                            subtitle: "Apply .worktreeinclude patterns (.env*, local configs)") {
+                    Toggle("Copy files to new worktree", isOn: $copyFiles).toggleStyle(.omwSwitch)
                 }
-                Spacer(minLength: 10)
-                Toggle("Copy files to new worktree", isOn: $copyFiles).toggleStyle(.omwSwitch)
             }
         }
-        .padding(20)
+        .padding(.init(top: 16, leading: 20, bottom: 16, trailing: 20))
     }
 
     private var footer: some View {
         HStack {
             Spacer()
-            Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
+            Button("Cancel") { dismiss() }
+                .keyboardShortcut(.cancelAction)
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.capsule)
+                .controlSize(.large)
             Button("Create Worktree") {
                 let chosen = name
                 let base = baseBranch
@@ -89,6 +98,8 @@ struct CreateWorktreeSheet: View {
             }
             .keyboardShortcut(.defaultAction)
             .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.capsule)
+            .controlSize(.large)
             .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
         }
         .padding(.init(top: 12, leading: 20, bottom: 16, trailing: 20))
