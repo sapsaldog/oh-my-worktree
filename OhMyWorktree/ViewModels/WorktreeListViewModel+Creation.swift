@@ -67,6 +67,22 @@ extension WorktreeListViewModel {
         return (try? await worktreeManager.listBranches(repositoryPath: repository.path)) ?? []
     }
 
+    /// The branch the New Worktree sheet should pre-select: prefer `main`, then
+    /// `master`, else the first available branch (`main` when the list is empty).
+    nonisolated static func defaultBaseBranch(from branches: [String]) -> String {
+        if branches.contains("main") { return "main" }
+        if branches.contains("master") { return "master" }
+        return branches.first ?? "main"
+    }
+
+    /// Branches whose name contains `query` (case-insensitive, trimmed); all
+    /// branches when the query is blank. Powers the New Worktree sheet's "More…" filter.
+    nonisolated static func filterBranches(_ branches: [String], matching query: String) -> [String] {
+        let needle = query.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !needle.isEmpty else { return branches }
+        return branches.filter { $0.lowercased().contains(needle) }
+    }
+
     /// Loads ahead/behind, diff stat, and recent commits for the given worktree.
     /// Drive from a SwiftUI `.task(id:)` so it cancels and reloads on reselection.
     func loadDetail(for worktree: Worktree?) async {
