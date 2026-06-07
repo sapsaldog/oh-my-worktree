@@ -226,3 +226,53 @@ struct CopiedFileChip: View {
         .background(OMWColor.fillTertiary, in: Capsule())
     }
 }
+
+// MARK: - Switch toggle
+
+/// The prototype's `.mac-switch` (components.css): a 38×22 pill that fills with the
+/// accent when on, carrying an 18×18 white knob that slides 16px. Use via
+/// `.toggleStyle(.omwSwitch)` so glass-sheet toggles match the Tahoe mockup exactly
+/// instead of the native `.switch`.
+struct OMWSwitchToggleStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        SwitchBody(configuration: configuration)
+    }
+
+    // A nested View so `@Environment(\.omwAccent)` is actually injected — environment
+    // values are not reliably populated on a bare ToggleStyle struct.
+    private struct SwitchBody: View {
+        let configuration: ToggleStyleConfiguration
+        @Environment(\.omwAccent) private var accent
+
+        var body: some View {
+            Button { configuration.isOn.toggle() } label: { track }
+                .buttonStyle(.plain)
+                .accessibilityRepresentation {
+                    Toggle(isOn: configuration.$isOn) { configuration.label }
+                }
+        }
+
+        private var track: some View {
+            Capsule()
+                .fill(OMWColor.fillPrimary)
+                .frame(width: 38, height: 22)
+                .overlay { Capsule().fill(accent).opacity(configuration.isOn ? 1 : 0) }
+                .overlay(alignment: .leading) { knob }
+                .animation(.timingCurve(0.32, 0.72, 0, 1, duration: 0.22), value: configuration.isOn)
+        }
+
+        private var knob: some View {
+            Circle()
+                .fill(.white)
+                .frame(width: 18, height: 18)
+                .overlay { Circle().strokeBorder(.black.opacity(0.04), lineWidth: 0.5) }
+                .shadow(color: .black.opacity(0.25), radius: 1, y: 1)
+                .offset(x: configuration.isOn ? 18 : 2)
+        }
+    }
+}
+
+extension ToggleStyle where Self == OMWSwitchToggleStyle {
+    /// The Tahoe `.mac-switch` pill — see ``OMWSwitchToggleStyle``.
+    static var omwSwitch: OMWSwitchToggleStyle { OMWSwitchToggleStyle() }
+}
