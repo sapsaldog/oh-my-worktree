@@ -23,6 +23,10 @@ struct OhMyWorktreeApp: App {
         .defaultSize(width: 1180, height: 740)
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentMinSize)
+        // Menu-bar agent: don't auto-open this window at launch. Windows are
+        // opened on demand (status item, hotkey, Dock-icon reopen) via
+        // AppDelegate.showOrCreateMainWindow().
+        .defaultLaunchBehavior(.suppressed)
         .commands {
             CommandGroup(replacing: .appSettings) {
                 Button("Settings...") {
