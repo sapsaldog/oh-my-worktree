@@ -51,7 +51,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // item call setupStatusItem() directly, so skip all GUI launch setup here.
         guard !Self.isRunningTests else { return }
 
-        NSApp.setActivationPolicy(.accessory)
+        // No windows exist at launch, so the Dock icon shows only if the user
+        // pinned it on via "Show icon in Dock"; otherwise stay menu-bar-only.
+        NSApp.setActivationPolicy(
+            DockPolicy.activationPolicy(
+                showInDock: UserDefaults.standard.bool(forKey: DockPolicy.defaultsKey),
+                hasAppWindows: false
+            )
+        )
         NSApp.appearance = AppearanceMode.named(
             UserDefaults.standard.string(forKey: "appearanceMode")
         ).nsAppearance

@@ -133,7 +133,7 @@ func settingsHairline() -> some View {
 
 private struct GeneralTab: View {
     @AppStorage("copyEnvFilesEnabled") private var copyEnvFilesEnabled = true
-    @AppStorage("showInMenuBar") private var showInMenuBar = true
+    @AppStorage(DockPolicy.defaultsKey) private var showInDock = false
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
     var body: some View {
@@ -149,9 +149,12 @@ private struct GeneralTab: View {
                     .onChange(of: launchAtLogin) { _, newValue in setLaunchAtLogin(newValue) }
             }
             settingsHairline()
-            SettingsRow(icon: "line.3.horizontal", title: "Show in menu bar",
-                        subtitle: "Keep running in the menu bar without a Dock icon") {
-                Toggle("", isOn: $showInMenuBar).labelsHidden().toggleStyle(.switch)
+            SettingsRow(icon: "dock.rectangle", title: "Show icon in Dock",
+                        subtitle: "Keep the app icon in the Dock even when no window is open") {
+                Toggle("", isOn: $showInDock).labelsHidden().toggleStyle(.switch)
+                    .onChange(of: showInDock) { _, _ in
+                        NotificationCenter.default.post(name: .showInDockSettingChanged, object: nil)
+                    }
             }
         }
         .onAppear { launchAtLogin = SMAppService.mainApp.status == .enabled }
