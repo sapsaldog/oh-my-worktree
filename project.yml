@@ -65,8 +65,8 @@ targets:
         CFBundleIdentifier: com.ohmyworktree.app
         CFBundleInfoDictionaryVersion: "6.0"
         CFBundlePackageType: APPL
-        CFBundleShortVersionString: "2.0.0"
-        CFBundleVersion: "13"
+        CFBundleShortVersionString: "2.0.1"
+        CFBundleVersion: "14"
         LSApplicationCategoryType: public.app-category.developer-tools
         NSHumanReadableCopyright: ""
         SUFeedURL: "https://raw.githubusercontent.com/sapsaldog/oh-my-worktree/main/appcast.xml"
