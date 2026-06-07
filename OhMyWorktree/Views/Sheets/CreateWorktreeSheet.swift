@@ -64,13 +64,15 @@ struct CreateWorktreeSheet: View {
                 .pickerStyle(.menu)
             }
 
-            Toggle(isOn: $copyFiles) {
+            HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Copy files to new worktree").font(.system(size: 13, weight: .medium))
                     Text("Apply .worktreeinclude patterns (.env*, local configs)")
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 }
+                Spacer(minLength: 10)
+                Toggle("Copy files to new worktree", isOn: $copyFiles).toggleStyle(.omwSwitch)
             }
         }
         .padding(20)

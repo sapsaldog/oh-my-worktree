@@ -140,18 +140,18 @@ private struct GeneralTab: View {
         SettingsCard {
             SettingsRow(icon: "doc.on.doc", title: "Copy files to new worktrees",
                         subtitle: "Use .worktreeinclude patterns when creating worktrees") {
-                Toggle("", isOn: $copyEnvFilesEnabled).labelsHidden().toggleStyle(.switch)
+                Toggle("Copy files to new worktrees", isOn: $copyEnvFilesEnabled).toggleStyle(.omwSwitch)
             }
             settingsHairline()
             SettingsRow(icon: "power", title: "Launch at Login",
                         subtitle: "Start Oh My Worktree automatically when you log in") {
-                Toggle("", isOn: $launchAtLogin).labelsHidden().toggleStyle(.switch)
+                Toggle("Launch at Login", isOn: $launchAtLogin).toggleStyle(.omwSwitch)
                     .onChange(of: launchAtLogin) { _, newValue in setLaunchAtLogin(newValue) }
             }
             settingsHairline()
             SettingsRow(icon: "dock.rectangle", title: "Show icon in Dock",
                         subtitle: "Keep the app icon in the Dock even when no window is open") {
-                Toggle("", isOn: $showInDock).labelsHidden().toggleStyle(.switch)
+                Toggle("Show icon in Dock", isOn: $showInDock).toggleStyle(.omwSwitch)
                     .onChange(of: showInDock) { _, _ in
                         NotificationCenter.default.post(name: .showInDockSettingChanged, object: nil)
                     }
@@ -273,7 +273,7 @@ private struct ShortcutsTab: View {
             SettingsCard {
                 SettingsRow(icon: "globe", title: "Enable global hotkey",
                             subtitle: "Toggle the menu bar popup from anywhere") {
-                    Toggle("", isOn: $globalHotkeyEnabled).labelsHidden().toggleStyle(.switch)
+                    Toggle("Enable global hotkey", isOn: $globalHotkeyEnabled).toggleStyle(.omwSwitch)
                         .onChange(of: globalHotkeyEnabled) { _, on in
                             on ? KeyboardShortcuts.enable(.toggleMenuBarPopup) : KeyboardShortcuts.disable(.toggleMenuBarPopup)
                         }
@@ -317,12 +317,11 @@ private struct UpdatesTab: View {
             SettingsCard {
                 SettingsRow(icon: "arrow.triangle.2.circlepath", title: "Automatically check for updates",
                             subtitle: "Powered by Sparkle") {
-                    Toggle("", isOn: Binding(
+                    Toggle("Automatically check for updates", isOn: Binding(
                         get: { updaterManager.automaticallyChecksForUpdates },
                         set: { updaterManager.automaticallyChecksForUpdates = $0 }
                     ))
-                    .labelsHidden()
-                    .toggleStyle(.switch)
+                    .toggleStyle(.omwSwitch)
                 }
             }
             VStack(spacing: 6) {
