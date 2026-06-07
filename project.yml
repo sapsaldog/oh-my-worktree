@@ -65,6 +65,10 @@ targets:
         CFBundleIdentifier: com.ohmyworktree.app
         CFBundleInfoDictionaryVersion: "6.0"
         CFBundlePackageType: APPL
+        # Launch as a menu-bar agent: no Dock icon / no auto-opened window at
+        # launch. The app promotes to .regular at runtime when a window opens
+        # (WindowObserver) or when "Show icon in Dock" is enabled (DockPolicy).
+        LSUIElement: true
         CFBundleShortVersionString: "2.0.2"
         CFBundleVersion: "15"
         LSApplicationCategoryType: public.app-category.developer-tools
