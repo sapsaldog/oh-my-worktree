@@ -82,6 +82,11 @@ extension AppDelegate {
         ) {
             ContentView(repoViewModel: repoVM, worktreeViewModel: worktreeVM)
                 .environment(store)
+                // Match the SwiftUI WindowGroup's injection. ContentView reads
+                // UpdaterManager as an *optional* environment value, so omitting
+                // this silently leaves it nil and the Settings sheet (gated on
+                // `if let updaterManager`) renders an empty, collapsed card.
+                .environment(updaterManager)
                 .frame(minWidth: 860, minHeight: 520)
         }
     }

@@ -3,7 +3,8 @@ import SwiftUI
 /// The window's glass top bar, rendered as the first row of the content (under
 /// the transparent titlebar via `.fullSizeContentView`), so it shows reliably:
 /// native traffic-light clearance · spring · search (230) · import · refresh ·
-/// settings · ＋(accent). The native traffic lights overlay the left clearance.
+/// ＋(accent). The native traffic lights overlay the left clearance. Settings is
+/// reached from the sidebar footer, ⌘,, and the menu bar (no toolbar duplicate).
 struct ToolbarControls: View {
     @Bindable var worktreeVM: WorktreeListViewModel
     @AppStorage("accentColorName") private var accentColorName = AccentChoice.default.rawValue
@@ -22,9 +23,6 @@ struct ToolbarControls: View {
                                help: "Import from Pull Request") { worktreeVM.isShowingImportPR = true }
             ToolbarRoundButton(systemImage: "arrow.clockwise", help: "Refresh (⌘R)",
                                spinning: worktreeVM.isLoading) { Task { await worktreeVM.loadWorktrees() } }
-            ToolbarRoundButton(systemImage: "gearshape", help: "Settings (⌘,)") {
-                worktreeVM.isShowingSettings = true
-            }
             ToolbarRoundButton(systemImage: "plus", help: "New Worktree (⌘N)", filled: true) {
                 worktreeVM.isShowingCreateSheet = true
             }
