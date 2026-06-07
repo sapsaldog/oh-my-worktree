@@ -54,6 +54,7 @@ struct SettingsSheetContent: View {
         .frame(width: 500, height: 540)
         .background(.regularMaterial)
         .tint(accent)
+        .environment(\.omwAccent, accent)
     }
 
     @ViewBuilder private var tabContent: some View {
