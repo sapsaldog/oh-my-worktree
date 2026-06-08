@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ImportPRView: View {
     var worktreeViewModel: WorktreeListViewModel
+    var onDismiss: (() -> Void)?
     @State private var viewModel = ImportPRViewModel()
     @Environment(\.dismiss) private var dismiss
     @State private var selectedID: Int?
@@ -14,7 +15,8 @@ struct ImportPRView: View {
             Divider()
             footerArea
         }
-        .frame(minWidth: 420, minHeight: 320)
+        .frame(width: 700, height: 480)
+        .glassSheet()
         .onAppear {
             viewModel.repositoryPath = worktreeViewModel.repository?.path ?? ""
             viewModel.repositoryName = worktreeViewModel.repository?.name ?? ""
@@ -42,8 +44,16 @@ struct ImportPRView: View {
         FooterAreaView(
             viewModel: viewModel,
             worktreeViewModel: worktreeViewModel,
-            dismiss: dismiss
+            onDismiss: close
         )
+    }
+
+    private func close() {
+        if let onDismiss {
+            onDismiss()
+        } else {
+            dismiss()
+        }
     }
 }
 
@@ -162,13 +172,13 @@ private struct ContentAreaView: View {
 private struct FooterAreaView: View {
     var viewModel: ImportPRViewModel
     var worktreeViewModel: WorktreeListViewModel
-    let dismiss: DismissAction
+    let onDismiss: () -> Void
 
     var body: some View {
         HStack {
             Spacer()
 
-            Button("Cancel") { dismiss() }
+            Button("Cancel", action: onDismiss)
                 .keyboardShortcut(.cancelAction)
 
             Button("Import Worktree") {
@@ -176,7 +186,7 @@ private struct FooterAreaView: View {
                 if let error = worktreeViewModel.addWorktreeFromPR(pr) {
                     viewModel.errorMessage = error
                 } else {
-                    dismiss()
+                    onDismiss()
                 }
             }
             .keyboardShortcut(.defaultAction)

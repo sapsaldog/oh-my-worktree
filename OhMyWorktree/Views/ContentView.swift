@@ -53,9 +53,6 @@ struct ContentView: View {
                 repoViewModel.errorMessage = error.localizedDescription
             }
         }
-        .sheet(isPresented: $worktreeViewModel.isShowingImportPR) {
-            ImportPRView(worktreeViewModel: worktreeViewModel)
-        }
         .alert(
             "Error",
             isPresented: .init(
@@ -244,12 +241,20 @@ struct ContentView: View {
             glassModal {
                 settingsSheet
             }
+        } else if worktreeViewModel.isShowingImportPR {
+            glassModal {
+                ImportPRView(
+                    worktreeViewModel: worktreeViewModel,
+                    onDismiss: { worktreeViewModel.isShowingImportPR = false }
+                )
+                .environment(\.omwAccent, accent)
+            }
         }
     }
 
     private func glassModal<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         ZStack {
-            Color.black.opacity(0.46)
+            Color.black.opacity(GlassSheetMetrics.modalScrimOpacity)
                 .ignoresSafeArea()
                 .contentShape(Rectangle())
                 .onTapGesture { }

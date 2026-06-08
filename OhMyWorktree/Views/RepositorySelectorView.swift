@@ -72,6 +72,7 @@ struct RepositorySelectorView: View {
                             repository: repo,
                             store: viewModel.store
                         )
+                        .glassPopover()
                     }
                 }
             }
