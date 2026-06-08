@@ -27,6 +27,9 @@ release/
 # OMC state
 .omc/
 
+# Superpowers visual brainstorming session data
+.superpowers/
+
 # Claude Code internal session data
 .claude/worktrees/
 
