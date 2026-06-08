@@ -1,3 +1,4 @@
+import SwiftUI
 import Testing
 
 @testable import OhMyWorktree
@@ -27,5 +28,10 @@ struct GlassSheetMetricsTests {
 
     @Test func popoverGlassMaterialDoesNotShareTheOuterAntialiasedEdge() {
         #expect(GlassSheetMetrics.popoverGlassMaterialInset >= GlassSheetMetrics.hairlineWidth)
+    }
+
+    @Test func glassPopoverModifierIsAvailableForCompactPresentedSurfaces() {
+        let view = Text("Popover").glassPopover()
+        #expect(String(describing: type(of: view)).isEmpty == false)
     }
 }

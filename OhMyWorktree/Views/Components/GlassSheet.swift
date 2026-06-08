@@ -1,46 +1,95 @@
 import SwiftUI
 
 extension View {
-    /// Applies the Liquid-Glass backing for Settings and New Worktree sheets.
+    /// Applies the Liquid-Glass backing for Settings, New Worktree, and Import PR sheets.
     func glassSheet() -> some View {
+        glassPanel(kind: .sheet)
+            .presentationBackground(.clear)
+    }
+
+    /// Applies the compact Liquid-Glass backing for popovers.
+    func glassPopover() -> some View {
+        glassPanel(kind: .popover)
+            .presentationBackground(.clear)
+    }
+
+    private func glassPanel(kind: GlassPanelKind) -> some View {
         self
             .background {
-                GlassSheetBackground()
+                GlassPanelBackground(kind: kind)
             }
-            .clipShape(GlassSheetShape())
+            .clipShape(GlassPanelShape(cornerRadius: kind.cornerRadius))
             .overlay {
-                GlassSheetShape().strokeBorder(OMWColor.separator, lineWidth: GlassSheetMetrics.hairlineWidth)
+                GlassPanelShape(cornerRadius: kind.cornerRadius)
+                    .strokeBorder(OMWColor.separator, lineWidth: GlassSheetMetrics.hairlineWidth)
             }
-            .presentationBackground(.clear)
     }
 }
 
-private struct GlassSheetShape: InsettableShape {
+private enum GlassPanelKind {
+    case sheet
+    case popover
+
+    var cornerRadius: CGFloat {
+        switch self {
+        case .sheet: GlassSheetMetrics.cornerRadius
+        case .popover: GlassSheetMetrics.popoverCornerRadius
+        }
+    }
+
+    var materialInset: CGFloat {
+        switch self {
+        case .sheet: GlassSheetMetrics.glassMaterialInset
+        case .popover: GlassSheetMetrics.popoverGlassMaterialInset
+        }
+    }
+
+    var topHighlightHorizontalInset: CGFloat {
+        switch self {
+        case .sheet: GlassSheetMetrics.topHighlightHorizontalInset
+        case .popover: GlassSheetMetrics.popoverTopHighlightHorizontalInset
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .sheet: OMWColor.glassSheetTint
+        case .popover: OMWColor.glassPopoverTint
+        }
+    }
+}
+
+private struct GlassPanelShape: InsettableShape {
+    var cornerRadius: CGFloat
     var insetAmount: CGFloat = 0
 
     func path(in rect: CGRect) -> Path {
-        RoundedRectangle(cornerRadius: GlassSheetMetrics.cornerRadius, style: .continuous)
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             .inset(by: insetAmount)
             .path(in: rect)
     }
 
-    func inset(by amount: CGFloat) -> GlassSheetShape {
+    func inset(by amount: CGFloat) -> GlassPanelShape {
         var shape = self
         shape.insetAmount += amount
         return shape
     }
 }
 
-private struct GlassSheetBackground: View {
+private struct GlassPanelBackground: View {
+    var kind: GlassPanelKind
+
     var body: some View {
-        GlassSheetShape()
-            .fill(OMWColor.glassSheetTint)
-            .glassEffect(.regular, in: GlassSheetShape().inset(by: GlassSheetMetrics.glassMaterialInset))
+        let shape = GlassPanelShape(cornerRadius: kind.cornerRadius)
+
+        shape
+            .fill(kind.tint)
+            .glassEffect(.regular, in: shape.inset(by: kind.materialInset))
             .overlay(alignment: .top) {
                 Rectangle()
                     .fill(OMWColor.glassHighlight)
                     .frame(height: GlassSheetMetrics.topHighlightHeight)
-                    .padding(.horizontal, GlassSheetMetrics.topHighlightHorizontalInset)
+                    .padding(.horizontal, kind.topHighlightHorizontalInset)
                     .padding(.top, GlassSheetMetrics.topHighlightVerticalInset)
             }
     }
