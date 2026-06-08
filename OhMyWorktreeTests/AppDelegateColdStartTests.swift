@@ -127,6 +127,11 @@ final class AppDelegateColdStartTests {
         try await pollUntil { worktreeVM.isShowingImportPR }
     }
 
+    @Test func importPRViewAcceptsOverlayDismissCallback() {
+        let worktreeVM = WorktreeListViewModel()
+        _ = ImportPRView(worktreeViewModel: worktreeVM, onDismiss: {})
+    }
+
     // MARK: - Window reuse (no duplicates)
 
     @Test func mainWindowIsReused() async throws {
