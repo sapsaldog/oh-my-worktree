@@ -94,6 +94,7 @@ struct WindowStatusBar: View {
                 onRetry: { job in worktreeViewModel.jobQueue.retry(job.id) },
                 onClear: { worktreeViewModel.jobQueue.clearFailed(); showTasks = false }
             )
+            .glassPopover()
         }
     }
 

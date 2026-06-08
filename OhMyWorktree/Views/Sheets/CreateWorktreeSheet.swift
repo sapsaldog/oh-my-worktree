@@ -194,6 +194,7 @@ struct CreateWorktreeSheet: View {
             branchList
         }
         .frame(width: 260)
+        .glassPopover()
         .onAppear { branchFilterFocused = true }
     }
 

@@ -172,6 +172,7 @@ private struct QueueBarView: View {
         }
         .popover(isPresented: $showingQueueDetail, arrowEdge: .bottom) {
             QueueDetailPopoverView(queue: queue)
+                .glassPopover()
         }
     }
 }

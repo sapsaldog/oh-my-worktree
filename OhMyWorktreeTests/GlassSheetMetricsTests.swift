@@ -34,4 +34,9 @@ struct GlassSheetMetricsTests {
         let view = Text("Popover").glassPopover()
         #expect(String(describing: type(of: view)).isEmpty == false)
     }
+
+    @Test func popoverRadiusRemainsLargeEnoughForLiquidGlassRim() {
+        #expect(GlassSheetMetrics.popoverCornerRadius >= OMWRadius.xl)
+        #expect(GlassSheetMetrics.topHighlightHeight == 1)
+    }
 }
