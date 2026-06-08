@@ -4,6 +4,14 @@
         <title>Oh My Worktree</title>
         <!-- Items added per release -->
         <item>
+            <title>2.0.4</title>
+            <pubDate>Mon, 08 Jun 2026 01:16:18 -0600</pubDate>
+            <sparkle:version>17</sparkle:version>
+            <sparkle:shortVersionString>2.0.4</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/sapsaldog/oh-my-worktree/releases/download/v2.0.4/OhMyWorktree-2.0.4.zip" length="3701267" type="application/octet-stream" sparkle:edSignature="zy1m5N5KrjO3OWDiuWUMJRS5AogM9A0kNoy2iHMAn7PxY495jrY/kARnOiF6/7bA0QlKzyTlWwArH392GyMBCA=="/>
+        </item>
+        <item>
             <title>2.0.3</title>
             <pubDate>Sun, 07 Jun 2026 19:55:46 -0600</pubDate>
             <sparkle:version>16</sparkle:version>
@@ -18,14 +26,6 @@
             <sparkle:shortVersionString>2.0.2</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/sapsaldog/oh-my-worktree/releases/download/v2.0.2/OhMyWorktree-2.0.2.zip" length="3685612" type="application/octet-stream" sparkle:edSignature="nUzh5rLe59iAIbiNYj+a3kDH2q15ejHpxPdPMuaDnYiqcK2tTk7nREgDMet9/yP0qwKC9Vp9zpJJLbLoUrUqAg=="/>
-        </item>
-        <item>
-            <title>2.0.1</title>
-            <pubDate>Sat, 06 Jun 2026 23:09:34 -0600</pubDate>
-            <sparkle:version>14</sparkle:version>
-            <sparkle:shortVersionString>2.0.1</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/sapsaldog/oh-my-worktree/releases/download/v2.0.1/OhMyWorktree-2.0.1.zip" length="3667771" type="application/octet-stream" sparkle:edSignature="9J1I7ED9IUcf8s+wbRO8FhBCZ/4G6P9pWlR0mERa23XZVFFiFFt17ORUofBwlu3kwINwhrPoBJx48nJGbZYtBg=="/>
         </item>
         <item>
             <title>1.3.2</title>
