@@ -9,7 +9,7 @@ extension View {
             }
             .clipShape(GlassSheetShape())
             .overlay {
-                GlassSheetShape().strokeBorder(OMWColor.separator, lineWidth: 0.5)
+                GlassSheetShape().strokeBorder(OMWColor.separator, lineWidth: GlassSheetMetrics.hairlineWidth)
             }
             .presentationBackground(.clear)
     }
@@ -19,7 +19,7 @@ private struct GlassSheetShape: InsettableShape {
     var insetAmount: CGFloat = 0
 
     func path(in rect: CGRect) -> Path {
-        RoundedRectangle(cornerRadius: OMWRadius.xxl, style: .continuous)
+        RoundedRectangle(cornerRadius: GlassSheetMetrics.cornerRadius, style: .continuous)
             .inset(by: insetAmount)
             .path(in: rect)
     }
@@ -35,11 +35,13 @@ private struct GlassSheetBackground: View {
     var body: some View {
         GlassSheetShape()
             .fill(OMWColor.glassSheetTint)
-            .glassEffect(.regular, in: GlassSheetShape())
+            .glassEffect(.regular, in: GlassSheetShape().inset(by: GlassSheetMetrics.glassMaterialInset))
             .overlay(alignment: .top) {
-                OMWColor.glassHighlight
-                    .frame(height: 1)
-                    .clipShape(GlassSheetShape())
+                Rectangle()
+                    .fill(OMWColor.glassHighlight)
+                    .frame(height: GlassSheetMetrics.topHighlightHeight)
+                    .padding(.horizontal, GlassSheetMetrics.topHighlightHorizontalInset)
+                    .padding(.top, GlassSheetMetrics.topHighlightVerticalInset)
             }
     }
 }
