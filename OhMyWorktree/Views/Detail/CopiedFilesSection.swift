@@ -1,29 +1,34 @@
 import SwiftUI
 
-/// Detail-pane "Copied files" section: collapses to the first few chips with a
-/// "+N more" affordance; expands to a scrollable list with a filter when large.
+/// Detail-pane "Copied files" section: a compact one-line header with a changed
+/// count, status chips (modified `+N −N` / `new` / dimmed identical), and a
+/// "View all" button that opens the searchable browser sheet.
 struct CopiedFilesSection: View {
     let files: [CopiedFile]
-
-    @State private var expanded = false
-    @State private var query = ""
+    var onOpenDiff: (CopiedFile) -> Void = { _ in }
+    var onBrowseAll: () -> Void = {}
 
     private let cap = 5
 
+    private var sorted: [CopiedFile] {
+        files.sorted { lhs, rhs in
+            lhs.status.sortRank != rhs.status.sortRank
+                ? lhs.status.sortRank < rhs.status.sortRank
+                : lhs.path < rhs.path
+        }
+    }
+    private var changedCount: Int { files.filter { $0.status.isChanged }.count }
+
     var body: some View {
         let many = files.count > cap
-        let searchable = files.count > 12
-        let names = files.map(\.path)
-        let filtered = query.isEmpty
-            ? names
-            : names.filter { $0.lowercased().contains(query.lowercased()) }
-        let shown = (!expanded && many) ? Array(names.prefix(cap)) : filtered
+        let shown = many ? Array(sorted.prefix(cap)) : sorted
 
         VStack(alignment: .leading, spacing: 10) {
             header
-            if expanded && searchable { searchField }
-            chips(shown: shown, many: many, noMatches: expanded && !query.isEmpty && filtered.isEmpty)
-            if expanded && many { showLessButton }
+            FlowLayout(spacing: 6) {
+                ForEach(shown) { chip($0) }
+            }
+            if many { viewAllButton }
         }
         .padding(.init(top: 14, leading: 18, bottom: 14, trailing: 18))
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -37,10 +42,16 @@ struct CopiedFilesSection: View {
                     .font(.system(size: 11, weight: .bold))
                     .textCase(.uppercase)
                     .tracking(0.3)
+                    .foregroundStyle(OMWColor.labelTertiary)
                 Text("\(files.count)")
                     .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(OMWColor.labelTertiary)
+                if changedCount > 0 {
+                    Text("· \(changedCount) changed")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(OMWColor.sysOrange)
+                }
             }
-            .foregroundStyle(OMWColor.labelTertiary)
             Spacer()
             Text(".worktreeinclude")
                 .font(.omwMono(10))
@@ -48,65 +59,64 @@ struct CopiedFilesSection: View {
         }
     }
 
-    private var searchField: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass").font(.system(size: 12)).foregroundStyle(OMWColor.labelTertiary)
-            TextField("Filter \(files.count) files…", text: $query)
-                .textFieldStyle(.plain)
-                .font(.system(size: 12))
-        }
-        .padding(.horizontal, 10)
-        .frame(height: 28)
-        .background(OMWColor.controlBg, in: Capsule())
-        .overlay(Capsule().strokeBorder(OMWColor.separator, lineWidth: 0.5))
-    }
-
     @ViewBuilder
-    private func chips(shown: [String], many: Bool, noMatches: Bool) -> some View {
-        let flow = FlowLayout(spacing: 6) {
-            ForEach(shown, id: \.self) { CopiedFileChip(name: $0) }
-            if !expanded && many { moreButton }
-            if noMatches {
-                Text("No files match “\(query)”.")
-                    .font(.system(size: 12))
-                    .foregroundStyle(OMWColor.labelTertiary)
+    private func chip(_ file: CopiedFile) -> some View {
+        let clickable = file.status.isClickable
+        Button { if clickable { onOpenDiff(file) } } label: {
+            HStack(spacing: 5) {
+                switch file.status {
+                case .modified: Circle().fill(OMWColor.sysOrange).frame(width: 6, height: 6)
+                case .new: Circle().fill(OMWColor.sysGreen).frame(width: 6, height: 6)
+                case .identical: Image(systemName: "doc").font(.system(size: 11))
+                }
+                PathLabel(path: file.path)
+                    .font(.omwMono(11, weight: .medium))
+                if file.status == .modified {
+                    HStack(spacing: 4) {
+                        Text("+\(file.added)").foregroundStyle(OMWColor.sysGreen)
+                        Text("−\(file.removed)").foregroundStyle(OMWColor.sysRed)
+                    }
+                    .font(.omwMono(11, weight: .bold))
+                } else if file.status == .new {
+                    Text("new")
+                        .font(.system(size: 9, weight: .bold))
+                        .textCase(.uppercase)
+                        .tracking(0.4)
+                        .foregroundStyle(OMWColor.sysGreen)
+                }
             }
-        }
-        if expanded && many {
-            ScrollView {
-                flow.frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .frame(maxHeight: 156)
-        } else {
-            flow
-        }
-    }
-
-    private var moreButton: some View {
-        Button { expanded = true } label: {
-            Text("+\(files.count - cap) more")
-                .font(.omwMono(11, weight: .semibold))
-                .foregroundStyle(OMWColor.labelSecondary)
-                .padding(.horizontal, 9)
-                .frame(height: 22)
-                .background(OMWColor.fillSecondary, in: Capsule())
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var showLessButton: some View {
-        Button {
-            expanded = false
-            query = ""
-        } label: {
-            HStack(spacing: 4) {
-                Image(systemName: "chevron.up").font(.system(size: 10, weight: .semibold))
-                Text("Show less").font(.system(size: 11, weight: .semibold))
-            }
-            .foregroundStyle(OMWColor.labelSecondary)
+            .foregroundStyle(file.status == .identical ? OMWColor.labelSecondary : OMWColor.labelPrimary)
             .padding(.horizontal, 9)
             .frame(height: 22)
-            .background(OMWColor.fillSecondary, in: Capsule())
+            .background(chipBackground(file.status), in: Capsule())
+            .opacity(file.status == .identical ? 0.48 : 1)
+        }
+        .buttonStyle(.plain)
+        .disabled(!clickable)
+        .help(clickable ? "\(file.path) — click to compare with main" : "\(file.path) — identical to main")
+    }
+
+    private func chipBackground(_ status: CopiedFileStatus) -> Color {
+        switch status {
+        case .modified: OMWColor.sysOrange.opacity(0.15)
+        case .new: OMWColor.sysGreen.opacity(0.15)
+        case .identical: OMWColor.fillTertiary
+        }
+    }
+
+    private var viewAllButton: some View {
+        Button(action: onBrowseAll) {
+            HStack(spacing: 7) {
+                Image(systemName: "list.bullet").font(.system(size: 13))
+                Text("View all \(files.count) files").font(.system(size: 12, weight: .medium))
+                Spacer()
+                Image(systemName: "chevron.right").font(.system(size: 11)).foregroundStyle(OMWColor.labelTertiary)
+            }
+            .foregroundStyle(OMWColor.labelSecondary)
+            .padding(.horizontal, 11)
+            .frame(height: 30)
+            .frame(maxWidth: .infinity)
+            .background(OMWColor.fillTertiary, in: RoundedRectangle(cornerRadius: OMWRadius.md))
         }
         .buttonStyle(.plain)
     }
