@@ -96,11 +96,16 @@ extension WorktreeListViewModel {
             repositoryPath: repository.path
         )
         let copier = fileCopier
+        let differ = self.differ
         let path = worktree.path
+        let repoPath = repository.path
         let matches = await Task.detached { copier.includedFiles(in: path) }.value
         // Only files Git ignores were actually copied; committed templates
         // (e.g. .env.example) come with the checkout and don't count.
-        detail.copiedFiles = await worktreeManager.gitIgnoredFiles(matches, worktreePath: path)
+        let ignored = await worktreeManager.gitIgnoredFiles(matches, worktreePath: path)
+        detail.copiedFiles = await Task.detached {
+            differ.compare(relativePaths: ignored, worktreePath: path, repositoryPath: repoPath)
+        }.value
         guard !Task.isCancelled else { return }
         selectedWorktreeDetail = detail
     }

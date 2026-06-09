@@ -30,8 +30,9 @@ struct WorktreeDetail: Equatable, Sendable {
     var aheadBehind: AheadBehind?
     var diff: DiffStat
     var commits: [Commit]
-    /// Files copied into the worktree per `.worktreeinclude` (or `.env*`).
-    var copiedFiles: [String] = []
+    /// Files copied into the worktree per `.worktreeinclude` (or `.env*`),
+    /// each classified against main (the repository copy) for diff display.
+    var copiedFiles: [CopiedFile] = []
 
     static let empty = WorktreeDetail(
         aheadBehind: nil,

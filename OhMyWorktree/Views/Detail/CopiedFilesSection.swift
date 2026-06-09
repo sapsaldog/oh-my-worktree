@@ -3,7 +3,7 @@ import SwiftUI
 /// Detail-pane "Copied files" section: collapses to the first few chips with a
 /// "+N more" affordance; expands to a scrollable list with a filter when large.
 struct CopiedFilesSection: View {
-    let files: [String]
+    let files: [CopiedFile]
 
     @State private var expanded = false
     @State private var query = ""
@@ -13,10 +13,11 @@ struct CopiedFilesSection: View {
     var body: some View {
         let many = files.count > cap
         let searchable = files.count > 12
+        let names = files.map(\.path)
         let filtered = query.isEmpty
-            ? files
-            : files.filter { $0.lowercased().contains(query.lowercased()) }
-        let shown = (!expanded && many) ? Array(files.prefix(cap)) : filtered
+            ? names
+            : names.filter { $0.lowercased().contains(query.lowercased()) }
+        let shown = (!expanded && many) ? Array(names.prefix(cap)) : filtered
 
         VStack(alignment: .leading, spacing: 10) {
             header

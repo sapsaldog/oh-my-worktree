@@ -66,6 +66,7 @@ final class WorktreeListViewModel {
     let store: RepositoryStore
     // internal for WorktreeListViewModel+Creation extension
     let fileCopier: WorktreeFileCopier
+    let differ: CopiedFileDiffer
     private let pullRequestService: PullRequestFetching
     @ObservationIgnored private var loadTask: Task<Void, Never>?
     @ObservationIgnored private var prFetchTask: Task<Void, Never>?
@@ -88,12 +89,14 @@ final class WorktreeListViewModel {
         toolLauncher: ExternalToolLauncher = ExternalToolLauncher(),
         store: RepositoryStore = .shared,
         fileCopier: WorktreeFileCopier = WorktreeFileCopier(),
+        differ: CopiedFileDiffer = CopiedFileDiffer(),
         pullRequestService: PullRequestFetching = PullRequestService()
     ) {
         self.worktreeManager = worktreeManager
         self.toolLauncher = toolLauncher
         self.store = store
         self.fileCopier = fileCopier
+        self.differ = differ
         self.pullRequestService = pullRequestService
         self.jobQueue = BackgroundTaskQueue(worktreeManager: worktreeManager, store: store)
 
