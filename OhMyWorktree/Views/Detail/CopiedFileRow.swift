@@ -7,7 +7,7 @@ struct CopiedFileRow: View {
 
     var body: some View {
         let clickable = file.status.isClickable
-        Button { if clickable { onSelect() } } label: {
+        Button { onSelect() } label: {
             rowContent
         }
         .buttonStyle(.plain)

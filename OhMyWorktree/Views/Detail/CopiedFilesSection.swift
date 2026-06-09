@@ -62,7 +62,7 @@ struct CopiedFilesSection: View {
     @ViewBuilder
     private func chip(_ file: CopiedFile) -> some View {
         let clickable = file.status.isClickable
-        Button { if clickable { onOpenDiff(file) } } label: {
+        Button { onOpenDiff(file) } label: {
             HStack(spacing: 5) {
                 switch file.status {
                 case .modified: Circle().fill(OMWColor.sysOrange).frame(width: 6, height: 6)
@@ -85,7 +85,7 @@ struct CopiedFilesSection: View {
                         .foregroundStyle(OMWColor.sysGreen)
                 }
             }
-            .foregroundStyle(file.status == .identical ? OMWColor.labelSecondary : OMWColor.labelPrimary)
+            .foregroundStyle(OMWColor.labelPrimary)
             .padding(.horizontal, 9)
             .frame(height: 22)
             .background(chipBackground(file.status), in: Capsule())
