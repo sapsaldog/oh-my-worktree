@@ -30,6 +30,7 @@ struct ContentView: View {
             modalOverlay
         }
         .tint(accent)
+        .copiedFilesPresentation(worktreeViewModel)
         .environment(\.omwAccent, accent)
         .frame(minWidth: 860, minHeight: 520)
         .background(OMWColor.bgWindow)
@@ -157,6 +158,12 @@ struct ContentView: View {
             width: CGFloat(detailWidth),
             onOpenPR: {
                 if let wt = selectedWorktree { worktreeViewModel.openPullRequest(for: wt) }
+            },
+            onOpenCopiedDiff: { file in
+                if let wt = selectedWorktree { worktreeViewModel.openCopiedDiff(file, for: wt) }
+            },
+            onBrowseCopied: {
+                if let wt = selectedWorktree { worktreeViewModel.browseCopiedFiles(for: wt) }
             }
         )
     }
@@ -248,6 +255,20 @@ struct ContentView: View {
                     onDismiss: { worktreeViewModel.isShowingImportPR = false }
                 )
                 .environment(\.omwAccent, accent)
+            }
+        } else if let browser = worktreeViewModel.copiedBrowser {
+            glassModal {
+                CopiedFilesBrowser(
+                    files: worktreeViewModel.selectedWorktreeDetail?.copiedFiles ?? [],
+                    focusedPath: Binding(
+                        get: { worktreeViewModel.copiedBrowser?.focusedPath },
+                        set: { worktreeViewModel.copiedBrowser?.focusedPath = $0 }
+                    ),
+                    onApply: { file in worktreeViewModel.pendingApply = file },
+                    onClose: { worktreeViewModel.copiedBrowser = nil }
+                )
+                .environment(\.omwAccent, accent)
+                .id(browser.worktree.id)
             }
         }
     }

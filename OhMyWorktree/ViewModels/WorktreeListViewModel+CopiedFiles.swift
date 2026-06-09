@@ -36,6 +36,7 @@ extension WorktreeListViewModel {
                 try differ.applyToMain(file, worktreePath: worktreePath, repositoryPath: repoPath)
             }.value
             await loadDetail(for: worktree)
+            copiedBrowser?.focusedPath = nil
             copiedToast = "Applied \((file.path as NSString).lastPathComponent) to main"
         } catch {
             errorMessage = error.localizedDescription
