@@ -29,6 +29,14 @@ final class WorktreeListViewModel {
     /// Ahead/behind, diff stat, and recent commits for the currently selected worktree.
     var selectedWorktreeDetail: WorktreeDetail?
 
+    /// When non-nil, the copied-files browser sheet is open. `focusedPath`, when
+    /// set, opens straight to that file's diff (drill-in); nil shows the list.
+    var copiedBrowser: CopiedBrowserState?
+    /// A copied file awaiting Apply-to-main confirmation.
+    var pendingApply: CopiedFile?
+    /// Transient success message shown as a toast after an apply.
+    var copiedToast: String?
+
     // FR-032: Multi-select (native ⌘+click / ⇧+click via SwiftUI List)
     var selectedWorktreeIDs: Set<UUID> = [] {
         didSet {
