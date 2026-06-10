@@ -42,6 +42,14 @@ extension AppDelegate {
             defer: false
         )
         window.isReleasedWhenClosed = false
+        // Tests open and close windows far faster than the order-front
+        // transform animation completes; the in-flight animation then
+        // over-releases its window reference during a later autorelease-pool
+        // drain (_NSWindowTransformAnimation dealloc → SIGSEGV in the test
+        // runner). Disable window animations for the test process only.
+        if Self.isRunningTests {
+            window.animationBehavior = .none
+        }
         // Use a hosting *controller* (not a bare NSHostingView) so SwiftUI is
         // constrained to the window's content bounds and lays out correctly on
         // first show. A bare NSHostingView offers an unconstrained width on the
