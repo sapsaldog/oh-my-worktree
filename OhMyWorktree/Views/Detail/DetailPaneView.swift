@@ -18,6 +18,8 @@ struct DetailPaneView: View {
     var tools: [ActionTool]
     var width: CGFloat
     var onOpenPR: () -> Void
+    var onOpenCopiedDiff: (CopiedFile) -> Void = { _ in }
+    var onBrowseCopied: () -> Void = {}
 
     @Environment(\.omwAccent) private var accent
 
@@ -69,7 +71,7 @@ struct DetailPaneView: View {
                 section("Recent commits") { commitList(commits) }
             }
             if let copied = detail?.copiedFiles, !copied.isEmpty {
-                CopiedFilesSection(files: copied)
+                CopiedFilesSection(files: copied, onOpenDiff: onOpenCopiedDiff, onBrowseAll: onBrowseCopied)
             }
         }
     }

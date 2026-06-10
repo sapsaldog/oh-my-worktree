@@ -35,6 +35,10 @@ OhMyWorktree/ViewModels/WorktreeListViewModel.swift
 # same async worktree-creation / detail-loading paths (filteredWorktrees IS tested via
 # WorktreeListViewModelSearchTests, but the file is quarantined with its parent).
 OhMyWorktree/ViewModels/WorktreeListViewModel+Creation.swift
+# Same async-glue category: copied-files browser state + the apply-to-main
+# coordinator (file write via CopiedFileDiffer + detail reload). Setters are
+# trivially testable but quarantined with their parent VM.
+OhMyWorktree/ViewModels/WorktreeListViewModel+CopiedFiles.swift
 #
 # (b) Coverage stable but much lower on CI than locally (not portable yet):
 OhMyWorktree/Models/Worktree.swift

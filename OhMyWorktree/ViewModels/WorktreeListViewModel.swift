@@ -29,6 +29,14 @@ final class WorktreeListViewModel {
     /// Ahead/behind, diff stat, and recent commits for the currently selected worktree.
     var selectedWorktreeDetail: WorktreeDetail?
 
+    /// When non-nil, the copied-files browser sheet is open. `focusedPath`, when
+    /// set, opens straight to that file's diff (drill-in); nil shows the list.
+    var copiedBrowser: CopiedBrowserState?
+    /// A copied file awaiting Apply-to-main confirmation.
+    var pendingApply: CopiedFile?
+    /// Transient success message shown as a toast after an apply.
+    var copiedToast: String?
+
     // FR-032: Multi-select (native ⌘+click / ⇧+click via SwiftUI List)
     var selectedWorktreeIDs: Set<UUID> = [] {
         didSet {
@@ -66,6 +74,7 @@ final class WorktreeListViewModel {
     let store: RepositoryStore
     // internal for WorktreeListViewModel+Creation extension
     let fileCopier: WorktreeFileCopier
+    let differ: CopiedFileDiffer
     private let pullRequestService: PullRequestFetching
     @ObservationIgnored private var loadTask: Task<Void, Never>?
     @ObservationIgnored private var prFetchTask: Task<Void, Never>?
@@ -88,12 +97,14 @@ final class WorktreeListViewModel {
         toolLauncher: ExternalToolLauncher = ExternalToolLauncher(),
         store: RepositoryStore = .shared,
         fileCopier: WorktreeFileCopier = WorktreeFileCopier(),
+        differ: CopiedFileDiffer = CopiedFileDiffer(),
         pullRequestService: PullRequestFetching = PullRequestService()
     ) {
         self.worktreeManager = worktreeManager
         self.toolLauncher = toolLauncher
         self.store = store
         self.fileCopier = fileCopier
+        self.differ = differ
         self.pullRequestService = pullRequestService
         self.jobQueue = BackgroundTaskQueue(worktreeManager: worktreeManager, store: store)
 
@@ -161,6 +172,10 @@ final class WorktreeListViewModel {
 
         if debounce, let last = lastLoadTime,
            Date().timeIntervalSince(last) < Self.debounceInterval {
+            // The list is fresh enough to skip, but this is the app-activation /
+            // menu-open path — the selected worktree's files may have just been
+            // edited externally, so still refresh its detail in place.
+            await loadDetail(for: selectedWorktree, clearingFirst: false)
             return
         }
 
@@ -189,6 +204,11 @@ final class WorktreeListViewModel {
                 self.lastLoadTime = Date()
                 self.updateSelectedWorktree(from: freshWorktrees)
                 self.schedulePRFetch(repositoryPath: repository.path)
+                // Detail (copied-file diffs, ahead/behind, commits) otherwise only
+                // recomputes on selection change — refresh it in place so file
+                // edits are picked up by every list-refresh trigger (activation,
+                // ⌘R, toolbar, menu).
+                await self.loadDetail(for: self.selectedWorktree, clearingFirst: false)
             } catch {
                 if !Task.isCancelled {
                     self.errorMessage = error.localizedDescription

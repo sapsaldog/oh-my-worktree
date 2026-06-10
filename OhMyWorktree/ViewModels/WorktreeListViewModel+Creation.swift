@@ -85,22 +85,29 @@ extension WorktreeListViewModel {
 
     /// Loads ahead/behind, diff stat, and recent commits for the given worktree.
     /// Drive from a SwiftUI `.task(id:)` so it cancels and reloads on reselection.
-    func loadDetail(for worktree: Worktree?) async {
+    /// Pass `clearingFirst: false` for a same-worktree refresh (list reload,
+    /// post-apply) so the pane keeps its current data while recomputing.
+    func loadDetail(for worktree: Worktree?, clearingFirst: Bool = true) async {
         guard let worktree, let repository else {
             selectedWorktreeDetail = nil
             return
         }
-        selectedWorktreeDetail = nil
+        if clearingFirst { selectedWorktreeDetail = nil }
         var detail = await worktreeManager.worktreeDetail(
             worktreePath: worktree.path,
             repositoryPath: repository.path
         )
         let copier = fileCopier
+        let differ = self.differ
         let path = worktree.path
+        let repoPath = repository.path
         let matches = await Task.detached { copier.includedFiles(in: path) }.value
         // Only files Git ignores were actually copied; committed templates
         // (e.g. .env.example) come with the checkout and don't count.
-        detail.copiedFiles = await worktreeManager.gitIgnoredFiles(matches, worktreePath: path)
+        let ignored = await worktreeManager.gitIgnoredFiles(matches, worktreePath: path)
+        detail.copiedFiles = await Task.detached {
+            differ.compare(relativePaths: ignored, worktreePath: path, repositoryPath: repoPath)
+        }.value
         guard !Task.isCancelled else { return }
         selectedWorktreeDetail = detail
     }

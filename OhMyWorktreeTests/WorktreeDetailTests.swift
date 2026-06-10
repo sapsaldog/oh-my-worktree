@@ -47,6 +47,18 @@ struct WorktreeDetailModelTests {
         #expect(WorktreeDetail.empty.commits.isEmpty)
         #expect(WorktreeDetail.empty.copiedFiles.isEmpty)
     }
+
+    @Test func copiedFilesHoldClassifiedEntries() {
+        let file = CopiedFile.classify(path: ".env",
+                                       mainData: Data("A=1".utf8),
+                                       worktreeData: Data("A=2".utf8))
+        let detail = WorktreeDetail(aheadBehind: nil,
+                                    diff: DiffStat(added: 0, removed: 0, files: 0),
+                                    commits: [],
+                                    copiedFiles: [file])
+        #expect(detail.copiedFiles.map(\.status) == [.modified])
+        #expect(detail.copiedFiles.first?.path == ".env")
+    }
 }
 
 // MARK: - Pure parser tests
