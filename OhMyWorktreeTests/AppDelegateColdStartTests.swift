@@ -226,6 +226,15 @@ final class AppDelegateColdStartTests {
             backing: .buffered,
             defer: false
         )
+        // Without this, close() also releases the window while ARC still
+        // holds this strong reference — the over-release detonates later in
+        // an autorelease-pool drain (the exact crash windowNotReleasedWhenClosed
+        // documents for the app). Disable the order-front animation too: the
+        // window closes ~0.1s after makeKeyAndOrderFront, well inside the
+        // animation, and the in-flight _NSWindowTransformAnimation would keep
+        // a reference into the dead window.
+        window.isReleasedWhenClosed = false
+        window.animationBehavior = .none
         defer { window.close() }
 
         let rootView = ContentView(
@@ -330,6 +339,72 @@ final class AppDelegateColdStartTests {
         // (ContentView and menuWillOpen are responsible for loading)
         #expect(worktreeVM.worktrees.isEmpty,
                "AppDelegate should not trigger worktree loading from selectedRepository sink")
+    }
+
+    // MARK: - Cold start: opening the window must load the pre-synced worktree list
+
+    /// Regression for the v2.0.4-era first-launch empty list (counterpart of
+    /// `selectedRepoDoesNotEagerLoadWorktrees`): on cold start the selection
+    /// observer syncs `worktreeViewModel.repository` before any window exists,
+    /// intentionally WITHOUT loading worktrees. When the main window then
+    /// opens, ContentView's initial load must still run — `repository != nil`
+    /// does not mean the list was ever loaded.
+    ///
+    /// Also serves as the window-lifecycle canary for this suite: it goes
+    /// through the production `showOrCreateMainWindow()` path, which is only
+    /// safe because window animations are disabled under test (see
+    /// `showOrCreateWindow`). See the PR for the crash analysis.
+    @Test func coldStart_windowOpen_loadsPreSyncedWorktreeList() async throws {
+        // A lingering main window from an earlier test would be reused by
+        // showOrCreateMainWindow and host the wrong view models. Wait for the
+        // suite deinit to close it and for AppKit to release it. Do NOT close
+        // it here: closing another test's window while its order-front
+        // animation could still be in flight is exactly the crash this suite
+        // is hardened against.
+        try await pollUntil {
+            !NSApp.windows.contains { $0.title == AppDelegate.mainWindowTitle }
+        }
+
+        let mockExecutor = MockSimpleGitExecutor()
+        mockExecutor.worktreeListOutput = """
+        worktree /tmp/cold-start-window-test
+        HEAD abc1111
+        branch refs/heads/main
+
+        worktree /tmp/cold-start-window-test/wt-feature
+        HEAD abc2222
+        branch refs/heads/feature/x
+
+        """
+
+        let worktreeVM = WorktreeListViewModel(
+            worktreeManager: WorktreeManager(executor: mockExecutor, fileManager: MockNoOpFileManager()),
+            store: .shared,
+            pullRequestService: MockNoPRService()
+        )
+        let repoVM = RepositoryListViewModel()
+
+        // Cold-start state right before the window opens: repositories loaded,
+        // selection restored, repository synced — but the list never loaded.
+        let repo = Repository(name: "cold-start-window-test", path: "/tmp/cold-start-window-test")
+        repoVM.repositories = [repo]
+        repoVM.selectedRepository = repo
+        worktreeVM.repository = repo
+        #expect(worktreeVM.worktrees.isEmpty)
+
+        let appDelegate = AppDelegate()
+        appDelegate.setupStatusItem()
+        appDelegate.repoViewModel = repoVM
+        appDelegate.worktreeViewModel = worktreeVM
+        appDelegate.shortcutStore = ShortcutStore()
+
+        // The production cold-start path: status item / hotkey / Dock reopen
+        // all open the window through here. The window is cleaned up by this
+        // suite's deinit (same as the other showOrCreateMainWindow tests).
+        appDelegate.showOrCreateMainWindow()
+
+        // ContentView's appearance must trigger the initial worktree load.
+        try await pollUntil { worktreeVM.worktrees.count == 2 }
     }
 
     // MARK: - Settings view does not impose a fixed size that conflicts with window
