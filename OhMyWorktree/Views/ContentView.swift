@@ -93,10 +93,7 @@ struct ContentView: View {
             if repoViewModel.repositories.isEmpty {
                 await repoViewModel.loadRepositories()
             }
-            if worktreeViewModel.repository == nil, let selected = repoViewModel.selectedRepository {
-                worktreeViewModel.repository = selected
-                await worktreeViewModel.loadWorktrees()
-            }
+            await worktreeViewModel.windowAppeared(selectedRepository: repoViewModel.selectedRepository)
         }
         .onChange(of: repoViewModel.selectedRepository) { _, newValue in
             Task {

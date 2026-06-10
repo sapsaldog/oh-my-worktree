@@ -200,6 +200,19 @@ final class WorktreeListViewModel {
         await task.value
     }
 
+    /// Initial sync + load when the main window's content appears.
+    ///
+    /// On cold start, AppDelegate's selection observer syncs `repository`
+    /// before any window exists but intentionally does not load worktrees
+    /// (the status menu loads lazily on open), so `repository != nil` does
+    /// not imply the list has been loaded. Always reload for the current
+    /// selection here.
+    func windowAppeared(selectedRepository: Repository?) async {
+        guard let selectedRepository else { return }
+        repository = selectedRepository
+        await loadWorktrees()
+    }
+
     // MARK: - Load Helpers
 
     private func enriched(_ worktrees: [Worktree], metadata: [WorktreeMetadata]) async -> [Worktree] {
