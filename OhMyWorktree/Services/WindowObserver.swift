@@ -12,6 +12,12 @@ final class WindowObserver {
 
     private var isObserving = false
 
+    /// `true` from a user-initiated update check until Sparkle's update cycle
+    /// finishes. Sparkle's result alerts are modal panels that `isAppWindow`
+    /// deliberately ignores, so this flag is what keeps the app `.regular`
+    /// (and therefore the alert visible) for the duration of the session.
+    private var isUpdaterSessionActive = false
+
     func startObserving() {
         guard !isObserving else { return }
         isObserving = true
@@ -48,6 +54,12 @@ final class WindowObserver {
             name: .showInDockSettingChanged,
             object: nil
         )
+        center.addObserver(
+            self,
+            selector: #selector(updaterSessionStateChanged(_:)),
+            name: .updaterSessionStateChanged,
+            object: nil
+        )
     }
 
     // MARK: - Notification Handlers
@@ -79,6 +91,11 @@ final class WindowObserver {
         updateActivationPolicy()
     }
 
+    @objc private func updaterSessionStateChanged(_ notification: Notification) {
+        isUpdaterSessionActive = DockPolicy.updaterSessionActive(from: notification.userInfo)
+        updateActivationPolicy()
+    }
+
     // MARK: - Policy Management
 
     private func updateActivationPolicy() {
@@ -87,7 +104,11 @@ final class WindowObserver {
         }
 
         let showInDock = UserDefaults.standard.bool(forKey: DockPolicy.defaultsKey)
-        let desiredPolicy = DockPolicy.activationPolicy(showInDock: showInDock, hasAppWindows: hasAppWindows)
+        let desiredPolicy = DockPolicy.activationPolicy(
+            showInDock: showInDock,
+            hasAppWindows: hasAppWindows,
+            updaterSessionActive: isUpdaterSessionActive
+        )
         let currentPolicy = NSApp.activationPolicy()
 
         guard desiredPolicy != currentPolicy else { return }
