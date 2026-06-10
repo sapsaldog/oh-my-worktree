@@ -200,6 +200,11 @@ final class WorktreeListViewModel {
                 self.lastLoadTime = Date()
                 self.updateSelectedWorktree(from: freshWorktrees)
                 self.schedulePRFetch(repositoryPath: repository.path)
+                // Detail (copied-file diffs, ahead/behind, commits) otherwise only
+                // recomputes on selection change — refresh it in place so file
+                // edits are picked up by every list-refresh trigger (activation,
+                // ⌘R, toolbar, menu).
+                await self.loadDetail(for: self.selectedWorktree, clearingFirst: false)
             } catch {
                 if !Task.isCancelled {
                     self.errorMessage = error.localizedDescription

@@ -85,12 +85,14 @@ extension WorktreeListViewModel {
 
     /// Loads ahead/behind, diff stat, and recent commits for the given worktree.
     /// Drive from a SwiftUI `.task(id:)` so it cancels and reloads on reselection.
-    func loadDetail(for worktree: Worktree?) async {
+    /// Pass `clearingFirst: false` for a same-worktree refresh (list reload,
+    /// post-apply) so the pane keeps its current data while recomputing.
+    func loadDetail(for worktree: Worktree?, clearingFirst: Bool = true) async {
         guard let worktree, let repository else {
             selectedWorktreeDetail = nil
             return
         }
-        selectedWorktreeDetail = nil
+        if clearingFirst { selectedWorktreeDetail = nil }
         var detail = await worktreeManager.worktreeDetail(
             worktreePath: worktree.path,
             repositoryPath: repository.path
