@@ -172,6 +172,10 @@ final class WorktreeListViewModel {
 
         if debounce, let last = lastLoadTime,
            Date().timeIntervalSince(last) < Self.debounceInterval {
+            // The list is fresh enough to skip, but this is the app-activation /
+            // menu-open path — the selected worktree's files may have just been
+            // edited externally, so still refresh its detail in place.
+            await loadDetail(for: selectedWorktree, clearingFirst: false)
             return
         }
 

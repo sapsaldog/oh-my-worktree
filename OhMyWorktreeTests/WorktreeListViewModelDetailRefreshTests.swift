@@ -96,4 +96,24 @@ final class WorktreeListViewModelDetailRefreshTests {
         await sut.loadWorktrees()
         #expect(sut.selectedWorktreeDetail == nil)
     }
+
+    @Test func debouncedLoadWorktreesStillRefreshesDetail() async {
+        write(".env", "A=1", in: repoDir)
+        write(".env", "A=1", in: wtDir)
+        await sut.loadWorktrees()
+        guard let feature = sut.worktrees.first(where: { $0.path == wtDir }) else {
+            Issue.record("feature worktree missing from \(sut.worktrees.map(\.path))")
+            return
+        }
+        sut.selectedWorktreeIDs = [feature.id]
+        await sut.loadDetail(for: feature)
+        #expect(sut.selectedWorktreeDetail?.copiedFiles.map(\.status) == [.identical])
+
+        // Edit the file, then refresh via the DEBOUNCED path (app activation,
+        // menu-bar open) inside the 2s window. The list reload is skipped — the
+        // selected worktree's detail must still pick up the file change.
+        write(".env", "A=1\nB=2", in: wtDir)
+        await sut.loadWorktrees(debounce: true)
+        #expect(sut.selectedWorktreeDetail?.copiedFiles.map(\.status) == [.modified])
+    }
 }
