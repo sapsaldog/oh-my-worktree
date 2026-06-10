@@ -79,6 +79,7 @@ struct CopiedFilesSection: View {
             switch file.status {
             case .modified: Circle().fill(OMWColor.sysOrange).frame(width: 6, height: 6)
             case .new: Circle().fill(OMWColor.sysGreen).frame(width: 6, height: 6)
+            case .missing: Circle().fill(OMWColor.sysRed).frame(width: 6, height: 6)
             case .identical: Image(systemName: "doc").font(.system(size: 11))
             }
             PathLabel(path: file.path)
@@ -95,6 +96,12 @@ struct CopiedFilesSection: View {
                     .textCase(.uppercase)
                     .tracking(0.4)
                     .foregroundStyle(OMWColor.sysGreen)
+            } else if file.status == .missing {
+                Text("missing")
+                    .font(.system(size: 9, weight: .bold))
+                    .textCase(.uppercase)
+                    .tracking(0.4)
+                    .foregroundStyle(OMWColor.sysRed)
             }
         }
         .foregroundStyle(file.status == .identical ? OMWColor.labelSecondary : OMWColor.labelPrimary)
@@ -107,6 +114,7 @@ struct CopiedFilesSection: View {
         switch status {
         case .modified: OMWColor.sysOrange.opacity(0.15)
         case .new: OMWColor.sysGreen.opacity(0.15)
+        case .missing: OMWColor.sysRed.opacity(0.15)
         case .identical: OMWColor.fillTertiary
         }
     }

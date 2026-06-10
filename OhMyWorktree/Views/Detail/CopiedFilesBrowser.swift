@@ -7,6 +7,7 @@ struct CopiedFilesBrowser: View {
     let files: [CopiedFile]
     @Binding var focusedPath: String?
     var onApply: (CopiedFile) -> Void
+    var onApplyToWorktree: (CopiedFile) -> Void
     var onClose: () -> Void
 
     @Environment(\.omwAccent) private var accent
@@ -141,17 +142,36 @@ struct CopiedFilesBrowser: View {
                 .padding(.init(top: 8, leading: 18, bottom: 0, trailing: 18))
             UnifiedDiffView(file: file)
                 .padding(.init(top: 12, leading: 18, bottom: 4, trailing: 18))
-            footer(hint: "Updates main's local copy only — nothing is committed to Git.") {
-                Button { onApply(file) } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "arrow.left.to.line").font(.system(size: 13))
-                        Text(file.status == .new ? "Copy to main" : "Apply to main")
-                            .font(.system(size: 13, weight: .semibold))
-                    }
-                }
-                .buttonStyle(.borderedProminent).buttonBorderShape(.capsule).controlSize(.large)
-            }
+            footer(hint: applyHint(file)) { applyButton(file) }
         }
+    }
+
+    @ViewBuilder
+    private func applyButton(_ file: CopiedFile) -> some View {
+        if file.status == .missing {
+            Button { onApplyToWorktree(file) } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.right.to.line").font(.system(size: 13))
+                    Text("Copy to worktree").font(.system(size: 13, weight: .semibold))
+                }
+            }
+            .buttonStyle(.borderedProminent).buttonBorderShape(.capsule).controlSize(.large)
+        } else {
+            Button { onApply(file) } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.left.to.line").font(.system(size: 13))
+                    Text(file.status == .new ? "Copy to main" : "Apply to main")
+                        .font(.system(size: 13, weight: .semibold))
+                }
+            }
+            .buttonStyle(.borderedProminent).buttonBorderShape(.capsule).controlSize(.large)
+        }
+    }
+
+    private func applyHint(_ file: CopiedFile) -> String {
+        file.status == .missing
+            ? "Creates this file in the worktree from main's copy — nothing is committed to Git."
+            : "Updates main's local copy only — nothing is committed to Git."
     }
 
     private func diffHeader(_ file: CopiedFile) -> some View {
@@ -166,10 +186,18 @@ struct CopiedFilesBrowser: View {
             }
             .buttonStyle(.plain)
             Spacer()
-            Text(file.status == .new ? "new file — not in main" : "comparing vs. main")
+            Text(diffSubtitle(file))
                 .font(.omwMono(11)).foregroundStyle(OMWColor.labelQuaternary)
         }
         .padding(.init(top: 12, leading: 14, bottom: 0, trailing: 14))
+    }
+
+    private func diffSubtitle(_ file: CopiedFile) -> String {
+        switch file.status {
+        case .new: "new file — not in main"
+        case .missing: "missing here — exists in main"
+        default: "comparing vs. main"
+        }
     }
 
     // MARK: Footer

@@ -97,6 +97,30 @@ final class WorktreeListViewModelDetailRefreshTests {
         #expect(sut.selectedWorktreeDetail == nil)
     }
 
+    /// Regression: a `.worktreeinclude` file present in main but never copied into
+    /// the worktree must surface as `.missing` (not vanish from the diff), and the
+    /// reverse copy must perform the skipped copy and flip it to identical.
+    @Test func uncopiedMainFileSurfacesAsMissingThenCopiesIntoWorktree() async {
+        write(".env", "A=1\nB=2", in: repoDir)   // main only — copy never happened
+        await sut.loadWorktrees()
+        guard let feature = sut.worktrees.first(where: { $0.path == wtDir }) else {
+            Issue.record("feature worktree missing from \(sut.worktrees.map(\.path))")
+            return
+        }
+        sut.selectedWorktreeIDs = [feature.id]
+        await sut.loadDetail(for: feature)
+        #expect(sut.selectedWorktreeDetail?.copiedFiles.map(\.status) == [.missing])
+
+        guard let missing = sut.selectedWorktreeDetail?.copiedFiles.first else {
+            Issue.record("missing file absent from detail")
+            return
+        }
+        await sut.applyCopiedFileToWorktree(missing, in: feature)
+        #expect(fm.contents(atPath: (wtDir as NSString).appendingPathComponent(".env"))
+            == Data("A=1\nB=2".utf8))
+        #expect(sut.selectedWorktreeDetail?.copiedFiles.map(\.status) == [.identical])
+    }
+
     @Test func debouncedLoadWorktreesStillRefreshesDetail() async {
         write(".env", "A=1", in: repoDir)
         write(".env", "A=1", in: wtDir)
