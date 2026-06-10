@@ -59,41 +59,48 @@ struct CopiedFilesSection: View {
         }
     }
 
+    // Identical chips dim via color tier only (secondary text on a plain fill) and
+    // render as a non-button: stacking a whole-chip opacity on the already-tertiary
+    // directory text (plus the disabled-button dim) made them illegible in light mode.
     @ViewBuilder
     private func chip(_ file: CopiedFile) -> some View {
-        let clickable = file.status.isClickable
-        Button { onOpenDiff(file) } label: {
-            HStack(spacing: 5) {
-                switch file.status {
-                case .modified: Circle().fill(OMWColor.sysOrange).frame(width: 6, height: 6)
-                case .new: Circle().fill(OMWColor.sysGreen).frame(width: 6, height: 6)
-                case .identical: Image(systemName: "doc").font(.system(size: 11))
-                }
-                PathLabel(path: file.path)
-                    .font(.omwMono(11, weight: .medium))
-                if file.status == .modified {
-                    HStack(spacing: 4) {
-                        Text("+\(file.added)").foregroundStyle(OMWColor.sysGreen)
-                        Text("−\(file.removed)").foregroundStyle(OMWColor.sysRed)
-                    }
-                    .font(.omwMono(11, weight: .bold))
-                } else if file.status == .new {
-                    Text("new")
-                        .font(.system(size: 9, weight: .bold))
-                        .textCase(.uppercase)
-                        .tracking(0.4)
-                        .foregroundStyle(OMWColor.sysGreen)
-                }
-            }
-            .foregroundStyle(OMWColor.labelPrimary)
-            .padding(.horizontal, 9)
-            .frame(height: 22)
-            .background(chipBackground(file.status), in: Capsule())
-            .opacity(file.status == .identical ? 0.48 : 1)
+        if file.status.isClickable {
+            Button { onOpenDiff(file) } label: { chipLabel(file) }
+                .buttonStyle(.plain)
+                .help("\(file.path) — click to compare with main")
+        } else {
+            chipLabel(file)
+                .help("\(file.path) — identical to main")
         }
-        .buttonStyle(.plain)
-        .disabled(!clickable)
-        .help(clickable ? "\(file.path) — click to compare with main" : "\(file.path) — identical to main")
+    }
+
+    private func chipLabel(_ file: CopiedFile) -> some View {
+        HStack(spacing: 5) {
+            switch file.status {
+            case .modified: Circle().fill(OMWColor.sysOrange).frame(width: 6, height: 6)
+            case .new: Circle().fill(OMWColor.sysGreen).frame(width: 6, height: 6)
+            case .identical: Image(systemName: "doc").font(.system(size: 11))
+            }
+            PathLabel(path: file.path)
+                .font(.omwMono(11, weight: .medium))
+            if file.status == .modified {
+                HStack(spacing: 4) {
+                    Text("+\(file.added)").foregroundStyle(OMWColor.sysGreen)
+                    Text("−\(file.removed)").foregroundStyle(OMWColor.sysRed)
+                }
+                .font(.omwMono(11, weight: .bold))
+            } else if file.status == .new {
+                Text("new")
+                    .font(.system(size: 9, weight: .bold))
+                    .textCase(.uppercase)
+                    .tracking(0.4)
+                    .foregroundStyle(OMWColor.sysGreen)
+            }
+        }
+        .foregroundStyle(file.status == .identical ? OMWColor.labelSecondary : OMWColor.labelPrimary)
+        .padding(.horizontal, 9)
+        .frame(height: 22)
+        .background(chipBackground(file.status), in: Capsule())
     }
 
     private func chipBackground(_ status: CopiedFileStatus) -> Color {

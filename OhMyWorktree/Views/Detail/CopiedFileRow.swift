@@ -5,14 +5,17 @@ struct CopiedFileRow: View {
     let file: CopiedFile
     var onSelect: () -> Void
 
+    // Identical rows dim via color tier only and render as a non-button: a whole-row
+    // opacity multiplied the already-tertiary directory/dot colors (plus the
+    // disabled-button dim) into illegibility in light mode.
+    @ViewBuilder
     var body: some View {
-        let clickable = file.status.isClickable
-        Button { onSelect() } label: {
+        if file.status.isClickable {
+            Button { onSelect() } label: { rowContent }
+                .buttonStyle(.plain)
+        } else {
             rowContent
         }
-        .buttonStyle(.plain)
-        .disabled(!clickable)
-        .opacity(clickable ? 1 : 0.55)
     }
 
     private var rowContent: some View {
@@ -20,7 +23,7 @@ struct CopiedFileRow: View {
             Circle().fill(dotColor).frame(width: 7, height: 7)
             PathLabel(path: file.path)
                 .font(.omwMono(12.5, weight: .medium))
-                .foregroundStyle(OMWColor.labelPrimary)
+                .foregroundStyle(file.status.isClickable ? OMWColor.labelPrimary : OMWColor.labelSecondary)
             Spacer(minLength: 8)
             rowBadge
             if file.status.isClickable {
@@ -57,7 +60,7 @@ struct CopiedFileRow: View {
         switch file.status {
         case .modified: OMWColor.sysOrange
         case .new: OMWColor.sysGreen
-        case .identical: OMWColor.labelQuaternary
+        case .identical: OMWColor.labelTertiary
         }
     }
 }
