@@ -56,7 +56,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(
             DockPolicy.activationPolicy(
                 showInDock: UserDefaults.standard.bool(forKey: DockPolicy.defaultsKey),
-                hasAppWindows: false
+                hasAppWindows: false,
+                updaterSessionActive: false
             )
         )
         NSApp.appearance = AppearanceMode.named(
