@@ -159,6 +159,57 @@ struct WorktreeListViewModelTests {
         #expect(sut.worktrees.count == 1)
     }
 
+    // MARK: - windowAppeared (cold start)
+
+    /// Regression (first-launch empty list): on cold start AppDelegate's
+    /// selection observer syncs `repository` before the main window exists,
+    /// intentionally WITHOUT loading worktrees (the status menu loads lazily).
+    /// The window's initial load must therefore not assume `repository != nil`
+    /// implies the list has been loaded.
+    @Test func windowAppeared_repositoryAlreadySynced_loadsWorktrees() async {
+        mockExecutor.stubWorktrees("""
+        worktree /tmp/test-repo
+        HEAD abc1111
+        branch refs/heads/main
+
+        worktree /tmp/worktrees/feature-a
+        HEAD abc2222
+        branch refs/heads/feature/a
+
+        """)
+        // init() already synced sut.repository (= AppDelegate's sync); the
+        // list was never loaded — exactly the cold-start window-open state.
+        #expect(sut.worktrees.isEmpty)
+
+        await sut.windowAppeared(selectedRepository: testRepo)
+
+        #expect(sut.worktrees.count == 2)
+    }
+
+    @Test func windowAppeared_repositoryNotSet_syncsAndLoads() async {
+        sut.repository = nil
+        mockExecutor.stubWorktrees("""
+        worktree /tmp/test-repo
+        HEAD abc1111
+        branch refs/heads/main
+
+        """)
+
+        await sut.windowAppeared(selectedRepository: testRepo)
+
+        #expect(sut.repository?.id == testRepo.id)
+        #expect(sut.worktrees.count == 1)
+    }
+
+    @Test func windowAppeared_noSelection_keepsStateUntouched() async {
+        sut.repository = nil
+
+        await sut.windowAppeared(selectedRepository: nil)
+
+        #expect(sut.repository == nil)
+        #expect(sut.worktrees.isEmpty)
+    }
+
     // MARK: - renameWorktree
 
     @Test func renameWorktree_updatesLocalState() async {
