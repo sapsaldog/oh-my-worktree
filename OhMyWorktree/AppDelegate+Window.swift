@@ -54,7 +54,14 @@ extension AppDelegate {
         // constrained to the window's content bounds and lays out correctly on
         // first show. A bare NSHostingView offers an unconstrained width on the
         // initial pass, which makes the flexible column overflow the window.
-        window.contentViewController = NSHostingController(rootView: rootView())
+        let hosting = NSHostingController(rootView: rootView())
+        // This window's chrome is owned by AppKit (configureMainWindowChrome).
+        // Left enabled, SwiftUI's bar-appearance bridge re-asserts
+        // titleVisibility = .visible (bridging the content's navigationTitle)
+        // on async preference updates, racing our .hidden setting and
+        // intermittently revealing the title.
+        hosting.sceneBridgingOptions = []
+        window.contentViewController = hosting
         window.title = title
         configure?(window)
         window.setContentSize(size)
