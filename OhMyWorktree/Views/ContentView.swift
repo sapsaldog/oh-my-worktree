@@ -262,6 +262,11 @@ struct ContentView: View {
                         set: { worktreeViewModel.copiedBrowser?.focusedPath = $0 }
                     ),
                     onApply: { file in worktreeViewModel.pendingApply = file },
+                    onApplyToWorktree: { file in
+                        if let target = worktreeViewModel.copiedBrowser?.worktree {
+                            Task { await worktreeViewModel.applyCopiedFileToWorktree(file, in: target) }
+                        }
+                    },
                     onClose: { worktreeViewModel.copiedBrowser = nil }
                 )
                 .environment(\.omwAccent, accent)

@@ -56,11 +56,59 @@ final class CopiedFileDifferTests {
         #expect(files.map(\.status) == [.modified, .new, .identical])
     }
 
-    @Test func compareSkipsMissingWorktreeFile() {
-        write("ghost.env", in: repoDir, "A=1")   // exists in main, not in worktree
+    @Test func compareSurfacesMissingFileAsRemoved() {
+        // Exists in main, never copied into the worktree: it must surface as
+        // `.missing` showing main's content as removed lines — not be skipped.
+        write("ghost.env", in: repoDir, "A=1\nB=2")
         let files = sut.compare(relativePaths: ["ghost.env"],
                                 worktreePath: worktreeDir, repositoryPath: repoDir)
+        #expect(files.count == 1)
+        let file = files[0]
+        #expect(file.status == .missing)
+        #expect(file.isBinary == false)
+        #expect(file.added == 0)
+        #expect(file.removed == 2)
+        #expect(file.mainContent == "A=1\nB=2")
+        #expect(file.worktreeContent == nil)
+        #expect(file.lines.allSatisfy { $0.kind == .del })
+        #expect(file.status.isChanged && file.status.isClickable)
+    }
+
+    @Test func compareSurfacesMissingBinaryFile() {
+        write("blob.bin", in: repoDir, Data([0xFF, 0x00, 0xFE]))   // non-UTF-8, main only
+        let files = sut.compare(relativePaths: ["blob.bin"],
+                                worktreePath: worktreeDir, repositoryPath: repoDir)
+        #expect(files.first?.status == .missing)
+        #expect(files.first?.isBinary == true)
+        #expect(files.first?.lines.isEmpty == true)
+    }
+
+    @Test func compareSkipsPathAbsentOnBothSides() {
+        // Defensive: a candidate that exists in neither side is dropped entirely.
+        let files = sut.compare(relativePaths: ["nowhere.env"],
+                                worktreePath: worktreeDir, repositoryPath: repoDir)
         #expect(files.isEmpty)
+    }
+
+    @Test func classifyBothNilIsMissingAndEmpty() {
+        let file = CopiedFile.classify(path: "x.env", mainData: nil, worktreeData: nil)
+        #expect(file.status == .missing)
+        #expect(file.isBinary == false)
+        #expect(file.lines.isEmpty)
+        #expect(file.mainContent == nil)
+        #expect(file.worktreeContent == nil)
+    }
+
+    @Test func compareSortsModifiedMissingNewIdentical() {
+        write("m.env", in: repoDir, "1"); write("m.env", in: worktreeDir, "2")        // modified
+        write("gone.env", in: repoDir, "x")                                           // missing
+        write("fresh.env", in: worktreeDir, "y")                                      // new
+        write("same.env", in: repoDir, "z"); write("same.env", in: worktreeDir, "z")  // identical
+
+        let files = sut.compare(relativePaths: ["same.env", "fresh.env", "gone.env", "m.env"],
+                                worktreePath: worktreeDir, repositoryPath: repoDir)
+        // sortRank: modified(0) → missing(1) → new(2) → identical(3)
+        #expect(files.map(\.status) == [.modified, .missing, .new, .identical])
     }
 
     @Test func compareDetectsBinaryModified() {
@@ -117,6 +165,32 @@ final class CopiedFileDifferTests {
                                worktreePath: worktreeDir, repositoryPath: repoDir)[0]
         #expect(throws: (any Error).self) {
             try sut.applyToMain(file, worktreePath: worktreeDir, repositoryPath: repoDir)
+        }
+    }
+
+    // MARK: applyToWorktree (main → worktree, the reverse copy)
+
+    @Test func applyToWorktreeCopiesMainCopyCreatingDirs() throws {
+        write("config/local/app.env", in: repoDir, "K=V")   // main only → missing
+        let file = sut.compare(relativePaths: ["config/local/app.env"],
+                               worktreePath: worktreeDir, repositoryPath: repoDir)[0]
+        #expect(file.status == .missing)
+
+        try sut.applyToWorktree(file, worktreePath: worktreeDir, repositoryPath: repoDir)
+
+        #expect(read("config/local/app.env", in: worktreeDir) == Data("K=V".utf8))
+        // re-comparing now reports identical
+        let after = sut.compare(relativePaths: ["config/local/app.env"],
+                                worktreePath: worktreeDir, repositoryPath: repoDir)[0]
+        #expect(after.status == .identical)
+    }
+
+    @Test func applyToWorktreeThrowsWhenMainCopyMissing() {
+        let phantom = CopiedFile(path: "gone.env", status: .missing, isBinary: false,
+                                 added: 0, removed: 0, mainContent: nil,
+                                 worktreeContent: nil, lines: [])
+        #expect(throws: (any Error).self) {
+            try sut.applyToWorktree(phantom, worktreePath: worktreeDir, repositoryPath: repoDir)
         }
     }
 }

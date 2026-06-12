@@ -50,6 +50,9 @@ struct CopiedFileRow: View {
         case .new:
             Text("new").font(.system(size: 10, weight: .bold)).textCase(.uppercase)
                 .tracking(0.4).foregroundStyle(OMWColor.sysGreen)
+        case .missing:
+            Text("missing").font(.system(size: 10, weight: .bold)).textCase(.uppercase)
+                .tracking(0.4).foregroundStyle(OMWColor.sysRed)
         case .identical:
             Text("identical").font(.system(size: 10, weight: .medium))
                 .foregroundStyle(OMWColor.labelTertiary)
@@ -60,6 +63,7 @@ struct CopiedFileRow: View {
         switch file.status {
         case .modified: OMWColor.sysOrange
         case .new: OMWColor.sysGreen
+        case .missing: OMWColor.sysRed
         case .identical: OMWColor.labelTertiary
         }
     }

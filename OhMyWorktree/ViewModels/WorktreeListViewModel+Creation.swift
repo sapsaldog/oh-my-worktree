@@ -101,7 +101,14 @@ extension WorktreeListViewModel {
         let differ = self.differ
         let path = worktree.path
         let repoPath = repository.path
-        let matches = await Task.detached { copier.includedFiles(in: path) }.value
+        // Candidate set = files matching `.worktreeinclude` in EITHER the worktree
+        // or main. One present only in main was never copied in (the copy was
+        // skipped, errored, or the worktree predates the pattern) — it must still
+        // surface, as `.missing`, rather than vanish from the diff.
+        let matches = await Task.detached {
+            Array(Set(copier.includedFiles(in: path))
+                .union(copier.includedFiles(in: repoPath))).sorted()
+        }.value
         // Only files Git ignores were actually copied; committed templates
         // (e.g. .env.example) come with the checkout and don't count.
         let ignored = await worktreeManager.gitIgnoredFiles(matches, worktreePath: path)

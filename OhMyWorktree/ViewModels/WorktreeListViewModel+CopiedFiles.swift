@@ -42,4 +42,24 @@ extension WorktreeListViewModel {
             errorMessage = error.localizedDescription
         }
     }
+
+    /// Copies `file` (main → worktree) to perform a `.worktreeinclude` copy that
+    /// never happened, reloads the detail so statuses refresh, and shows a toast.
+    /// Surfaces failures through the standard error alert.
+    func applyCopiedFileToWorktree(_ file: CopiedFile, in worktree: Worktree) async {
+        guard let repository else { return }
+        let differ = self.differ
+        let worktreePath = worktree.path
+        let repoPath = repository.path
+        do {
+            try await Task.detached {
+                try differ.applyToWorktree(file, worktreePath: worktreePath, repositoryPath: repoPath)
+            }.value
+            await loadDetail(for: worktree, clearingFirst: false)
+            copiedBrowser?.focusedPath = nil
+            copiedToast = "Copied \((file.path as NSString).lastPathComponent) to worktree"
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
 }
