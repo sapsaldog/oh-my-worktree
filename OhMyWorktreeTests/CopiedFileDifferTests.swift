@@ -71,7 +71,7 @@ final class CopiedFileDifferTests {
         #expect(file.mainContent == "A=1\nB=2")
         #expect(file.worktreeContent == nil)
         #expect(file.lines.allSatisfy { $0.kind == .del })
-        #expect(file.status.isChanged && file.status.isClickable)
+        #expect(file.status.isChanged)
     }
 
     @Test func compareSurfacesMissingBinaryFile() {

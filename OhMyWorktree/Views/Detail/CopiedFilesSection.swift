@@ -58,19 +58,16 @@ struct CopiedFilesSection: View {
         }
     }
 
-    // Identical chips dim via color tier only (secondary text on a plain fill) and
-    // render as a non-button: stacking a whole-chip opacity on the already-tertiary
-    // directory text (plus the disabled-button dim) made them illegible in light mode.
-    @ViewBuilder
+    // Every copied file opens in the external diff tool (identical included), so the
+    // chip is always a button. Identical chips dim via color tier only (secondary text
+    // on a plain fill) — never a whole-chip opacity, which stacked with the tertiary
+    // directory text into illegibility in light mode.
     private func chip(_ file: CopiedFile) -> some View {
-        if file.status.isClickable {
-            Button { onOpenInDiffTool(file) } label: { chipLabel(file) }
-                .buttonStyle(.plain)
-                .help("\(file.path) — open in your diff tool")
-        } else {
-            chipLabel(file)
-                .help("\(file.path) — identical to main")
-        }
+        Button { onOpenInDiffTool(file) } label: { chipLabel(file) }
+            .buttonStyle(.plain)
+            .help(file.status.isChanged
+                ? "\(file.path) — open in your diff tool"
+                : "\(file.path) — identical to main; open in your diff tool")
     }
 
     private func chipLabel(_ file: CopiedFile) -> some View {

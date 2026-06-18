@@ -5,17 +5,12 @@ struct CopiedFileRow: View {
     let file: CopiedFile
     var onSelect: () -> Void
 
-    // Identical rows dim via color tier only and render as a non-button: a whole-row
-    // opacity multiplied the already-tertiary directory/dot colors (plus the
-    // disabled-button dim) into illegibility in light mode.
-    @ViewBuilder
+    // Every copied file opens in the external diff tool (identical included), so the
+    // row is always a button. Identical rows dim via color tier only — never a whole-row
+    // opacity, which stacked with the tertiary text into illegibility in light mode.
     var body: some View {
-        if file.status.isClickable {
-            Button { onSelect() } label: { rowContent }
-                .buttonStyle(.plain)
-        } else {
-            rowContent
-        }
+        Button { onSelect() } label: { rowContent }
+            .buttonStyle(.plain)
     }
 
     private var rowContent: some View {
@@ -23,14 +18,12 @@ struct CopiedFileRow: View {
             Circle().fill(dotColor).frame(width: 7, height: 7)
             PathLabel(path: file.path)
                 .font(.omwMono(12.5, weight: .medium))
-                .foregroundStyle(file.status.isClickable ? OMWColor.labelPrimary : OMWColor.labelSecondary)
+                .foregroundStyle(file.status.isChanged ? OMWColor.labelPrimary : OMWColor.labelSecondary)
             Spacer(minLength: 8)
             rowBadge
-            if file.status.isClickable {
-                Image(systemName: "arrow.up.forward.app")
-                    .font(.system(size: 12))
-                    .foregroundStyle(OMWColor.labelTertiary)
-            }
+            Image(systemName: "arrow.up.forward.app")
+                .font(.system(size: 12))
+                .foregroundStyle(OMWColor.labelTertiary)
         }
         .padding(.horizontal, 11).frame(height: 38)
         .frame(maxWidth: .infinity, alignment: .leading)

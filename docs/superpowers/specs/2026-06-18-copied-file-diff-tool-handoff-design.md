@@ -44,8 +44,8 @@ The prototype pivots the copied-file diff experience from in-app to external han
 
 - The *Copied files* detail section and the *View all* browser each show a `DiffToolMenu` in their
   header. **Settings → General** gains a "Diff tool" row with the same menu (the persisted default).
-- Clicking a changed copied-file chip/row opens that file in the selected diff tool. Identical files
-  stay non-clickable. Status, `+N −N` counts, sorting, search and "Changed only" are unchanged.
+- Clicking any copied-file chip/row (identical included) opens that file in the selected diff tool.
+  Status, `+N −N` counts, sorting, search and "Changed only" are unchanged.
 - The menu lists all five tools; not-installed tools are shown disabled with a "Not installed" hint
   (per the design's `DiffToolMenu`). The current selection shows a check.
 
@@ -140,9 +140,10 @@ Keep (still needed):
   does not exist, so the tool shows a one-sided/new state. Verify per-tool during implementation and
   fall back gracefully (e.g. skip launch + brief toast) if a tool errors on a non-existent path.
 - **`new`** (in worktree, not in `main`): symmetric — `main`-side path absent.
-- **`identical`**: non-clickable (unchanged).
-- **No diff tool installed:** every menu item is disabled and chips become non-clickable; the menu
-  button reads "No diff tool" so the state is self-explanatory (no toast needed).
+- **`identical`**: still opens in the diff tool (both copies are equal — the tool shows no
+  differences); the chip/row is dimmed to mark it unchanged.
+- **No diff tool installed:** every menu item is disabled and the menu button reads "No diff tool".
+  Chips/rows stay buttons, but the hand-off is a no-op (nothing to launch), so the state is clear.
 - **Persisted tool later uninstalled:** the *effective* tool = persisted-id-if-installed, else the
   first installed tool. The menu highlights the effective tool (not a disabled phantom), and launches
   use it. The stored id is left untouched so reinstalling restores the prior choice.
@@ -171,8 +172,8 @@ Keep (still needed):
 1. A `DiffToolMenu` appears in the Copied files detail header, the View all browser header, and
    Settings → General; the selection persists across launches and defaults to the first installed
    tool.
-2. Clicking a changed copied-file chip/row launches that file's `main`↔`worktree` pair in the
-   selected tool; identical files are non-clickable.
+2. Clicking any copied-file chip/row launches that file's `main`↔`worktree` pair in the selected
+   tool; every file (identical included) is clickable, with identical ones visually dimmed.
 3. Not-installed tools appear disabled with a "Not installed" hint; the current selection is checked.
 4. The in-app unified diff view and the "Apply to main" / "Copy to worktree" actions no longer exist.
 5. Status chips, counts, sorting, search, and "Changed only" behave as before.
