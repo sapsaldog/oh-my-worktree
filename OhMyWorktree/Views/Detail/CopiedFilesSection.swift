@@ -5,7 +5,8 @@ import SwiftUI
 /// "View all" button that opens the searchable browser sheet.
 struct CopiedFilesSection: View {
     let files: [CopiedFile]
-    var onOpenDiff: (CopiedFile) -> Void = { _ in }
+    var availableDiffTools: [DiffTool] = []
+    var onOpenInDiffTool: (CopiedFile) -> Void = { _ in }
     var onBrowseAll: () -> Void = {}
 
     private let cap = 5
@@ -53,9 +54,7 @@ struct CopiedFilesSection: View {
                 }
             }
             Spacer()
-            Text(".worktreeinclude")
-                .font(.omwMono(10))
-                .foregroundStyle(OMWColor.labelQuaternary)
+            DiffToolMenu(available: availableDiffTools)
         }
     }
 
@@ -65,9 +64,9 @@ struct CopiedFilesSection: View {
     @ViewBuilder
     private func chip(_ file: CopiedFile) -> some View {
         if file.status.isClickable {
-            Button { onOpenDiff(file) } label: { chipLabel(file) }
+            Button { onOpenInDiffTool(file) } label: { chipLabel(file) }
                 .buttonStyle(.plain)
-                .help("\(file.path) — click to compare with main")
+                .help("\(file.path) — open in your diff tool")
         } else {
             chipLabel(file)
                 .help("\(file.path) — identical to main")

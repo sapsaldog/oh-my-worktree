@@ -27,7 +27,7 @@ struct CopiedFileRow: View {
             Spacer(minLength: 8)
             rowBadge
             if file.status.isClickable {
-                Image(systemName: "chevron.right")
+                Image(systemName: "arrow.up.forward.app")
                     .font(.system(size: 12))
                     .foregroundStyle(OMWColor.labelTertiary)
             }

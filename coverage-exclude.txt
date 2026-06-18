@@ -44,6 +44,9 @@ OhMyWorktree/ViewModels/WorktreeListViewModel+CopiedFiles.swift
 OhMyWorktree/Models/Worktree.swift
 OhMyWorktree/Services/ExternalToolLauncher.swift
 OhMyWorktree/ViewModels/WorktreeListViewModel+ExternalTools.swift
+# Process launch + filesystem detection of external diff tools (no diff apps on CI).
+# Pure catalog/arg/filter logic lives in DiffTool.swift, which IS tested to 100%.
+OhMyWorktree/Services/DiffToolLauncher.swift
 
 # OS-framework wrappers — a unit-test process cannot execute these lines:
 #   GitHeadMonitor  — DispatchSource file watcher on .git/HEAD

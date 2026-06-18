@@ -1,13 +1,11 @@
 import SwiftUI
 
-/// One glass sheet that browses a worktree's copied files and drills into a
-/// unified diff vs. main. `focusedPath` (re-resolved against `files` each render so
-/// it reflects applied changes) opens straight to that file's diff.
+/// A glass sheet that browses a worktree's copied files: searchable, filterable
+/// list. Clicking a changed file hands it off to the selected external diff tool.
 struct CopiedFilesBrowser: View {
     let files: [CopiedFile]
-    @Binding var focusedPath: String?
-    var onApply: (CopiedFile) -> Void
-    var onApplyToWorktree: (CopiedFile) -> Void
+    let availableDiffTools: [DiffTool]
+    var onOpenInDiffTool: (CopiedFile) -> Void
     var onClose: () -> Void
 
     @Environment(\.omwAccent) private var accent
@@ -15,11 +13,6 @@ struct CopiedFilesBrowser: View {
     @State private var changedOnly = false
 
     private var changedCount: Int { files.filter { $0.status.isChanged }.count }
-
-    private var active: CopiedFile? {
-        guard let focusedPath else { return nil }
-        return files.first { $0.path == focusedPath }
-    }
 
     private var sorted: [CopiedFile] {
         files.sorted { lhs, rhs in
@@ -38,40 +31,18 @@ struct CopiedFilesBrowser: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if let active {
-                diffView(active)
-            } else {
-                listView
-            }
-        }
-        .frame(width: 520)
-        .frame(maxHeight: 560)
-        .glassSheet()
-        .tint(accent)
-        .onExitCommand {
-            if focusedPath != nil {
-                focusedPath = nil
-            } else {
-                onClose()
-            }
-        }
-    }
-
-    // MARK: List
-
-    private var listView: some View {
-        VStack(alignment: .leading, spacing: 0) {
             listHeader
                 .padding(.init(top: 16, leading: 18, bottom: 0, trailing: 18))
             listControls
                 .padding(.init(top: 12, leading: 18, bottom: 4, trailing: 18))
             fileList
-            footer(hint: "Click a changed file to view its diff and apply it back to main.") {
-                Button("Done", action: onClose)
-                    .buttonStyle(.borderedProminent).buttonBorderShape(.capsule).controlSize(.large)
-                    .keyboardShortcut(.defaultAction)
-            }
+            footer
         }
+        .frame(width: 520)
+        .frame(maxHeight: 560)
+        .glassSheet()
+        .tint(accent)
+        .onExitCommand { onClose() }
     }
 
     private var listHeader: some View {
@@ -86,7 +57,7 @@ struct CopiedFilesBrowser: View {
                 }
             }
             Spacer()
-            Text(".worktreeinclude").font(.omwMono(11)).foregroundStyle(OMWColor.labelQuaternary)
+            DiffToolMenu(available: availableDiffTools)
         }
     }
 
@@ -119,7 +90,7 @@ struct CopiedFilesBrowser: View {
         ScrollView {
             LazyVStack(spacing: 2) {
                 ForEach(filtered) { file in
-                    CopiedFileRow(file: file) { focusedPath = file.path }
+                    CopiedFileRow(file: file) { onOpenInDiffTool(file) }
                 }
                 if filtered.isEmpty {
                     Text("No files match \u{201C}\(query)\u{201D}.")
@@ -131,83 +102,15 @@ struct CopiedFilesBrowser: View {
         }
     }
 
-    // MARK: Diff drill-in
-
-    private func diffView(_ file: CopiedFile) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            diffHeader(file)
-            PathLabel(path: file.path)
-                .font(.omwMono(14, weight: .bold))
-                .foregroundStyle(OMWColor.labelPrimary)
-                .padding(.init(top: 8, leading: 18, bottom: 0, trailing: 18))
-            UnifiedDiffView(file: file)
-                .padding(.init(top: 12, leading: 18, bottom: 4, trailing: 18))
-            footer(hint: applyHint(file)) { applyButton(file) }
-        }
-    }
-
-    @ViewBuilder
-    private func applyButton(_ file: CopiedFile) -> some View {
-        if file.status == .missing {
-            Button { onApplyToWorktree(file) } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "arrow.right.to.line").font(.system(size: 13))
-                    Text("Copy to worktree").font(.system(size: 13, weight: .semibold))
-                }
-            }
-            .buttonStyle(.borderedProminent).buttonBorderShape(.capsule).controlSize(.large)
-        } else {
-            Button { onApply(file) } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "arrow.left.to.line").font(.system(size: 13))
-                    Text(file.status == .new ? "Copy to main" : "Apply to main")
-                        .font(.system(size: 13, weight: .semibold))
-                }
-            }
-            .buttonStyle(.borderedProminent).buttonBorderShape(.capsule).controlSize(.large)
-        }
-    }
-
-    private func applyHint(_ file: CopiedFile) -> String {
-        file.status == .missing
-            ? "Creates this file in the worktree from main's copy — nothing is committed to Git."
-            : "Updates main's local copy only — nothing is committed to Git."
-    }
-
-    private func diffHeader(_ file: CopiedFile) -> some View {
-        HStack {
-            Button { focusedPath = nil } label: {
-                HStack(spacing: 2) {
-                    Image(systemName: "chevron.left").font(.system(size: 13, weight: .semibold))
-                    Text("All files").font(.system(size: 12.5, weight: .semibold))
-                }
-                .foregroundStyle(accent)
-                .padding(.init(top: 4, leading: 4, bottom: 4, trailing: 8))
-            }
-            .buttonStyle(.plain)
-            Spacer()
-            Text(diffSubtitle(file))
-                .font(.omwMono(11)).foregroundStyle(OMWColor.labelQuaternary)
-        }
-        .padding(.init(top: 12, leading: 14, bottom: 0, trailing: 14))
-    }
-
-    private func diffSubtitle(_ file: CopiedFile) -> String {
-        switch file.status {
-        case .new: "new file — not in main"
-        case .missing: "missing here — exists in main"
-        default: "comparing vs. main"
-        }
-    }
-
-    // MARK: Footer
-
-    private func footer(hint: String, @ViewBuilder trailing: () -> some View) -> some View {
+    private var footer: some View {
         HStack(spacing: 14) {
-            Text(hint).font(.system(size: 11)).foregroundStyle(OMWColor.labelTertiary)
+            Text("Click a changed file to open it in your diff tool — edits there touch disk only, never Git.")
+                .font(.system(size: 11)).foregroundStyle(OMWColor.labelTertiary)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
-            trailing()
+            Button("Done", action: onClose)
+                .buttonStyle(.borderedProminent).buttonBorderShape(.capsule).controlSize(.large)
+                .keyboardShortcut(.defaultAction)
         }
         .padding(.init(top: 12, leading: 18, bottom: 14, trailing: 18))
         .overlay(alignment: .top) { Rectangle().fill(OMWColor.separator).frame(height: 0.5) }
