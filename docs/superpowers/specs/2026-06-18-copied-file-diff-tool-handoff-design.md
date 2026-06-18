@@ -86,7 +86,7 @@ Pure, table-driven, and unit-tested: catalog contents, argument assembly, lookup
 
 ### Persistence — `@AppStorage("diffToolID")`
 
-Match the existing settings pattern (`GeneralSettingsView` already uses
+Match the existing settings pattern (`SettingsSheetContent`'s `GeneralTab` already uses
 `@AppStorage("copyEnvFilesEnabled")`). Store the selected tool id in UserDefaults; read it directly
 from the views that show the menu. **Do not** add a field to the `AppSettings` struct (it is
 100%-coverage-gated and the SwiftUI settings layer doesn't use it). Default resolution: the persisted
@@ -102,7 +102,10 @@ check on the current selection. Placed in:
    (the design header is `title + menu`, with no label).
 2. `CopiedFilesBrowser` list header — same: the menu takes the trailing slot currently holding the
    `.worktreeinclude` label.
-3. `GeneralSettingsView` — a new "Diff tool" row under a General/Worktree section.
+3. `SettingsSheetContent`'s General tab (`GeneralTab`) — a new "Diff tool" `SettingsRow` at the top.
+   This is the **live** in-app settings sheet (opened via `isShowingSettings`). The `SettingsView` /
+   `GeneralSettingsView` window is dead code (`showOrCreateSettingsWindow` is never called) — do not
+   put live settings there.
 
 ### Wiring
 

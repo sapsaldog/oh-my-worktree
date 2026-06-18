@@ -148,9 +148,15 @@ private struct GeneralTab: View {
     @AppStorage(DockPolicy.defaultsKey) private var showInDock = false
     @AppStorage(MenuBarTitle.showWorktreeNameKey) private var showWorktreeName = false
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+    @State private var installedDiffTools: [DiffTool] = []
 
     var body: some View {
         SettingsCard {
+            SettingsRow(icon: "arrow.left.arrow.right", title: "Diff tool",
+                        subtitle: "Open copied-file diffs in this tool") {
+                DiffToolMenu(available: installedDiffTools)
+            }
+            settingsHairline()
             SettingsRow(icon: "doc.on.doc", title: "Copy files to new worktrees",
                         subtitle: "Use .worktreeinclude patterns when creating worktrees") {
                 Toggle("Copy files to new worktrees", isOn: $copyEnvFilesEnabled).toggleStyle(.omwSwitch)
@@ -178,7 +184,10 @@ private struct GeneralTab: View {
                     }
             }
         }
-        .onAppear { launchAtLogin = SMAppService.mainApp.status == .enabled }
+        .onAppear {
+            launchAtLogin = SMAppService.mainApp.status == .enabled
+            installedDiffTools = DiffToolLauncher().installedTools()
+        }
     }
 
     private func setLaunchAtLogin(_ enabled: Bool) {

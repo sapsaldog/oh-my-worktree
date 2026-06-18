@@ -7,7 +7,6 @@ private let logger = Logger(subsystem: "com.ohmyworktree", category: "Settings")
 struct GeneralSettingsView: View {
     @AppStorage("copyEnvFilesEnabled") private var copyEnvFilesEnabled = true
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
-    @State private var installedDiffTools: [DiffTool] = []
 
     var body: some View {
         Form {
@@ -42,20 +41,10 @@ struct GeneralSettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-
-            Section("Diff Tool") {
-                LabeledContent("Open copied-file diffs in") {
-                    DiffToolMenu(available: installedDiffTools)
-                }
-                Text("Clicking a copied file opens its diff in this tool. Only installed tools can be selected.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
         }
         .formStyle(.grouped)
         .onAppear {
             launchAtLogin = SMAppService.mainApp.status == .enabled
-            installedDiffTools = DiffToolLauncher().installedTools()
         }
     }
 }
