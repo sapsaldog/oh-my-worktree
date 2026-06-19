@@ -7,10 +7,10 @@ enum CopiedFileStatus: Equatable, Sendable {
     case new         // present in the worktree, absent in main
     case missing     // present in main, absent in the worktree (the copy never happened)
 
-    /// Differs from main (anything worth surfacing / applying).
+    /// Differs from main. Drives the changed-count, the "Changed only" filter, and
+    /// chip/row emphasis. Every copied file is openable in the diff tool regardless,
+    /// so there is no separate "clickable" flag.
     var isChanged: Bool { self != .identical }
-    /// Has something to open (a diff to view or content to copy back).
-    var isClickable: Bool { self != .identical }
     /// Ordering for chips/list: modified → missing → new → identical.
     var sortRank: Int {
         switch self {

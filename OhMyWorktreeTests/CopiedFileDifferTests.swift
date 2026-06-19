@@ -71,7 +71,7 @@ final class CopiedFileDifferTests {
         #expect(file.mainContent == "A=1\nB=2")
         #expect(file.worktreeContent == nil)
         #expect(file.lines.allSatisfy { $0.kind == .del })
-        #expect(file.status.isChanged && file.status.isClickable)
+        #expect(file.status.isChanged)
     }
 
     @Test func compareSurfacesMissingBinaryFile() {
@@ -118,79 +118,5 @@ final class CopiedFileDifferTests {
                                 worktreePath: worktreeDir, repositoryPath: repoDir)
         #expect(files.first?.status == .modified)
         #expect(files.first?.isBinary == true)
-    }
-
-    // MARK: applyToMain
-
-    @Test func applyOverwritesExistingMainCopy() throws {
-        write("apps/a/.env", in: repoDir, "A=1")
-        write("apps/a/.env", in: worktreeDir, "A=2\nB=3")
-        let file = sut.compare(relativePaths: ["apps/a/.env"],
-                               worktreePath: worktreeDir, repositoryPath: repoDir)[0]
-
-        try sut.applyToMain(file, worktreePath: worktreeDir, repositoryPath: repoDir)
-
-        #expect(read("apps/a/.env", in: repoDir) == Data("A=2\nB=3".utf8))
-        // re-comparing now reports identical
-        let after = sut.compare(relativePaths: ["apps/a/.env"],
-                                worktreePath: worktreeDir, repositoryPath: repoDir)[0]
-        #expect(after.status == .identical)
-    }
-
-    @Test func applyCopiesNewFileCreatingDirs() throws {
-        write("config/local/new.json", in: worktreeDir, "{}")
-        let file = sut.compare(relativePaths: ["config/local/new.json"],
-                               worktreePath: worktreeDir, repositoryPath: repoDir)[0]
-        #expect(file.status == .new)
-
-        try sut.applyToMain(file, worktreePath: worktreeDir, repositoryPath: repoDir)
-
-        #expect(read("config/local/new.json", in: repoDir) == Data("{}".utf8))
-    }
-
-    @Test func applyThrowsWhenSourceMissing() {
-        let phantom = CopiedFile(path: "gone.env", status: .new, isBinary: false,
-                                 added: 0, removed: 0, mainContent: nil,
-                                 worktreeContent: nil, lines: [])
-        #expect(throws: (any Error).self) {
-            try sut.applyToMain(phantom, worktreePath: worktreeDir, repositoryPath: repoDir)
-        }
-    }
-
-    @Test func applyThrowsWhenDestDirBlockedByFile() {
-        // A *file* named "blocker" in repo blocks creating dir "blocker/".
-        write("blocker", in: repoDir, "x")
-        write("blocker/x.env", in: worktreeDir, "A=1")
-        let file = sut.compare(relativePaths: ["blocker/x.env"],
-                               worktreePath: worktreeDir, repositoryPath: repoDir)[0]
-        #expect(throws: (any Error).self) {
-            try sut.applyToMain(file, worktreePath: worktreeDir, repositoryPath: repoDir)
-        }
-    }
-
-    // MARK: applyToWorktree (main → worktree, the reverse copy)
-
-    @Test func applyToWorktreeCopiesMainCopyCreatingDirs() throws {
-        write("config/local/app.env", in: repoDir, "K=V")   // main only → missing
-        let file = sut.compare(relativePaths: ["config/local/app.env"],
-                               worktreePath: worktreeDir, repositoryPath: repoDir)[0]
-        #expect(file.status == .missing)
-
-        try sut.applyToWorktree(file, worktreePath: worktreeDir, repositoryPath: repoDir)
-
-        #expect(read("config/local/app.env", in: worktreeDir) == Data("K=V".utf8))
-        // re-comparing now reports identical
-        let after = sut.compare(relativePaths: ["config/local/app.env"],
-                                worktreePath: worktreeDir, repositoryPath: repoDir)[0]
-        #expect(after.status == .identical)
-    }
-
-    @Test func applyToWorktreeThrowsWhenMainCopyMissing() {
-        let phantom = CopiedFile(path: "gone.env", status: .missing, isBinary: false,
-                                 added: 0, removed: 0, mainContent: nil,
-                                 worktreeContent: nil, lines: [])
-        #expect(throws: (any Error).self) {
-            try sut.applyToWorktree(phantom, worktreePath: worktreeDir, repositoryPath: repoDir)
-        }
     }
 }

@@ -29,12 +29,9 @@ final class WorktreeListViewModel {
     /// Ahead/behind, diff stat, and recent commits for the currently selected worktree.
     var selectedWorktreeDetail: WorktreeDetail?
 
-    /// When non-nil, the copied-files browser sheet is open. `focusedPath`, when
-    /// set, opens straight to that file's diff (drill-in); nil shows the list.
+    /// When non-nil, the copied-files browser sheet is open (list of copied files).
     var copiedBrowser: CopiedBrowserState?
-    /// A copied file awaiting Apply-to-main confirmation.
-    var pendingApply: CopiedFile?
-    /// Transient success message shown as a toast after an apply.
+    /// Transient status message shown as a toast (e.g. opening a diff externally).
     var copiedToast: String?
 
     // FR-032: Multi-select (native ⌘+click / ⇧+click via SwiftUI List)
@@ -70,6 +67,7 @@ final class WorktreeListViewModel {
     let worktreeManager: WorktreeManager
     // internal for WorktreeListViewModel+ExternalTools extension
     let toolLauncher: ExternalToolLauncher
+    let diffToolLauncher: DiffToolLauncher
     // internal for WorktreeListViewModel+ExternalTools and handleJobStateChange
     let store: RepositoryStore
     // internal for WorktreeListViewModel+Creation extension
@@ -95,6 +93,7 @@ final class WorktreeListViewModel {
     init(
         worktreeManager: WorktreeManager = WorktreeManager(),
         toolLauncher: ExternalToolLauncher = ExternalToolLauncher(),
+        diffToolLauncher: DiffToolLauncher = DiffToolLauncher(),
         store: RepositoryStore = .shared,
         fileCopier: WorktreeFileCopier = WorktreeFileCopier(),
         differ: CopiedFileDiffer = CopiedFileDiffer(),
@@ -102,6 +101,7 @@ final class WorktreeListViewModel {
     ) {
         self.worktreeManager = worktreeManager
         self.toolLauncher = toolLauncher
+        self.diffToolLauncher = diffToolLauncher
         self.store = store
         self.fileCopier = fileCopier
         self.differ = differ

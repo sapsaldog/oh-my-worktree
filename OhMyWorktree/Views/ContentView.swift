@@ -156,8 +156,11 @@ struct ContentView: View {
             onOpenPR: {
                 if let wt = selectedWorktree { worktreeViewModel.openPullRequest(for: wt) }
             },
-            onOpenCopiedDiff: { file in
-                if let wt = selectedWorktree { worktreeViewModel.openCopiedDiff(file, for: wt) }
+            availableDiffTools: worktreeViewModel.availableDiffTools,
+            onOpenInDiffTool: { file in
+                if let wt = selectedWorktree {
+                    Task { await worktreeViewModel.openInDiffTool(file, in: wt) }
+                }
             },
             onBrowseCopied: {
                 if let wt = selectedWorktree { worktreeViewModel.browseCopiedFiles(for: wt) }
@@ -257,15 +260,9 @@ struct ContentView: View {
             glassModal {
                 CopiedFilesBrowser(
                     files: worktreeViewModel.selectedWorktreeDetail?.copiedFiles ?? [],
-                    focusedPath: Binding(
-                        get: { worktreeViewModel.copiedBrowser?.focusedPath },
-                        set: { worktreeViewModel.copiedBrowser?.focusedPath = $0 }
-                    ),
-                    onApply: { file in worktreeViewModel.pendingApply = file },
-                    onApplyToWorktree: { file in
-                        if let target = worktreeViewModel.copiedBrowser?.worktree {
-                            Task { await worktreeViewModel.applyCopiedFileToWorktree(file, in: target) }
-                        }
+                    availableDiffTools: worktreeViewModel.availableDiffTools,
+                    onOpenInDiffTool: { file in
+                        Task { await worktreeViewModel.openInDiffTool(file, in: browser.worktree) }
                     },
                     onClose: { worktreeViewModel.copiedBrowser = nil }
                 )

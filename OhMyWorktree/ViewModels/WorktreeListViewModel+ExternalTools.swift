@@ -71,4 +71,25 @@ extension WorktreeListViewModel {
     var isVSCodeAvailable: Bool { toolLauncher.isVSCodeInstalled() }
     var isCursorAvailable: Bool { toolLauncher.isCursorInstalled() }
     var isCmuxAvailable: Bool { toolLauncher.isCmuxInstalled() }
+
+    // MARK: - Diff Tools
+
+    var availableDiffTools: [DiffTool] { diffToolLauncher.installedTools() }
+
+    /// Hands `file` off to the user's chosen diff tool, comparing main's copy
+    /// (left) against the worktree's copy (right). No-op when nothing is installed.
+    func openInDiffTool(_ file: CopiedFile, in worktree: Worktree) async {
+        guard let repository else { return }
+        let installed = diffToolLauncher.installedTools()
+        let storedID = UserDefaults.standard.string(forKey: "diffToolID")
+        guard let tool = DiffTool.effective(storedID: storedID, installed: installed) else { return }
+        let mainPath = (repository.path as NSString).appendingPathComponent(file.path)
+        let worktreePath = (worktree.path as NSString).appendingPathComponent(file.path)
+        do {
+            try diffToolLauncher.launch(tool, mainPath: mainPath, worktreePath: worktreePath)
+            copiedToast = "Opening \((file.path as NSString).lastPathComponent) in \(tool.name)"
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
 }

@@ -1,8 +1,7 @@
 import Foundation
 
 /// Compares a worktree's copied (`.worktreeinclude`) files against the
-/// repository's (main worktree's) copies, and applies a worktree copy back to main.
-/// Stateless; safe to instantiate per call.
+/// repository's (main worktree's) copies. Stateless; safe to instantiate per call.
 final class CopiedFileDiffer: Sendable {
 
     /// Builds a `CopiedFile` per relative path by reading both copies. A path may
@@ -25,31 +24,5 @@ final class CopiedFileDiffer: Sendable {
                 ? lhs.status.sortRank < rhs.status.sortRank
                 : lhs.path < rhs.path
         }
-    }
-
-    /// Overwrites main's local copy of `file` with the worktree's bytes (atomically;
-    /// creates the file and parent directories when absent). Never touches Git.
-    func applyToMain(_ file: CopiedFile, worktreePath: String, repositoryPath: String) throws {
-        let fm = FileManager.default
-        let source = URL(fileURLWithPath: (worktreePath as NSString).appendingPathComponent(file.path))
-        let dest = URL(fileURLWithPath: (repositoryPath as NSString).appendingPathComponent(file.path))
-        let destDir = (dest.path as NSString).deletingLastPathComponent
-        try fm.createDirectory(atPath: destDir, withIntermediateDirectories: true)
-        let data = try Data(contentsOf: source)
-        try data.write(to: dest, options: .atomic)
-    }
-
-    /// Copies main's local copy of `file` into the worktree (atomically; creates the
-    /// file and parent directories when absent). The inverse of `applyToMain`, for
-    /// `.missing` files — performs the `.worktreeinclude` copy that never ran. Never
-    /// touches Git.
-    func applyToWorktree(_ file: CopiedFile, worktreePath: String, repositoryPath: String) throws {
-        let fm = FileManager.default
-        let source = URL(fileURLWithPath: (repositoryPath as NSString).appendingPathComponent(file.path))
-        let dest = URL(fileURLWithPath: (worktreePath as NSString).appendingPathComponent(file.path))
-        let destDir = (dest.path as NSString).deletingLastPathComponent
-        try fm.createDirectory(atPath: destDir, withIntermediateDirectories: true)
-        let data = try Data(contentsOf: source)
-        try data.write(to: dest, options: .atomic)
     }
 }

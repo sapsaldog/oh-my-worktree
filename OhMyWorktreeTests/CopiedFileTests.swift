@@ -14,9 +14,6 @@ struct CopiedFileTests {
         #expect(CopiedFileStatus.identical.isChanged == false)
         #expect(CopiedFileStatus.modified.isChanged)
         #expect(CopiedFileStatus.new.isChanged)
-        #expect(CopiedFileStatus.identical.isClickable == false)
-        #expect(CopiedFileStatus.modified.isClickable)
-        #expect(CopiedFileStatus.new.isClickable)
         #expect(CopiedFileStatus.modified.sortRank < CopiedFileStatus.new.sortRank)
         #expect(CopiedFileStatus.new.sortRank < CopiedFileStatus.identical.sortRank)
     }
