@@ -69,8 +69,8 @@ targets:
         # launch. The app promotes to .regular at runtime when a window opens
         # (WindowObserver) or when "Show icon in Dock" is enabled (DockPolicy).
         LSUIElement: true
-        CFBundleShortVersionString: "2.1.2"
-        CFBundleVersion: "20"
+        CFBundleShortVersionString: "2.1.3"
+        CFBundleVersion: "21"
         LSApplicationCategoryType: public.app-category.developer-tools
         NSHumanReadableCopyright: ""
         SUFeedURL: "https://raw.githubusercontent.com/sapsaldog/oh-my-worktree/main/appcast.xml"
