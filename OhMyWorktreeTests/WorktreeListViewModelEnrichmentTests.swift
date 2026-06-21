@@ -86,6 +86,21 @@ struct WorktreeListViewModelEnrichmentTests {
 
     """
 
+    /// Builds `git worktree list --porcelain` output for `count` worktrees
+    /// (index 0 is the repo root). Used to stress the enrichment fan-out.
+    private static func makePorcelain(count: Int) -> String {
+        var lines: [String] = []
+        for i in 0..<count {
+            let path = i == 0 ? "/tmp/test-repo" : "/tmp/worktrees/wt-\(i)"
+            let branch = i == 0 ? "refs/heads/main" : "refs/heads/feature/\(i)"
+            lines.append("worktree \(path)")
+            lines.append("HEAD \(String(format: "abc%04d", i))")
+            lines.append("branch \(branch)")
+            lines.append("")
+        }
+        return lines.joined(separator: "\n")
+    }
+
     // MARK: - Concurrent execution
 
     @Test("lastCommitDate calls run concurrently for multiple worktrees")
@@ -143,5 +158,37 @@ struct WorktreeListViewModelEnrichmentTests {
         #expect(main.lastActivityAt == Date(timeIntervalSince1970: 1_700_000_100))
         #expect(wtA.lastActivityAt == Date(timeIntervalSince1970: 1_700_000_200))
         #expect(wtB.lastActivityAt == Date(timeIntervalSince1970: 1_700_000_300))
+    }
+
+    // MARK: - Bounded concurrency
+
+    @Test("commit-date enrichment caps concurrency well below the dispatch pool limit")
+    func enrichment_capsConcurrencyBelowDispatchLimit() async {
+        // With an unbounded TaskGroup, a repo with many worktrees fans out one
+        // `git log` per worktree simultaneously. Each GitCommandExecutor.execute
+        // blocks a libdispatch worker thread on a synchronous pipe-read wait, so
+        // ~64+ concurrent calls exhaust the 64-thread global pool and deadlock
+        // "Loading worktrees…" forever. The fan-out must be bounded to a small
+        // constant, leaving ample headroom under the 64-thread limit.
+        let executor = ConcurrencyTrackingExecutor(
+            worktreeListOutput: Self.makePorcelain(count: 100),
+            logCallDelay: .milliseconds(50)
+        )
+
+        let vm = WorktreeListViewModel(
+            worktreeManager: WorktreeManager(executor: executor),
+            store: .shared,
+            pullRequestService: MockNoPRService()
+        )
+        vm.repository = testRepo
+
+        await vm.loadWorktrees()
+
+        let peak = await executor.tracker.peak
+        #expect(peak > 1, "enrichment should still run in parallel — peak was \(peak)")
+        #expect(
+            peak <= 16,
+            "enrichment must cap concurrency well under the 64-thread dispatch limit — peak was \(peak)"
+        )
     }
 }
