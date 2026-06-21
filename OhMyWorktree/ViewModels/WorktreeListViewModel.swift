@@ -79,6 +79,14 @@ final class WorktreeListViewModel {
     @ObservationIgnored private var lastLoadTime: Date?
     private static let debounceInterval: TimeInterval = 2.0
 
+    /// Upper bound on simultaneous `git log` (commit-date) lookups during
+    /// enrichment. Each `GitCommandExecutor.execute` occupies a libdispatch
+    /// worker thread while it runs, so an unbounded fan-out across a repo with
+    /// 64+ worktrees exhausts libdispatch's 64-thread global pool and deadlocks
+    /// the load forever. Keeping in-flight lookups far under that limit prevents
+    /// the pool exhaustion. See WorktreeListViewModelEnrichmentTests.
+    private static let maxConcurrentCommitDateLookups = 8
+
     var repository: Repository? {
         didSet {
             if repository?.id != oldValue?.id {
@@ -245,16 +253,23 @@ final class WorktreeListViewModel {
             result[i].prRemoteBranch = meta?.prRemoteBranch
         }
 
-        // Step 2: Fetch commit dates concurrently (issue #12)
+        // Step 2: Fetch commit dates concurrently, but BOUNDED (issue #12).
+        // A sliding window keeps at most `maxConcurrentCommitDateLookups` `git
+        // log` calls in flight at once: prime the window, then submit the next
+        // index each time one completes. This preserves parallelism while
+        // capping the fan-out far under libdispatch's 64-thread limit so the
+        // executor can never exhaust the pool (see the constant's docs).
         let manager = worktreeManager
+        let total = result.count
         await withTaskGroup(of: (Int, Date?).self) { group in
-            for i in result.indices {
+            var nextIndex = 0
+            while nextIndex < min(Self.maxConcurrentCommitDateLookups, total) {
+                let i = nextIndex
                 let path = result[i].path
-                group.addTask {
-                    let date = await manager.lastCommitDate(worktreePath: path)
-                    return (i, date)
-                }
+                group.addTask { (i, await manager.lastCommitDate(worktreePath: path)) }
+                nextIndex += 1
             }
+
             for await (index, commitDate) in group {
                 let metaActivity = metadata.first(where: { $0.folderName == result[index].folderName })?.lastActivityAt
                 switch (metaActivity, commitDate) {
@@ -262,6 +277,13 @@ final class WorktreeListViewModel {
                 case let (date1?, nil):    result[index].lastActivityAt = date1
                 case let (nil, date2?):    result[index].lastActivityAt = date2
                 case (nil, nil):           break
+                }
+
+                if nextIndex < total {
+                    let i = nextIndex
+                    let path = result[i].path
+                    group.addTask { (i, await manager.lastCommitDate(worktreePath: path)) }
+                    nextIndex += 1
                 }
             }
         }

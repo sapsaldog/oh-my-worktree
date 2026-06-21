@@ -16,6 +16,26 @@ extension GitCommandExecuting {
     }
 }
 
+/// Thread-safe byte accumulator for a pipe. The stdout and stderr
+/// `readabilityHandler` callbacks fire on independent dispatch queues, so the
+/// buffer is guarded by a lock.
+private final class OutputBuffer: @unchecked Sendable {
+    private let lock = NSLock()
+    private var data = Data()
+
+    func append(_ chunk: Data) {
+        lock.lock()
+        data.append(chunk)
+        lock.unlock()
+    }
+
+    var collected: Data {
+        lock.lock()
+        defer { lock.unlock() }
+        return data
+    }
+}
+
 /// Executes Git commands via Process. Thread-safe because it has no mutable state.
 final class GitCommandExecutor: GitCommandExecuting, Sendable {
     func execute(
@@ -43,47 +63,17 @@ final class GitCommandExecutor: GitCommandExecuting, Sendable {
             uniquingKeysWith: { _, new in new }
         )
 
-        // withTaskCancellationHandler ensures that when the enclosing Task is cancelled
-        // (e.g. by BackgroundTaskQueue's timeout), the spawned process receives SIGTERM
-        // instead of becoming a zombie that blocks waitUntilExit() indefinitely.
-        // The blocking work (run + waitUntilExit) is dispatched to a global queue so it
-        // never blocks the calling actor (e.g. MainActor).
+        // CRITICAL: this executor must never block a libdispatch worker thread.
+        // The previous implementation dispatched a worker onto the global pool and
+        // blocked it on `DispatchGroup.wait()` while waiting for two more pooled
+        // reader blocks — so 64+ concurrent calls parked every thread in the
+        // 64-thread global pool, and the reader blocks they waited on could never
+        // be scheduled. That deadlock froze "Loading worktrees…" forever. `run`
+        // (below) drains the pipes incrementally and resumes via
+        // `DispatchGroup.notify`, never `.wait()`, so the pool can't be exhausted.
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
-                DispatchQueue.global(qos: .userInitiated).async {
-                    do {
-                        try process.run()
-
-                        // Read both pipes concurrently to prevent deadlock.
-                        // If either pipe's buffer fills (~64KB on macOS), the child
-                        // blocks until it's drained. Sequential reads can deadlock
-                        // when one pipe fills while we're blocked reading the other.
-                        var stdoutData = Data()
-                        var stderrData = Data()
-                        let group = DispatchGroup()
-                        group.enter()
-                        DispatchQueue.global(qos: .userInitiated).async {
-                            stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
-                            group.leave()
-                        }
-                        group.enter()
-                        DispatchQueue.global(qos: .userInitiated).async {
-                            stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
-                            group.leave()
-                        }
-                        group.wait()
-
-                        process.waitUntilExit()
-
-                        continuation.resume(returning: CommandResult(
-                            stdout: String(data: stdoutData, encoding: .utf8) ?? "",
-                            stderr: String(data: stderrData, encoding: .utf8) ?? "",
-                            exitCode: process.terminationStatus
-                        ))
-                    } catch {
-                        continuation.resume(throwing: error)
-                    }
-                }
+                Self.run(process, stdoutPipe: stdoutPipe, stderrPipe: stderrPipe, resuming: continuation)
             }
         } onCancel: {
             // Guard against terminating a process that hasn't started yet,
@@ -91,6 +81,73 @@ final class GitCommandExecutor: GitCommandExecuting, Sendable {
             if process.isRunning {
                 process.terminate()
             }
+        }
+    }
+
+    /// Spawns `process`, draining both pipes incrementally via `readabilityHandler`
+    /// (so output larger than the ~64KB pipe buffer can't stall the child) and
+    /// resuming `continuation` exactly once through `DispatchGroup.notify`. No
+    /// pooled thread is ever parked, so concurrent calls cannot exhaust the
+    /// libdispatch global pool.
+    private static func run(
+        _ process: Process,
+        stdoutPipe: Pipe,
+        stderrPipe: Pipe,
+        resuming continuation: CheckedContinuation<CommandResult, Error>
+    ) {
+        let stdoutBuffer = OutputBuffer()
+        let stderrBuffer = OutputBuffer()
+        let stdoutHandle = stdoutPipe.fileHandleForReading
+        let stderrHandle = stderrPipe.fileHandleForReading
+
+        // Three events must complete before resuming: stdout EOF, stderr EOF, and
+        // process termination. Each signals a single `leave()`; `notify` fires
+        // once, after all three.
+        let group = DispatchGroup()
+        group.enter()
+        group.enter()
+        group.enter()
+
+        stdoutHandle.readabilityHandler = { handle in
+            let chunk = handle.availableData
+            if chunk.isEmpty {
+                handle.readabilityHandler = nil
+                group.leave()
+            } else {
+                stdoutBuffer.append(chunk)
+            }
+        }
+        stderrHandle.readabilityHandler = { handle in
+            let chunk = handle.availableData
+            if chunk.isEmpty {
+                handle.readabilityHandler = nil
+                group.leave()
+            } else {
+                stderrBuffer.append(chunk)
+            }
+        }
+        process.terminationHandler = { _ in
+            group.leave()
+        }
+
+        group.notify(queue: DispatchQueue.global(qos: .userInitiated)) {
+            continuation.resume(returning: CommandResult(
+                stdout: String(data: stdoutBuffer.collected, encoding: .utf8) ?? "",
+                stderr: String(data: stderrBuffer.collected, encoding: .utf8) ?? "",
+                exitCode: process.terminationStatus
+            ))
+        }
+
+        do {
+            try process.run()
+        } catch {
+            // The process never started, so no handler fires and the group never
+            // balances (its `notify` therefore never runs, so there is no
+            // double-resume). Detach the handlers and fail the call.
+            stdoutHandle.readabilityHandler = nil
+            stderrHandle.readabilityHandler = nil
+            process.terminationHandler = nil
+            continuation.resume(throwing: error)
         }
     }
 }
